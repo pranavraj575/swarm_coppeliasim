@@ -1,7 +1,8 @@
-from swarm_expiriment import *
+from src.swarm_expiriment import *
+from collections import defaultdict
 import lkh
-
-solver_path = '/home/rajbhandari/LKH-3.0.6/LKH'
+import time
+SOLVER_PATH = '/home/rajbhandari/LKH-3.0.6/LKH'
 
 
 class travelingSalesBlimp(BlimpExperiment):
@@ -137,7 +138,12 @@ class lkhSaleBlimp(travelingSalesBlimp):
         super().__init__(1, start_zone, num_points, spawn_pt_and_time)
 
     def make_goal_list(self, factor=1000):
-        fn = 'temp.txt'
+        """
+        creates the order of the hamiltonian path according to lkh
+        @param factor: lkh takes integers, so we multiply coordinates by factor to increase precision
+        @return:[list of handles for agent to visit]
+        """
+        fn = 'temp'+str(time.time()).replace('.','_')+'.txt'
         f = open(fn, 'w')
         f.write('TYPE : TSP\n')
         f.write('DIMENSION : ' + str(self.num_points) + '\n')
@@ -151,8 +157,8 @@ class lkhSaleBlimp(travelingSalesBlimp):
             f.write('\n')
             node_to_key[i + 1] = key
         f.close()
-        lis = lkh.solve(solver_path, problem_file=fn, max_trials=10000, runs=10)
-        print(lis)
+        lis = lkh.solve(SOLVER_PATH, problem_file=fn, max_trials=10000, runs=10)
+        os.remove(fn)
         return [[node_to_key[i] for i in lis[0]]]
 
 

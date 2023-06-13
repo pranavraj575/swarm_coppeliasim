@@ -114,7 +114,7 @@ if __name__ == "__main__":
                 'ymin':-5, 'ymax':5,
                 'zmin':0.5, 'zmax':2.0,
                 }
-    DIR=os.path.join(os.getcwd(),os.path.dirname(sys.argv[0]))
+    DIR = os.path.dirname(os.path.join(os.getcwd(), os.path.dirname(sys.argv[0])))
 
     outputFilePrefix = "blimpWallClimbExp_"
 
@@ -152,8 +152,8 @@ if __name__ == "__main__":
                 help="Specify the time in seconds when the simulation will stop. Default 150 seconds")    
     parser.add_argument("-p","--pause",action="store_true",
                 help="Specify this parameter to pause at the end of simulation instead of stop. Useful if desired hand count at end.")
-    parser.add_argument("-odp","--outputdirectorypath", type=str, metavar=('path'), default=DIR+'/data',
-                help="Specify path to the output directory for the summary file to be written within. Default is '"+DIR+"/data")
+    parser.add_argument("-odp","--outputdirectorypath", type=str, metavar=('path'), default=DIR+'/old_stuff/data',
+                help="Specify path to the output directory for the summary file to be written within. Default is '"+DIR+"/old_stuff/data")
     
     # Parse the arguments and assign into variables
     args = parser.parse_args()
@@ -185,7 +185,7 @@ if __name__ == "__main__":
             print('Failed at finding [' + file + '].\nExiting...')
             exit(1)
     if not  os.path.isdir(outputDirectoryPath):
-        os.makedirs(outputDirectoryPath)
+        raise Exception('no  path')
 
     #####################
     # Now that argument parsing has been completed, begin setting up the simulation

@@ -408,7 +408,7 @@ if __name__ == '__main__':
                  'zmin': 1, 'zmax': 1,
                  }
 
-    DIR = os.path.join(os.getcwd(), os.path.dirname(sys.argv[0]))
+    DIR = os.path.dirname(os.path.join(os.getcwd(), os.path.dirname(sys.argv[0])))
     MODELDIR = DIR + '/ros_ctrl_models/blimpNarrowSensor.ttm'
     SCENEDIR = DIR + '/scenes/empty.ttt'
     narrowModelPath = os.path.abspath(os.path.expanduser(MODELDIR))

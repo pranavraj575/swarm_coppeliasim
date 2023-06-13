@@ -1,10 +1,18 @@
-from swarm_expiriment import *
+from src.swarm_expiriment import *
+from collections import defaultdict
+
+
 class chainSiphon(BlimpExperiment):
     def __init__(self,
                  num_agents,
                  goal_value,
+                 start_zone=lambda i: ((.5, 6), (-2, 2), (1, 1.25)),
+                 scenePath=frictionless_wall_path,
+                 blimpPath=narrow_blimp_path,
+                 sim=None,
+                 wakeup=None,
+                 sleeptime=.1,
                  goal_field=None,
-                 start_zone=lambda i:((.5, 6), (-2, 2), (1, 1.25)),
                  weight=(.5, 0, .002, 1, .5),
                  point_obstacles=(),
                  obs_vector=lambda pos: np.array((0, 0, 0)),
@@ -18,7 +26,13 @@ class chainSiphon(BlimpExperiment):
                  goal_test=lambda p: False,
                  use_ultra=True,
                  ):
-        super().__init__(num_agents, start_zone)
+        super().__init__(num_agents,
+                         start_zone,
+                         scenePath=scenePath,
+                         blimpPath=blimpPath,
+                         sim=sim,
+                         wakeup=wakeup,
+                         sleeptime=sleeptime)
 
         self.weight = weight
         self.point_obstacles = point_obstacles
@@ -150,7 +164,7 @@ class chainSiphon(BlimpExperiment):
                     dPos = self.safe_norm(dPos)
 
                     ljp = dPos * (24 * self.etta * (
-                                -26 / ((0.6 * (dist + 0.75)) ** 14) + 7 / ((0.6 * (dist + 0.75)) ** 8)))
+                            -26 / ((0.6 * (dist + 0.75)) ** 14) + 7 / ((0.6 * (dist + 0.75)) ** 8)))
 
                     if item[4] < queue_value:
                         queue_value = item[4] + 1
@@ -233,5 +247,7 @@ class chainSiphon(BlimpExperiment):
             if self.get_state(agent_id)['x'] < 0:
                 succ += 1
         return succ
-bb = chainSiphon(6,goal_value=lambda pos: pos[0])
-print(bb.experiments(3, lambda t:t>10))
+
+
+bb = chainSiphon(6, goal_value=lambda pos: pos[0])
+print(bb.experiments(3, lambda t: t > 10))

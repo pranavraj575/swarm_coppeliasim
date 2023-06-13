@@ -1,5 +1,5 @@
 import subprocess
-import time, os
+import time, os, sys
 from zmqRemoteApi import RemoteAPIClient
 import rclpy
 import numpy as np
@@ -7,9 +7,11 @@ import numpy as np
 from geometry_msgs.msg import Twist, TwistStamped
 from std_msgs.msg import Float64
 
-frictionless_wall_path = '/home/rajbhandari/projects/blimp_coppeliasim/scenes/FrictionlessWallClimb.ttt'
-empty_path = '/home/rajbhandari/projects/blimp_coppeliasim/scenes/empty.ttt'
-narrow_blimp_path = '/home/rajbhandari/projects/blimp_coppeliasim/ros_ctrl_models/blimp_narrow.ttm'
+DIR = os.path.dirname(os.path.join(os.getcwd(), os.path.dirname(sys.argv[0])))
+
+frictionless_wall_path = os.path.join(DIR, 'scenes', 'FrictionlessWallClimb.ttt')
+empty_path = os.path.join(DIR, 'scenes', 'empty.ttt')
+narrow_blimp_path = os.path.join(DIR, 'ros_ctrl_models', 'blimp_narrow.ttm')
 
 
 class Experiment:
@@ -80,11 +82,11 @@ class Experiment:
         if not rclpy.ok():
             rclpy.init()
         if reset:
-            while self.sim.simulation_stopped!= self.sim.getSimulationState():
+            while self.sim.simulation_stopped != self.sim.getSimulationState():
                 self.sim.stopSimulation()
                 time.sleep(self.sleeptime)
             self.sim.loadScene(os.path.abspath(os.path.expanduser(self.scenePath)))
-            #time.sleep(self.sleeptime)
+            # time.sleep(self.sleeptime)
             self.spawnThings()
 
     def run_exp(self,
@@ -103,13 +105,13 @@ class Experiment:
         self.sim.startSimulation()
         while rclpy.ok() and not end_time(self.sim.getSimulationTime()):
             self.step()
-        while self.sim.simulation_paused!= self.sim.getSimulationState():
+        while self.sim.simulation_paused != self.sim.getSimulationState():
             self.sim.pauseSimulation()
             time.sleep(self.sleeptime)
-        #time.sleep(self.sleeptime)
+        # time.sleep(self.sleeptime)
         output = self.goal_data()
         if stop_after:
-            while self.sim.simulation_stopped!= self.sim.getSimulationState():
+            while self.sim.simulation_stopped != self.sim.getSimulationState():
                 self.sim.stopSimulation()
                 time.sleep(self.sleeptime)
         self.despawnThings()
@@ -507,7 +509,7 @@ class blimpTest(BlimpExperiment):
             # goal = np.array((1, 0, agent_id * .5 + 1))
             goal = next_pos
             vec = goal - pos
-            #vec = np.zeros(3)
+            # vec = np.zeros(3)
             self.move_agent(agent_id, vec * .1)
 
     def goal_data(self):
@@ -520,7 +522,6 @@ class blimpTest(BlimpExperiment):
             pos = self.get_position(agent_id, use_ultra=False)
             s.append(pos[2])
         return s
-
 
 
 if __name__ == "__main__":

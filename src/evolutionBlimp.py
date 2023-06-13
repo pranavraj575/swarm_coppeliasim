@@ -1,4 +1,4 @@
-from swarm_expiriment import *
+from src.swarm_expiriment import *
 
 
 class blimpNet(BlimpExperiment):
@@ -134,9 +134,8 @@ class octantBlimp(blimpNet):
         return np.mean(s)
 
 import neat, os, sys
-from matplotlib import pyplot as plt
 
-DIR = os.path.join(os.getcwd(), os.path.dirname(sys.argv[0]))
+DIR = os.path.dirname(os.path.join(os.getcwd(), os.path.dirname(sys.argv[0])))
 config_file = os.path.join(DIR, 'config', 'test-config-feedforward')
 config = neat.Config(neat.DefaultGenome, neat.DefaultReproduction,
                      neat.DefaultSpeciesSet, neat.DefaultStagnation,
@@ -163,7 +162,7 @@ p = neat.Population(config)
 p.add_reporter(neat.StdOutReporter(True))
 stats = neat.StatisticsReporter()
 p.add_reporter(stats)
-winner = p.run(eval_genomes, 10)
+winner = p.run(eval_genomes, 1)
 print('\nBest genome:\n{!s}'.format(winner))
 
 print('\nOutput:')

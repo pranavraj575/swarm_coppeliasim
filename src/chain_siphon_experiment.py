@@ -4,6 +4,9 @@ from matplotlib import pyplot as plt
 import time, sys
 from zmqRemoteApi import RemoteAPIClient
 
+DIR = os.path.dirname(os.path.join(os.getcwd(), os.path.dirname(sys.argv[0])))
+
+
 client = RemoteAPIClient()
 sim = client.getObject('sim')
 startZone = {'xmin': .5, 'xmax': 6,
@@ -11,7 +14,6 @@ startZone = {'xmin': .5, 'xmax': 6,
              'zmin': 1, 'zmax': 1.25,
              }
 
-DIR = os.path.join(os.getcwd(), os.path.dirname(sys.argv[0]))
 MODELDIR = DIR + '/ros_ctrl_models/blimp_narrow.ttm'
 SCENEDIR = DIR + '/scenes/WallClimb.ttt'
 narrowModelPath = os.path.abspath(os.path.expanduser(MODELDIR))
@@ -21,7 +23,7 @@ pause_time = 1
 if len(sys.argv)>1:
     name=sys.argv[1]
 else:
-    name = 'CHAINS'
+    name = 'CONTROL'
 
 save_dir = os.path.join(DIR, 'output', name)
 #save_dir=None
