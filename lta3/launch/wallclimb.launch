@@ -1,0 +1,32 @@
+<!-- Starts up everything needed to run the example listener/talker Python nodes. -->
+<launch>
+
+  <node pkg="lta3" type="manualwaypoints.py" name="waypoints" output="screen" launch-prefix="xterm -e">
+  </node>
+
+  <include file="$(find lta3)/launch/lta3.launch">
+   <arg name="lta3_id" value="lta3"/>
+  </include>
+
+  <include file="$(find lta3)/launch/lta3.launch">
+   <arg name="lta3_id" value="lta4"/>
+  </include>
+
+  <include file="$(find lta3)/launch/lta3.launch">
+   <arg name="lta3_id" value="lta6"/>
+  </include>
+
+  <include file="$(find lta3)/launch/lta3.launch">
+   <arg name="lta3_id" value="lta7"/>
+  </include>
+
+  <include file="$(find lta3)/launch/lta3.launch">
+   <arg name="lta3_id" value="lta8"/>
+  </include>
+
+  <include file="$(find lta3)/launch/lta3.launch">
+   <arg name="lta3_id" value="lta10"/>
+  </include>
+
+
+</launch>

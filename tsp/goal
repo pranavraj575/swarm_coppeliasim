@@ -1,0 +1,10 @@
+given positions, lambda, alphas, betas, 
+and a partition
+since the sum of information gain maximization function is log concave, 
+we can calculate this with grad descent to figure out durations of each node
+this maximizes the discounted information gain (discounted based off lambda)
+
+given partition, the positions can also be used with LKH to find route for each partition
+
+
+find a PARTITION (my part) heuristic that maximizes discounted information gain
