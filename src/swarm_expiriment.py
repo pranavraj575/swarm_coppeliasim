@@ -1,4 +1,4 @@
-import subprocess
+import subprocess, psutil
 import time, os, sys
 from zmqRemoteApi import RemoteAPIClient
 import rclpy
@@ -25,13 +25,16 @@ class Experiment:
 
         @param scenePath: path to the scene to load
         @param sim: zqm simulator api, if None, than makes its own
-        @param wakeup: command to run on initialization (i.e. start coppeliasim)
+        @param wakeup: list of commands to run on initialization (i.e. start coppeliasim)
+            [[cmd, args...]...]
         @param sleeptime: time to wait after important commands (start/stop/pause simulation)
         """
         self.scenePath = scenePath
         self.sleeptime = sleeptime
+        self.pids = []
         if wakeup is not None:
-            subprocess.Popen(wakeup)
+            for cmd in wakeup:
+                self.pids.append(subprocess.Popen(cmd, stdout=subprocess.PIPE, shell=True).pid)
             time.sleep(self.sleeptime)
         if sim is not None:
             self.sim = sim
@@ -54,6 +57,17 @@ class Experiment:
         to be run at end of each expiriment
         """
         raise NotImplementedError()
+
+    def kill(self):
+        """
+        destroys all subprocesses
+        """
+        for proc_pid in self.pids:
+            process = psutil.Process(proc_pid)
+            for proc in process.children(recursive=True):
+                proc.kill()
+            process.kill()
+        self.pids = []
 
     ####################################################################################################################
     # utility functions

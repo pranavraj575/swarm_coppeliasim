@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 import rclpy
-import sys
+import sys, subprocess,psutil
 from geometry_msgs.msg import Twist
 from geometry_msgs.msg import TwistStamped
 import time
@@ -23,15 +23,46 @@ def callbackUpdateState(msg):
     state['z'] = msg.twist.linear.z
     state['w'] = msg.twist.angular.z
 
+def kill(proc_pid):
+    process = psutil.Process(proc_pid)
+    for proc in process.children(recursive=True):
+        proc.kill()
+    process.kill()
+def param1(num):
+    return '-gREMOTEAPISERVERSERVICE_'+str(num)+'_FALSE_TRUE'
+def param(num):
+    return '-GzmqRemoteApi.rpcPort='+str(num)
+port1=19997
+port2=19998
+cmd='/home/rajbhandari/Downloads/CoppeliaSim_Edu_V4_3_0_rev12_Ubuntu20_04/coppeliaSim.sh '
+p = subprocess.Popen(cmd+param(port1), stdout=subprocess.PIPE, shell=True)
+input()
+q= subprocess.Popen(cmd+param(port2), stdout=subprocess.PIPE, shell=True)
 
+input()
+print('getting things')
+client = RemoteAPIClient(port=port1)
+sim = client.getObject('sim')
+
+client2 = RemoteAPIClient(port=port2)
+sim2 = client.getObject('sim')
+print('done')
+input()
+sim2.startSimulation()
+sim.startSimulation()
+print('starting both')
+input()
+sim2.stopSimulation()
+sim.pauseSimulation()
+print('stopping/pausing')
+input()
+kill(p.pid)
+kill(q.pid)
+quit()
 TOPIC_PRE = '/swarm/a'
 TOPIC_CMD = '/set/cmd_vel'
 TOPIC_GLOBAL = '/state/global'
 
-client = RemoteAPIClient()
-sim = client.getObject('sim')
-client2 = RemoteAPIClient(port=23005)
-sim2 = client.getObject('sim')
 
 DIR = os.path.dirname(os.path.join(os.getcwd(), os.path.dirname(sys.argv[0])))
 MODELDIR = os.path.join(DIR, 'ros_ctrl_models', 'blimpNarrowSensor.ttm')

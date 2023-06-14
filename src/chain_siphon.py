@@ -6,7 +6,7 @@ from geometry_msgs.msg import Twist
 from geometry_msgs.msg import TwistStamped
 import time
 # from lta3.msg import state_18DOF
-from std_msgs.msg import  Float64#,Float32MultiArray, MultiArrayDimension,
+from std_msgs.msg import Float64  # ,Float32MultiArray, MultiArrayDimension,
 import sys
 import copy
 from collections import defaultdict
@@ -21,7 +21,6 @@ TOPIC_CMD = '/set/cmd_vel'
 TOPIC_GLOBAL = '/state/global'
 TOPIC_DATA = '/shared/data'
 TOPIC_ULTRA = '/state/ultrasonic'
-
 
 SWARM_DATA = defaultdict(lambda: np.array([0.] * 5))
 
@@ -63,19 +62,19 @@ class Chains:
             'y': 0,
             'z': 0,
             'w': 0,
-            'ultra':0,
+            'ultra': 0,
         }
 
         self.nodeState = rclpy.create_node('lta' + str(self.agent_id) + '_chain_reciever')  # for recieving
         self.state_subscriber = self.nodeState.create_subscription(TwistStamped, topicGlobal, self.callbackUpdateState,
                                                                    10)
-        self.nodeUltra= rclpy.create_node('lta' + str(self.agent_id) + '_chain_ultra')  # for recieving ultrasound
+        self.nodeUltra = rclpy.create_node('lta' + str(self.agent_id) + '_chain_ultra')  # for recieving ultrasound
         self.ultra_subscriber = self.nodeUltra.create_subscription(Float64,
                                                                    topicUltra,
                                                                    self.callbackUpdateUltra,
                                                                    10)
         # for getting state
-        self.debug=debug
+        self.debug = debug
         if self.debug:
             print('state from', topicGlobal)
 
@@ -112,9 +111,10 @@ class Chains:
         self.state['z'] = msg.twist.linear.z
         self.state['w'] = msg.twist.angular.z
         # print(state)
+
     def callbackUpdateUltra(self, msg):
         # print('here')
-        self.state['ultra']=msg.data
+        self.state['ultra'] = msg.data
         # print(state)
 
     def dataCallback(self, data):
@@ -136,7 +136,7 @@ class Chains:
             self.spin()
         return self.state
 
-    def get_position(self, use_ultra=False,spin=True):
+    def get_position(self, use_ultra=False, spin=True):
         s = self.get_state(spin=spin)
         return np.array((s['x'], s['y'], s['ultra' if use_ultra else 'z']))
 
@@ -147,7 +147,6 @@ class Chains:
         msgTwist.linear.z = float(vec[2])
 
         self.vec_publisher.publish(msgTwist)
-
 
     def spin(self):
         rclpy.spin_once(self.nodeState, timeout_sec=.01)
@@ -163,8 +162,9 @@ class Chains:
         if size <= 0:
             size = d
         return vec / size
+
     def point_obs_force(self, position, point_obstacles, obs_range=1.5, obs_rep=10):
-        out=np.zeros(3)
+        out = np.zeros(3)
         for pt in point_obstacles:
             v_obs = pt - position
 
@@ -180,13 +180,14 @@ class Chains:
 
             out += v_obs
         return out
+
     def siphon(self,
                # (goal, obstacle, viscosity, min, bounding)
                # weight=(1.0, 1.0, 0.05, 20, 50),
                # weight=(1.0, 1.0, 0.05, 20, 1),
                weight=(.1, .1, .001, .4, .1),
                point_obstacles=(),
-               obs_vector=lambda pos:np.array((0,0,0)),
+               obs_vector=lambda pos: np.array((0, 0, 0)),
                max_speed=0.75,
                obs_range=1.5,
                obs_rep=10,
@@ -194,9 +195,9 @@ class Chains:
                neighbor_range=2.25,  # 1.75,
                max_ljp=500,
                goal_area=(-5, 0, 1),
-               #workspace=((-5, 6), (-1.5, 4), (-float('inf'), float('inf'))),
+               # workspace=((-5, 6), (-1.5, 4), (-float('inf'), float('inf'))),
                workspace=((-5, 6), (-1.5, 4), (1, 1.25)),
-               #goal_test=lambda p: (p[0] < -1.5) or (p[0] < 0 and p[1] > 1.5),
+               # goal_test=lambda p: (p[0] < -1.5) or (p[0] < 0 and p[1] > 1.5),
                goal_test=lambda p: False,
                use_ultra=True,
                ):
@@ -223,9 +224,9 @@ class Chains:
         # rate = node.create_rate(10)
         # while rclpy.ok():# not rclpy.is_shutdown()
         self.spin()
-        pos = self.get_position(use_ultra=use_ultra,spin=False)
+        pos = self.get_position(use_ultra=use_ultra, spin=False)
 
-        real_pos=self.get_position(use_ultra=False,spin=False)
+        real_pos = self.get_position(use_ultra=False, spin=False)
         # for real x,y,z
 
         #####################################################################################################
@@ -236,8 +237,8 @@ class Chains:
         #####################################################################################################
         # Obstacles
         v_obs_tot = np.zeros(3)
-        v_obs_tot+=self.point_obs_force(real_pos, point_obstacles, obs_range, obs_rep)
-        v_obs_tot+=obs_vector(real_pos)
+        v_obs_tot += self.point_obs_force(real_pos, point_obstacles, obs_range, obs_rep)
+        v_obs_tot += obs_vector(real_pos)
 
         #####################################################################################################
         # LJP
@@ -331,8 +332,8 @@ class Chains:
                         best_leader = item[0]
                         new_v_min = dPos
                         min_size = siz
-        if np.linalg.norm(v_visc)>max_ljp:
-            v_visc=self.safe_norm(v_visc)*max_ljp
+        if np.linalg.norm(v_visc) > max_ljp:
+            v_visc = self.safe_norm(v_visc) * max_ljp
         #####################################################################################################
         # Workspace
         v_bound = np.zeros(3)
@@ -364,9 +365,9 @@ class Chains:
         vecs = (v_goal, v_obs_tot, v_visc, new_v_min, v_bound, v_full)
         if self.debug:
             global OUT
-            print(self.agent_id,[[round(value,2) for value in v] for v in vecs])
-            #output = [round(np.linalg.norm(vecs[k] * disp_weights[k]), 2) for k in range(len(vecs))]
-            #OUT += str(self.agent_id) + ' ' + str(output) + '\n'
+            print(self.agent_id, [[round(value, 2) for value in v] for v in vecs])
+            # output = [round(np.linalg.norm(vecs[k] * disp_weights[k]), 2) for k in range(len(vecs))]
+            # OUT += str(self.agent_id) + ' ' + str(output) + '\n'
 
         self.move(v_full)
         self.data_publish((self.agent_id,
@@ -447,7 +448,7 @@ if __name__ == '__main__':
                     num_agents,
                     # lambda pos:pos[0]
                     # lambda pos:np.cos(pos[0])-(pos[1]-1)**2-((pos[2]-1)**2/100 if pos[2]>2 or pos[2]<.5 else 0)
-                    #make_goal_radial(np.array((0, 0, 10)))
+                    # make_goal_radial(np.array((0, 0, 10)))
                     make_goal_radial(np.array(
                         (R * np.sin(2 * i * PI / num_agents), 0., R * np.cos(2 * i * PI / num_agents) + R + .1)))
                     )
@@ -461,7 +462,7 @@ if __name__ == '__main__':
         for i in range(len(chains)):
             chains[i].siphon()
         # for thingy in SWARM_DATA:
-            # print(thingy, [round(v,2) for v in SWARM_DATA[thingy]])
+        # print(thingy, [round(v,2) for v in SWARM_DATA[thingy]])
         OUT = OUT + 'time: ' + str(round(time.time() - s, 3)) + '\n'
         print(OUT)
         OUT = ''
@@ -483,4 +484,4 @@ if __name__ == '__main__':
                 # print([round(v,2) for v in vec], ' ' * 20, end='\r')
                 # print(vec)
                 i = 0
-                #print(chains[0].state['z'],chains[0].state['ultra'])
+                # print(chains[0].state['z'],chains[0].state['ultra'])
