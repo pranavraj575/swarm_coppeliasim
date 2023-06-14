@@ -12,7 +12,7 @@ startZone = {'xmin': .5, 'xmax': 6,
              'ymin': -2, 'ymax': 2,
              'zmin': 1, 'zmax': 1.25,
              }
-
+SIMID = 23000
 MODELDIR = DIR + '/ros_ctrl_models/blimp_narrow.ttm'
 SCENEDIR = DIR + '/scenes/WallClimb.ttt'
 narrowModelPath = os.path.abspath(os.path.expanduser(MODELDIR))
@@ -25,7 +25,7 @@ else:
     name = 'CONTROL'
 
 save_dir = os.path.join(DIR, 'output', name)
-# save_dir=None
+save_dir = None
 
 if save_dir is None:
     print("WARNING SAVE DIR IS NOT SPECIFIED, SO THIS IS NOT BEING SAVED")
@@ -154,7 +154,7 @@ records_to_save = ['succ',
 fields = params_to_save + records_to_save
 
 rclpy.init()
-for param in params:
+for param in fake_params:
     print('starting:', param)
     key = [param[p] for p in params_to_save]
     if save_dir is not None:

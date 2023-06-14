@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 import rclpy
-import sys, subprocess,psutil
+import sys, subprocess, psutil
 from geometry_msgs.msg import Twist
 from geometry_msgs.msg import TwistStamped
 import time
@@ -23,49 +23,44 @@ def callbackUpdateState(msg):
     state['z'] = msg.twist.linear.z
     state['w'] = msg.twist.angular.z
 
+
 def kill(proc_pid):
     process = psutil.Process(proc_pid)
     for proc in process.children(recursive=True):
         proc.kill()
     process.kill()
+
+
 def param1(num):
-    return '-gREMOTEAPISERVERSERVICE_'+str(num)+'_FALSE_TRUE'
-def param(num):
-    return '-GzmqRemoteApi.rpcPort='+str(num)
-port1=19997
-port2=19998
-cmd='/home/rajbhandari/Downloads/CoppeliaSim_Edu_V4_3_0_rev12_Ubuntu20_04/coppeliaSim.sh '
-p = subprocess.Popen(cmd+param(port1), stdout=subprocess.PIPE, shell=True)
-input()
-q= subprocess.Popen(cmd+param(port2), stdout=subprocess.PIPE, shell=True)
+    return '-gREMOTEAPISERVERSERVICE_' + str(num) + '_FALSE_TRUE'
 
-input()
-print('getting things')
-client = RemoteAPIClient(port=port1)
+
+def param2(num=23050, step=0):
+    return ' -GwsRemoteApi.port=' + str(num + step)
+
+
+def param(num=23000, step=0):
+    return ' -GzmqRemoteApi.rpcPort=' + str(num + step)
+
+
+cmd = '/home/rajbhandari/Downloads/CoppeliaSim_Edu_V4_3_0_rev12_Ubuntu20_04/coppeliaSim.sh'
+STEP = 2
+p = subprocess.Popen(cmd + param() + param2(), stdout=subprocess.PIPE, shell=True)
+q = subprocess.Popen(cmd + param(step=STEP) + param2(step=STEP), stdout=subprocess.PIPE, shell=True)
+
+client = RemoteAPIClient(port=23000)
 sim = client.getObject('sim')
+from zmqRemoteApi import RemoteAPIClient
 
-client2 = RemoteAPIClient(port=port2)
-sim2 = client.getObject('sim')
-print('done')
-input()
-sim2.startSimulation()
-sim.startSimulation()
-print('starting both')
-input()
-sim2.stopSimulation()
-sim.pauseSimulation()
-print('stopping/pausing')
-input()
-kill(p.pid)
-kill(q.pid)
-quit()
+client2 = RemoteAPIClient(port=23000 + STEP)
+sim2 = client2.getObject('sim')
+
 TOPIC_PRE = '/swarm/a'
 TOPIC_CMD = '/set/cmd_vel'
 TOPIC_GLOBAL = '/state/global'
 
-
 DIR = os.path.dirname(os.path.join(os.getcwd(), os.path.dirname(sys.argv[0])))
-MODELDIR = os.path.join(DIR, 'ros_ctrl_models', 'blimpNarrowSensor.ttm')
+MODELDIR = os.path.join(DIR, 'ros_ctrl_models', 'blimp_narrow.ttm')
 SCENEDIR = os.path.join(DIR, 'scenes', 'empty.ttt')
 SCENEDIR2 = os.path.join(DIR, 'scenes', 'poles.ttt')
 
@@ -74,18 +69,20 @@ modelToLoad = narrowModelPath
 
 sceneNamePath = os.path.abspath(os.path.expanduser(SCENEDIR))
 sceneNamePath2 = os.path.abspath(os.path.expanduser(SCENEDIR2))
-sim.stopSimulation()
 
 time.sleep(1)
-# sim.loadScene(sceneNamePath)
+sim.loadScene(sceneNamePath)
 sim2.loadScene(sceneNamePath2)  # +'@keepCurrent')
 time.sleep(1)
 
 agentHandle = sim.loadModel(modelToLoad)
+agentHandle2 = sim2.loadModel(modelToLoad)
+# TODO: NOT fine that the topics are the same
+id1 = '23000'
 agent = '0'
 
-topicCmdVel = TOPIC_PRE + agent + TOPIC_CMD
-topicGlobal = TOPIC_PRE + agent + TOPIC_GLOBAL
+topicCmdVel = TOPIC_PRE + id1 + '_' + agent + TOPIC_CMD
+topicGlobal = TOPIC_PRE + id1 + '_' + agent + TOPIC_GLOBAL
 
 rclpy.init()
 
@@ -95,15 +92,19 @@ subscriberPos = NODE.create_subscription(TwistStamped, topicGlobal, callbackUpda
 
 DT = 50 / 1000
 sim.startSimulation()
-for _ in range(500):
+sim2.startSimulation()
+for _ in range(5000):
     rclpy.spin_once(NODE, timeout_sec=0.01)
 
     msgTwist = Twist()
 
-    msgTwist.linear.x = 1.
+    msgTwist.linear.x = .1
     msgTwist.linear.y = 0.
     msgTwist.linear.z = 0.
     publisherAlign.publish(msgTwist)
     time.sleep(.01)
 
-sim.stopSimulation()
+sim.pauseSimulation()
+
+kill(p.pid)
+kill(q.pid)

@@ -9,6 +9,7 @@ class blimpNet(BlimpExperiment):
                  blimpPath,
                  networkfn,
                  sim=None,
+                 simId=23000,
                  wakeup=None,
                  sleeptime=1., ):
         """
@@ -19,6 +20,7 @@ class blimpNet(BlimpExperiment):
         @param blimpPath: path to blimp for spawning
         @param networkfn: neural network function call for blimp to act
         @param sim: simulator, if already defined
+        @param simId: simulator id, used to pass messages to correct topics
         @param wakeup: code to run in command line before starting experiment
         @param sleeptime: time to wait before big commands (i.e. stop simulation, start simulation, pause simulation)
         """
@@ -27,6 +29,7 @@ class blimpNet(BlimpExperiment):
                          scenePath,
                          blimpPath,
                          sim=sim,
+                         simId=simId,
                          wakeup=wakeup,
                          sleeptime=sleeptime)
         self.network = networkfn
@@ -73,6 +76,7 @@ class xyzBlimp(blimpNet):
                  blimpPath,
                  networkfn,
                  sim=None,
+                 simId=23000,
                  wakeup=None,
                  sleeptime=1.):
         super().__init__(num_agents,
@@ -81,6 +85,7 @@ class xyzBlimp(blimpNet):
                          blimpPath,
                          networkfn,
                          sim=sim,
+                         simId=simId,
                          wakeup=wakeup,
                          sleeptime=sleeptime)
 
@@ -98,6 +103,7 @@ class xyzBlimp(blimpNet):
             pos = self.get_position(agent_id, use_ultra=False)
             s.append(pos[2])
         return np.mean(s)
+
 
 class octantBlimp(blimpNet):
     def __init__(self,
@@ -107,6 +113,7 @@ class octantBlimp(blimpNet):
                  blimpPath,
                  networkfn,
                  sim=None,
+                 simId=23000,
                  wakeup=None,
                  sleeptime=1.):
         super().__init__(num_agents,
@@ -115,6 +122,7 @@ class octantBlimp(blimpNet):
                          blimpPath,
                          networkfn,
                          sim=sim,
+                         simId=simId,
                          wakeup=wakeup,
                          sleeptime=sleeptime)
 
@@ -132,6 +140,7 @@ class octantBlimp(blimpNet):
             pos = self.get_position(agent_id, use_ultra=False)
             s.append(pos[2])
         return np.mean(s)
+
 
 import neat, os, sys
 

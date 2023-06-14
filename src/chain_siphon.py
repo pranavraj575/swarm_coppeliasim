@@ -15,7 +15,7 @@ import numpy as np
 
 OUT = ''
 PI = 3.14159
-
+SIMID = 23000
 TOPIC_PRE = '/swarm/a'
 TOPIC_CMD = '/set/cmd_vel'
 TOPIC_GLOBAL = '/state/global'
@@ -44,12 +44,13 @@ class Chains:
         self.num_agents = num_agents
         self.swarm_data = swarm_data
 
-        topicGlobal = TOPIC_PRE + str(self.agent_id) + TOPIC_GLOBAL
-        topicUltra = TOPIC_PRE + str(self.agent_id) + TOPIC_ULTRA
+        topicGlobal = TOPIC_PRE + str(SIMID) + '_' + str(self.agent_id) + TOPIC_GLOBAL
+        topicUltra = TOPIC_PRE + str(SIMID) + '_' + str(self.agent_id) + TOPIC_ULTRA
 
-        topicCmdVel = TOPIC_PRE + str(self.agent_id) + TOPIC_CMD
+        topicCmdVel = TOPIC_PRE + str(SIMID) + '_' + str(self.agent_id) + TOPIC_CMD
 
-        self.nodeCtrl = rclpy.create_node('lta' + str(self.agent_id) + '_chain_publisher')  # for publishing
+        self.nodeCtrl = rclpy.create_node(
+            'lta' + str(SIMID) + '_' + str(self.agent_id) + '_chain_publisher')  # for publishing
 
         self.vec_publisher = self.nodeCtrl.create_publisher(Twist, topicCmdVel, 10)
         # for actuation, give it a position, it goes for it, maybe can replace with velocity?
@@ -65,10 +66,12 @@ class Chains:
             'ultra': 0,
         }
 
-        self.nodeState = rclpy.create_node('lta' + str(self.agent_id) + '_chain_reciever')  # for recieving
+        self.nodeState = rclpy.create_node(
+            'lta' + str(SIMID) + '_' + str(self.agent_id) + '_chain_reciever')  # for recieving
         self.state_subscriber = self.nodeState.create_subscription(TwistStamped, topicGlobal, self.callbackUpdateState,
                                                                    10)
-        self.nodeUltra = rclpy.create_node('lta' + str(self.agent_id) + '_chain_ultra')  # for recieving ultrasound
+        self.nodeUltra = rclpy.create_node(
+            'lta' + str(SIMID) + '_' + str(self.agent_id) + '_chain_ultra')  # for recieving ultrasound
         self.ultra_subscriber = self.nodeUltra.create_subscription(Float64,
                                                                    topicUltra,
                                                                    self.callbackUpdateUltra,

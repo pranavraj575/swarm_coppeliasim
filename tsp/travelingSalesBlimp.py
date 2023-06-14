@@ -2,6 +2,7 @@ from src.swarm_expiriment import *
 from collections import defaultdict
 import lkh
 import time
+
 SOLVER_PATH = '/home/rajbhandari/LKH-3.0.6/LKH'
 
 
@@ -11,6 +12,7 @@ class travelingSalesBlimp(BlimpExperiment):
                  num_points,
                  spawn_pt_and_time,
                  sim=None,
+                 simId=23000,
                  wakeup=None,
                  sleeptime=1,
                  scenePath=empty_path,
@@ -22,6 +24,7 @@ class travelingSalesBlimp(BlimpExperiment):
         super().__init__(num_agents=num_agents,
                          start_zone=start_zone,
                          sim=sim,
+                         simId=simId,
                          wakeup=wakeup,
                          sleeptime=sleeptime,
                          scenePath=scenePath,
@@ -143,7 +146,7 @@ class lkhSaleBlimp(travelingSalesBlimp):
         @param factor: lkh takes integers, so we multiply coordinates by factor to increase precision
         @return:[list of handles for agent to visit]
         """
-        fn = 'temp'+str(time.time()).replace('.','_')+'.txt'
+        fn = 'temp' + str(time.time()).replace('.', '_') + '.txt'
         f = open(fn, 'w')
         f.write('TYPE : TSP\n')
         f.write('DIMENSION : ' + str(self.num_points) + '\n')
@@ -188,10 +191,10 @@ bb = lkhSaleBlimp(lambda i: (i * 3 * R - off,
                              R + 1),
                   num_points=10,
                   spawn_pt_and_time=lambda i: (
-                            .25 * np.random.normal((0, 0, 0), (1, 10, 1)) +
-                            np.array((R * np.cos(i * 2 * np.pi / points) + (3 * R * (i // points)) - off,
-                                      0,
-                                      1.5 + R + R * np.sin(i * 2 * np.pi / points))),
-                            0),
+                      .25 * np.random.normal((0, 0, 0), (1, 10, 1)) +
+                      np.array((R * np.cos(i * 2 * np.pi / points) + (3 * R * (i // points)) - off,
+                                0,
+                                1.5 + R + R * np.sin(i * 2 * np.pi / points))),
+                      0),
                   )
 print(bb.experiments(1, lambda t: len(bb.visited) == bb.num_points))

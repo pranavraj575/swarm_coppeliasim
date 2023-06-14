@@ -1,6 +1,5 @@
 import subprocess, psutil
 import time, os, sys
-from zmqRemoteApi import RemoteAPIClient
 import rclpy
 import numpy as np
 
@@ -18,6 +17,7 @@ class Experiment:
     def __init__(self,
                  scenePath,
                  sim=None,
+                 simId=23000,
                  wakeup=None,
                  sleeptime=1.,
                  ):
@@ -25,6 +25,7 @@ class Experiment:
 
         @param scenePath: path to the scene to load
         @param sim: zqm simulator api, if None, than makes its own
+        @param simId: simulator id, used to pass messages to correct topics
         @param wakeup: list of commands to run on initialization (i.e. start coppeliasim)
             [[cmd, args...]...]
         @param sleeptime: time to wait after important commands (start/stop/pause simulation)
@@ -32,6 +33,8 @@ class Experiment:
         self.scenePath = scenePath
         self.sleeptime = sleeptime
         self.pids = []
+        self.simId = simId
+
         if wakeup is not None:
             for cmd in wakeup:
                 self.pids.append(subprocess.Popen(cmd, stdout=subprocess.PIPE, shell=True).pid)
@@ -39,7 +42,9 @@ class Experiment:
         if sim is not None:
             self.sim = sim
         else:
-            client = RemoteAPIClient()
+            from zmqRemoteApi import RemoteAPIClient
+            # NECESSARY to make this work with multiple simulators
+            client = RemoteAPIClient(port=simId)
             self.sim = client.getObject('sim')
 
     ####################################################################################################################
@@ -171,6 +176,7 @@ class BlimpExperiment(Experiment):
                  scenePath,
                  blimpPath,
                  sim=None,
+                 simId=23000,
                  wakeup=None,
                  sleeptime=1.,
                  ):
@@ -180,6 +186,7 @@ class BlimpExperiment(Experiment):
         @param start_zone: int -> (RxR U R)^3 goes from the blimp number to the spawn area
                 (each dimension could be (value) or (low, high), chosen uniformly at random)
         @param sim: simulator, if already defined
+        @param simId: simulator id, used to pass messages to correct topics
         @param wakeup: code to run in command line before starting experiment
         @param sleeptime: time to wait before big commands (i.e. stop simulation, start simulation, pause simulation)
         @param scenePath: path to coppeliasim scene
@@ -188,6 +195,7 @@ class BlimpExperiment(Experiment):
         super().__init__(
             scenePath=scenePath,
             sim=sim,
+            simId=simId,
             wakeup=wakeup,
             sleeptime=sleeptime,
         )
@@ -241,19 +249,19 @@ class BlimpExperiment(Experiment):
             this_agent['agentHandle'] = self.spawnBlimp(self.modelPath, self.start_zone(i), 100)
             this_agent['agent_id'] = i
 
-            topicGlobal = TOPIC_PRE + str(i) + TOPIC_GLOBAL
-            topicUltra = TOPIC_PRE + str(i) + TOPIC_ULTRA
+            topicGlobal = TOPIC_PRE + str(self.simId) + '_' + str(i) + TOPIC_GLOBAL
+            topicUltra = TOPIC_PRE + str(self.simId) + '_' + str(i) + TOPIC_ULTRA
 
-            topicCmdVel = TOPIC_PRE + str(i) + TOPIC_CMD
+            topicCmdVel = TOPIC_PRE + str(self.simId) + '_' + str(i) + TOPIC_CMD
 
-            nodeCtrl = rclpy.create_node('lta_' + str(i) + '_publisher')
+            nodeCtrl = rclpy.create_node('lta_' + str(self.simId) + '_' + str(i) + '_publisher')
             vec_publisher = nodeCtrl.create_publisher(Twist, topicCmdVel, 10)
 
             this_agent['nodeCtrl'] = nodeCtrl
             this_agent['topicCmdVel'] = topicCmdVel
             this_agent['vec_publisher'] = vec_publisher
 
-            nodeState = rclpy.create_node('lta_' + str(i) + '_reciever')
+            nodeState = rclpy.create_node('lta_' + str(self.simId) + '_' + str(i) + '_reciever')
             callback = self.create_callback_twist(this_agent, 'state')
             state_subscriber = nodeState.create_subscription(TwistStamped,
                                                              topicGlobal,
@@ -264,7 +272,8 @@ class BlimpExperiment(Experiment):
             this_agent['state_subscriber'] = state_subscriber
 
             ultracallback = self.create_callback_float(this_agent, 'state')
-            nodeUltra = rclpy.create_node('lta_' + str(i) + '_ultra')  # for recieving ultrasound
+            nodeUltra = rclpy.create_node(
+                'lta_' + str(self.simId) + '_' + str(i) + '_ultra')  # for recieving ultrasound
             ultra_subscriber = nodeUltra.create_subscription(Float64,
                                                              topicUltra,
                                                              ultracallback,

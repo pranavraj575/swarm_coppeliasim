@@ -1,5 +1,14 @@
 -- This file contains some common math definitions and functions
 PI = 3.14159
+--gets port, defaults to 23000 if nil
+function getZMQport()
+    port=sim.getNamedInt32Param('zmqRemoteApi.rpcPort')
+    if port==nil then
+        return 23000
+    else
+        return port
+    end
+end
 
 -- Clamping function to saturate the input
 function clamp(val, maxVal, minVal)

@@ -10,6 +10,7 @@ class chainSiphon(BlimpExperiment):
                  scenePath=frictionless_wall_path,
                  blimpPath=narrow_blimp_path,
                  sim=None,
+                 simId=23000,
                  wakeup=None,
                  sleeptime=.1,
                  goal_field=None,
@@ -31,6 +32,7 @@ class chainSiphon(BlimpExperiment):
                          scenePath=scenePath,
                          blimpPath=blimpPath,
                          sim=sim,
+                         simId=simId,
                          wakeup=wakeup,
                          sleeptime=sleeptime)
 

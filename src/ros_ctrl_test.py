@@ -7,6 +7,7 @@ import time
 import numpy as np
 
 PI = 3.14159
+SIMID = 23000
 
 TOPIC_PRE = '/swarm/a'
 TOPIC_CMD = '/set/cmd_vel'
@@ -65,8 +66,8 @@ def main(args=None):
         agentHandle = sim.loadModel(modelToLoad)
     agent = '0'
 
-    topicCmdVel = TOPIC_PRE + agent + TOPIC_CMD
-    topicGlobal = TOPIC_PRE + agent + TOPIC_GLOBAL
+    topicCmdVel = TOPIC_PRE + str(SIMID) + '_' + agent + TOPIC_CMD
+    topicGlobal = TOPIC_PRE + str(SIMID) + '_' + agent + TOPIC_GLOBAL
 
     rclpy.init(args=args)
 
