@@ -27,17 +27,16 @@ class Experiment:
         @param sim: zqm simulator api, if None, than makes its own
         @param simId: simulator id, used to pass messages to correct topics
         @param wakeup: list of commands to run on initialization (i.e. start coppeliasim)
-            [[cmd, args...]...]
         @param sleeptime: time to wait after important commands (start/stop/pause simulation)
         """
         self.scenePath = scenePath
         self.sleeptime = sleeptime
-        self.pids = []
+        self.procs = []
         self.simId = simId
 
         if wakeup is not None:
             for cmd in wakeup:
-                self.pids.append(subprocess.Popen(cmd, stdout=subprocess.PIPE, shell=True).pid)
+                self.procs.append(subprocess.Popen(cmd, stdout=subprocess.PIPE, shell=True).pid)
             time.sleep(self.sleeptime)
         if sim is not None:
             self.sim = sim
@@ -67,12 +66,12 @@ class Experiment:
         """
         destroys all subprocesses
         """
-        for proc_pid in self.pids:
+        for proc_pid in self.procs:
             process = psutil.Process(proc_pid)
             for proc in process.children(recursive=True):
                 proc.kill()
             process.kill()
-        self.pids = []
+        self.procs = []
 
     ####################################################################################################################
     # utility functions
@@ -98,8 +97,13 @@ class Experiment:
         initializes the expiriment
         @param reset: whether to rest the current scene
         """
-        if not rclpy.ok():
-            rclpy.init()
+        while True:
+            try:
+                if not rclpy.ok():
+                    rclpy.init()
+                break
+            except:
+                time.sleep(self.sleeptime)
         if reset:
             while self.sim.simulation_stopped != self.sim.getSimulationState():
                 self.sim.stopSimulation()
@@ -170,6 +174,7 @@ class Experiment:
 
 
 class BlimpExperiment(Experiment):
+
     def __init__(self,
                  num_agents,
                  start_zone,
@@ -281,7 +286,10 @@ class BlimpExperiment(Experiment):
             this_agent['nodeUltra'] = nodeUltra
             this_agent['topicUltra'] = topicUltra
             this_agent['ultra_subscriber'] = ultra_subscriber
-
+            executor=rclpy.executors.MultiThreadedExecutor()
+            executor.add_node(nodeUltra)
+            executor.add_node(nodeState)
+            this_agent['executor']=executor
             self.agentData[i] = this_agent
 
     def despawnThings(self):
@@ -289,6 +297,9 @@ class BlimpExperiment(Experiment):
         to be run at end of each expiriment
         """
         for agent_id in self.agentData:
+            self.agentData[agent_id]['nodeState'].destroy_subscription('state_subscriber')
+            self.agentData[agent_id]['nodeUltra'].destroy_subscription('ultra_subscriber')
+            self.agentData[agent_id]['nodeCtrl'].destroy_subscription('vec_publisher')
             for node_key in ('nodeUltra', 'nodeState', 'nodeCtrl'):
                 self.agentData[agent_id][node_key].destroy_node()
 
@@ -303,8 +314,9 @@ class BlimpExperiment(Experiment):
         if agent_ids is None:
             agent_ids = self.agentData.keys()
         for agent_id in agent_ids:
-            rclpy.spin_once(self.agentData[agent_id]['nodeState'], timeout_sec=.01)
-            rclpy.spin_once(self.agentData[agent_id]['nodeUltra'], timeout_sec=.01)
+            self.agentData[agent_id]['executor'].spin_once(timeout_sec=.01)
+            #rclpy.spin_once(self.agentData[agent_id]['nodeState'], timeout_sec=.01)
+            #rclpy.spin_once(self.agentData[agent_id]['nodeUltra'], timeout_sec=.01)
 
     def create_callback_twist(self, dictionary, key, state_keys=('x', 'y', 'z', 'w')):
         """
@@ -515,8 +527,14 @@ class BlimpExperiment(Experiment):
 
 
 class blimpTest(BlimpExperiment):
-    def __init__(self, num_agents, start_zone, scene_path=empty_path, blimp_path=narrow_blimp_path):
-        super().__init__(num_agents, start_zone, scene_path, blimp_path)
+    def __init__(self, num_agents,
+                 start_zone,
+                 command=(0.,0.,0.),
+                 scene_path=empty_path,
+                 blimp_path=narrow_blimp_path,
+                 simId=23000):
+        super().__init__(num_agents, start_zone, scene_path, blimp_path,simId=simId)
+        self.command=command
 
     ####################################################################################################################
     # Expiriment functions
@@ -528,12 +546,8 @@ class blimpTest(BlimpExperiment):
         """
         for agent_id in self.agentData:
             pos = self.get_position(agent_id, use_ultra=False, spin=True)
-            next_pos = self.get_position((agent_id + 1) % self.num_agents, use_ultra=False, spin=True)
-            # goal = np.array((1, 0, agent_id * .5 + 1))
-            goal = next_pos
-            vec = goal - pos
-            # vec = np.zeros(3)
-            self.move_agent(agent_id, vec * .1)
+
+            self.move_agent(agent_id, self.command)
 
     def goal_data(self):
         """
@@ -548,5 +562,5 @@ class blimpTest(BlimpExperiment):
 
 
 if __name__ == "__main__":
-    bb = blimpTest(10, lambda i: ((-5, 5), (-5, 5), (1, 5)))
+    bb = blimpTest(10, lambda i: ((-5, 5), (-5, 5), (1, 5)),command=(0,0,.1))
     bb.run_exp(end_time=lambda t: False)

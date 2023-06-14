@@ -47,7 +47,7 @@ def main(args=None):
     client = RemoteAPIClient()
     sim = client.getObject('sim')
 
-    RESET = True
+    RESET = False
 
     DIR = os.path.dirname(os.path.join(os.getcwd(), os.path.dirname(sys.argv[0])))
     MODELDIR = os.path.join(DIR, 'ros_ctrl_models', 'blimp_narrow.ttm')
@@ -56,10 +56,11 @@ def main(args=None):
     narrowModelPath = os.path.abspath(os.path.expanduser(MODELDIR))
     modelToLoad = narrowModelPath
 
-    sceneNamePath = os.path.abspath(os.path.expanduser(SCENEDIR))
-    sim.stopSimulation()
-    time.sleep(1)
+
     if RESET:
+        sceneNamePath = os.path.abspath(os.path.expanduser(SCENEDIR))
+        sim.stopSimulation()
+        time.sleep(1)
         sim.loadScene(sceneNamePath)
         time.sleep(1)
 
@@ -79,7 +80,7 @@ def main(args=None):
     sim.startSimulation()
     test = np.array([.0, .0, .0, np.pi])
     f = 1.
-    for _ in range(500):
+    for _ in range(50):
         rclpy.spin_once(NODE, timeout_sec=0.01)
 
         msgTwist = Twist()
@@ -91,7 +92,9 @@ def main(args=None):
         msgTwist.angular.x = 0.  # NOTE: this tells the blimp that we care about heading
         publisherAlign.publish(msgTwist)
         time.sleep(.01)
-
+        print(state)
+    sim.pauseSimulation()
+    return
     sim.stopSimulation()
 
     from matplotlib import pyplot as plt
