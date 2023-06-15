@@ -27,7 +27,7 @@ POS = []
 def callbackUpdateState(msg):
     global state
     global POS
-    # print('here')
+    print('here')
     state['x'] = msg.twist.linear.x
     state['y'] = msg.twist.linear.y
     state['z'] = msg.twist.linear.z
@@ -69,7 +69,7 @@ def main(args=None):
 
     topicCmdVel = TOPIC_PRE + str(SIMID) + '_' + agent + TOPIC_CMD
     topicGlobal = TOPIC_PRE + str(SIMID) + '_' + agent + TOPIC_GLOBAL
-
+    print(topicGlobal)
     rclpy.init(args=args)
 
     NODE = rclpy.create_node('test')
@@ -77,10 +77,10 @@ def main(args=None):
     subscriberPos = NODE.create_subscription(TwistStamped, topicGlobal, callbackUpdateState, 10)
 
     DT = 50 / 1000
-    sim.startSimulation()
+    #sim.startSimulation()
     test = np.array([.0, .0, .0, np.pi])
     f = 1.
-    for _ in range(50):
+    while True:
         rclpy.spin_once(NODE, timeout_sec=0.01)
 
         msgTwist = Twist()
@@ -91,8 +91,8 @@ def main(args=None):
         msgTwist.angular.z = test[3]
         msgTwist.angular.x = 0.  # NOTE: this tells the blimp that we care about heading
         publisherAlign.publish(msgTwist)
-        time.sleep(.01)
         print(state)
+        time.sleep(1.)
     sim.pauseSimulation()
     return
     sim.stopSimulation()

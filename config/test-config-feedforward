@@ -1,9 +1,9 @@
 [NEAT]
 fitness_criterion       = max
 fitness_threshold       = 10
-pop_size                = 30
+pop_size                = 300
 reset_on_extinction     = False
-no_fitness_termination  = False
+no_fitness_termination  = True
 
 [DefaultStagnation]
 species_fitness_func = max

@@ -173,6 +173,8 @@ class Experiment:
         raise NotImplementedError()
 
 
+# NODE=None
+
 class BlimpExperiment(Experiment):
 
     def __init__(self,
@@ -182,6 +184,7 @@ class BlimpExperiment(Experiment):
                  blimpPath,
                  sim=None,
                  simId=23000,
+                 msg_queue=10,
                  wakeup=None,
                  sleeptime=1.,
                  ):
@@ -192,6 +195,7 @@ class BlimpExperiment(Experiment):
                 (each dimension could be (value) or (low, high), chosen uniformly at random)
         @param sim: simulator, if already defined
         @param simId: simulator id, used to pass messages to correct topics
+        @param msg_queue: queue length of ROS messages
         @param wakeup: code to run in command line before starting experiment
         @param sleeptime: time to wait before big commands (i.e. stop simulation, start simulation, pause simulation)
         @param scenePath: path to coppeliasim scene
@@ -205,6 +209,7 @@ class BlimpExperiment(Experiment):
             sleeptime=sleeptime,
         )
         self.num_agents = num_agents
+        self.msg_queue = msg_queue
         self.start_zone = start_zone
         self.modelPath = blimpPath
         self.agentData = dict()
@@ -254,54 +259,81 @@ class BlimpExperiment(Experiment):
             this_agent['agentHandle'] = self.spawnBlimp(self.modelPath, self.start_zone(i), 100)
             this_agent['agent_id'] = i
 
+            unique = str(time.time()).replace('.', '_')
+            NODE = rclpy.create_node('lta_' + str(self.simId) + '_' + str(i) + '_NODE_' + unique)
+
             topicGlobal = TOPIC_PRE + str(self.simId) + '_' + str(i) + TOPIC_GLOBAL
             topicUltra = TOPIC_PRE + str(self.simId) + '_' + str(i) + TOPIC_ULTRA
 
             topicCmdVel = TOPIC_PRE + str(self.simId) + '_' + str(i) + TOPIC_CMD
 
-            nodeCtrl = rclpy.create_node('lta_' + str(self.simId) + '_' + str(i) + '_publisher')
-            vec_publisher = nodeCtrl.create_publisher(Twist, topicCmdVel, 10)
+            # nodeCtrl = rclpy.create_node('lta_' + str(self.simId) + '_' + str(i) + '_publisher')
+            # vec_publisher = nodeCtrl.create_publisher(Twist, topicCmdVel, self.msg_queue)
+            vec_publisher = NODE.create_publisher(Twist, topicCmdVel, self.msg_queue)
 
-            this_agent['nodeCtrl'] = nodeCtrl
+            # this_agent['nodeCtrl'] = nodeCtrl
             this_agent['topicCmdVel'] = topicCmdVel
             this_agent['vec_publisher'] = vec_publisher
 
-            nodeState = rclpy.create_node('lta_' + str(self.simId) + '_' + str(i) + '_reciever')
+            # nodeState = rclpy.create_node('lta_' + str(self.simId) + '_' + str(i) + '_reciever')
+
+            # global NODE
+            # NODE = rclpy.create_node('test')
             callback = self.create_callback_twist(this_agent, 'state')
-            state_subscriber = nodeState.create_subscription(TwistStamped,
-                                                             topicGlobal,
-                                                             callback,
-                                                             10)
-            this_agent['nodeState'] = nodeState
+            # state_subscriber = nodeState.create_subscription(TwistStamped,
+            #                                                 topicGlobal,
+            #                                                 callback,
+            #                                                 self.msg_queue)
+            state_subscriber = NODE.create_subscription(TwistStamped,
+                                                        topicGlobal,
+                                                        callback,
+                                                        self.msg_queue)
+            # this_agent['nodeState'] = nodeState
             this_agent['topicGlobal'] = topicGlobal
             this_agent['state_subscriber'] = state_subscriber
 
             ultracallback = self.create_callback_float(this_agent, 'state')
-            nodeUltra = rclpy.create_node(
-                'lta_' + str(self.simId) + '_' + str(i) + '_ultra')  # for recieving ultrasound
-            ultra_subscriber = nodeUltra.create_subscription(Float64,
-                                                             topicUltra,
-                                                             ultracallback,
-                                                             10)
-            this_agent['nodeUltra'] = nodeUltra
+            # nodeUltra = rclpy.create_node(
+            #    'lta_' + str(self.simId) + '_' + str(i) + '_ultra')  # for recieving ultrasound
+            # ultra_subscriber = nodeUltra.create_subscription(Float64,
+            #                                                 topicUltra,
+            #                                                 ultracallback,
+            #                                                 10)
+            ultra_subscriber = NODE.create_subscription(Float64,
+                                                        topicUltra,
+                                                        ultracallback,
+                                                        self.msg_queue)
+            # this_agent['nodeUltra'] = nodeUltra
             this_agent['topicUltra'] = topicUltra
             this_agent['ultra_subscriber'] = ultra_subscriber
-            executor=rclpy.executors.MultiThreadedExecutor()
-            executor.add_node(nodeUltra)
-            executor.add_node(nodeState)
-            this_agent['executor']=executor
+            executor = rclpy.executors.MultiThreadedExecutor()
+            # executor.add_node(nodeUltra)
+            # executor.add_node(nodeState)
+            executor.add_node(NODE)
+            this_agent['executor'] = executor
+            this_agent['NODE'] = NODE
             self.agentData[i] = this_agent
 
     def despawnThings(self):
         """
         to be run at end of each expiriment
+        @note: FOR SOME REASON, it works better to not delete the nodes, and just leave them as warnings
         """
+        return
         for agent_id in self.agentData:
-            self.agentData[agent_id]['nodeState'].destroy_subscription('state_subscriber')
-            self.agentData[agent_id]['nodeUltra'].destroy_subscription('ultra_subscriber')
-            self.agentData[agent_id]['nodeCtrl'].destroy_subscription('vec_publisher')
-            for node_key in ('nodeUltra', 'nodeState', 'nodeCtrl'):
-                self.agentData[agent_id][node_key].destroy_node()
+            for sub_key in ('state_subscriber', 'ultra_subscriber'):
+                self.agentData[agent_id]['NODE'].destroy_subscription(sub_key)
+            for pub_key in ('vec_publisher',):
+                self.agentData[agent_id]['NODE'].destroy_publisher(pub_key)
+            self.agentData[agent_id]['NODE'].destroy_node()
+        # for agent_id in self.agentData:
+        #    self.agentData[agent_id]['nodeState'].destroy_subscription('state_subscriber')
+        #    self.agentData[agent_id]['nodeUltra'].destroy_subscription('ultra_subscriber')
+        #    self.agentData[agent_id]['nodeCtrl'].destroy_subscription('vec_publisher')
+        #    for node_key in ('nodeUltra', 'nodeState','nodeCtrl'):
+        #        self.agentData[agent_id][node_key].destroy_node()
+        # global NODE
+        # NODE.destroy_node()
 
     ####################################################################################################################
     # ROS functions
@@ -315,15 +347,15 @@ class BlimpExperiment(Experiment):
             agent_ids = self.agentData.keys()
         for agent_id in agent_ids:
             self.agentData[agent_id]['executor'].spin_once(timeout_sec=.01)
-            #rclpy.spin_once(self.agentData[agent_id]['nodeState'], timeout_sec=.01)
-            #rclpy.spin_once(self.agentData[agent_id]['nodeUltra'], timeout_sec=.01)
+            # rclpy.spin_once(self.agentData[agent_id]['nodeState'], timeout_sec=.01)
+            # rclpy.spin_once(self.agentData[agent_id]['nodeUltra'], timeout_sec=.01)
 
-    def create_callback_twist(self, dictionary, key, state_keys=('x', 'y', 'z', 'w')):
+    def create_callback_twist(self, dictionary, key, state_keys=('x', 'y', 'z', 'w', 'DEBUG')):
         """
         creates a callback that updates the "key" element of "dictionary" with the twist state
         @param dictionary: dictionary to update
         @param key: key in dictionary to update
-        @param state_keys: keys to put x,y,z,w values
+        @param state_keys: keys to put x,y,z,w,DEBUG values
         @return: returns callback function to be used in ROS subscriber
         """
         if key not in dictionary:
@@ -336,24 +368,27 @@ class BlimpExperiment(Experiment):
             dictionary[key][state_keys[1]] = msg.twist.linear.y
             dictionary[key][state_keys[2]] = msg.twist.linear.z
             dictionary[key][state_keys[3]] = msg.twist.angular.z
+            dictionary[key][state_keys[4]] = 1.  # +=1.
 
         return callback
 
-    def create_callback_float(self, dictionary, key, state_key='ultra'):
+    def create_callback_float(self, dictionary, key, state_key='ultra', debug_key="ULTRA_DEBUG"):
         """
         creates a callback that updates the "key" element of "dictionary" with the twist state
         @param dictionary: dictionary to update
         @param key: key in dictionary to update
         @param state_key: key to put float values
+        @param debug_key: key to put debug stuff (currently whether callback is run)
         @return: returns callback function to be used in ROS subscriber
         """
         if key not in dictionary:
             dictionary[key] = dict()
         # default value of 0
-        dictionary[key].update({state_key: 0.})
+        dictionary[key].update({state_key: 0., debug_key: 0.})
 
         def callback(msg):
             dictionary[key][state_key] = msg.data
+            dictionary[key][debug_key] = 1.  # +=1.
 
         return callback
 
@@ -529,12 +564,12 @@ class BlimpExperiment(Experiment):
 class blimpTest(BlimpExperiment):
     def __init__(self, num_agents,
                  start_zone,
-                 command=(0.,0.,0.),
+                 command=(0., 0., 0.),
                  scene_path=empty_path,
                  blimp_path=narrow_blimp_path,
                  simId=23000):
-        super().__init__(num_agents, start_zone, scene_path, blimp_path,simId=simId)
-        self.command=command
+        super().__init__(num_agents, start_zone, scene_path, blimp_path, simId=simId)
+        self.command = command
 
     ####################################################################################################################
     # Expiriment functions
@@ -562,5 +597,5 @@ class blimpTest(BlimpExperiment):
 
 
 if __name__ == "__main__":
-    bb = blimpTest(10, lambda i: ((-5, 5), (-5, 5), (1, 5)),command=(0,0,.1))
+    bb = blimpTest(10, lambda i: ((-5, 5), (-5, 5), (1, 5)), command=(0, 0, .1))
     bb.run_exp(end_time=lambda t: False)

@@ -25,7 +25,7 @@ else:
     name = 'CONTROL'
 
 save_dir = os.path.join(DIR, 'output', name)
-save_dir = None
+#save_dir = None
 
 if save_dir is None:
     print("WARNING SAVE DIR IS NOT SPECIFIED, SO THIS IS NOT BEING SAVED")
@@ -154,7 +154,7 @@ records_to_save = ['succ',
 fields = params_to_save + records_to_save
 
 rclpy.init()
-for param in fake_params:
+for param in params:
     print('starting:', param)
     key = [param[p] for p in params_to_save]
     if save_dir is not None:
