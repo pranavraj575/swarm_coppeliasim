@@ -187,6 +187,7 @@ class BlimpExperiment(Experiment):
                  msg_queue=10,
                  wakeup=None,
                  sleeptime=1.,
+                 spawn_tries=100,
                  ):
         """
 
@@ -200,6 +201,8 @@ class BlimpExperiment(Experiment):
         @param sleeptime: time to wait before big commands (i.e. stop simulation, start simulation, pause simulation)
         @param scenePath: path to coppeliasim scene
         @param blimpPath: path to blimp for spawning
+        @param spawn_tries: number of tries to spawn without collisions before giving up
+                if 1, then sets position, does not change if collision detected
         """
         super().__init__(
             scenePath=scenePath,
@@ -213,29 +216,31 @@ class BlimpExperiment(Experiment):
         self.start_zone = start_zone
         self.modelPath = blimpPath
         self.agentData = dict()
+        self.spawn_tries = spawn_tries
 
     ####################################################################################################################
     # init/shutdown functions
     ####################################################################################################################
-    def spawnBlimp(self, modelPath, pos_rng, tries=100):
+    def spawnBlimp(self, modelPath, pos_rng, spawn_tries):
         """
         spawns a model in a certian area
         @param modelPath: path to .ttm model to spawn
-        @param pos_rng: (R U R^2)^3, range to spawn into
+        @param pos_rng: ()->(R U R^2)^3, range to spawn into
             (if single value, this is the value for the respective coordinate)
             (if tuple, than uniformly chooses from (low,high))
-        @param tries: number of tries to spawn without collisions before giving up
+        @param spawn_tries: number of tries to spawn without collisions before giving up
                 if 1, then sets position, does not change if collision detected
         @return: handle of model spawned
         """
         agentHandle = self.sim.loadModel(os.path.abspath(os.path.expanduser(modelPath)))
-        for _ in range(tries):
+        for _ in range(spawn_tries):
             Pos = []
+            rng=pos_rng()
             for k in range(3):
                 try:
-                    Pos.append(np.random.uniform(pos_rng[k][0], pos_rng[k][1]))
+                    Pos.append(np.random.uniform(rng[k][0], rng[k][1]))
                 except:
-                    Pos.append(pos_rng[k])
+                    Pos.append(float(rng[k]))
             self.sim.setObjectPosition(agentHandle, -1, Pos)
             collisionResult, collidingObjectHandles = self.collision_check(agentHandle)
             if not collisionResult:
@@ -256,7 +261,7 @@ class BlimpExperiment(Experiment):
         self.agentData = dict()
         for i in range(self.num_agents):
             this_agent = dict()
-            this_agent['agentHandle'] = self.spawnBlimp(self.modelPath, self.start_zone(i), 100)
+            this_agent['agentHandle'] = self.spawnBlimp(self.modelPath, lambda:self.start_zone(i), self.spawn_tries)
             this_agent['agent_id'] = i
 
             unique = str(time.time()).replace('.', '_')
