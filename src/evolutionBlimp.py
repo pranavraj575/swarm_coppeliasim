@@ -1,5 +1,6 @@
 from src.swarm_expiriment import *
 import threading
+import neat, os, sys
 
 
 class blimpNet(BlimpExperiment):
@@ -110,13 +111,16 @@ class xyzBlimp(blimpNet):
         return np.mean(s)
 
 
-class octantBlimp(blimpNet):
+class l_k_tantBlimp(blimpNet):
     def __init__(self,
                  num_agents,
                  start_zone,
                  scenePath,
                  blimpPath,
                  networkfn,
+                 l=3,
+                 k=4,
+                 rng=2,
                  sim=None,
                  simId=23000,
                  wakeup=None,
@@ -130,24 +134,29 @@ class octantBlimp(blimpNet):
                          simId=simId,
                          wakeup=wakeup,
                          sleeptime=sleeptime)
+        self.l = l
+        self.k = k
+        self.rng = rng  # note we can do better than this, as this allows agents to see through walls
 
     def get_network_input(self, agent_id):
-        pos = self.get_position(agent_id, use_ultra=True, spin=True)
-        return pos.reshape((3, 1))
+        l_k_tant = self.get_neighbors_3d_l_k_ant(agent_id, rng=self.rng, k=self.k, l=self.l, spin=True)
+        return l_k_tant.reshape((-1, 1))
 
     def goal_data(self):
         """
         data to return at the end of each experiment trial
-        returns z position right now
+        minimizes distance between agents
         """
         s = []
-        for agent_id in self.agentData:
-            pos = self.get_position(agent_id, use_ultra=False)
-            s.append(pos[2])
+        ids = list(self.agentData.keys())
+        for i, id1 in enumerate(ids):
+            for id2 in ids[i + 1:]:
+                pos1 = self.get_position(id1, use_ultra=False)
+                pos2 = self.get_position(id2, use_ultra=False)
+                s.append(-np.linalg.norm(pos1 - pos2))
+                # negative, we want to minimize distance between
         return np.mean(s)
 
-
-import neat, os, sys
 
 DIR = os.path.dirname(os.path.join(os.getcwd(), os.path.dirname(sys.argv[0])))
 config_file = os.path.join(DIR, 'config', 'test-config-feedforward')
@@ -163,39 +172,51 @@ def kill(proc_pid):
     process.kill()
 
 
+L = 3
+K = 4
+INPUT_DIM = L * K
+
+
+def START_ZONE(i):
+    return ((-2, 2), (-2, 2), (1, 3))
+
+
+def exp_make(net, sim=None, port=23000, wakeup=None):
+    return l_k_tantBlimp(num_agents=5,
+                         start_zone=START_ZONE,
+                         scenePath=empty_path,
+                         blimpPath=narrow_blimp_path,
+                         networkfn=net.activate,
+                         sim=sim,
+                         simId=port,
+                         sleeptime=.01,
+                         l=L,
+                         k=K,
+                         wakeup=wakeup)
+
+
+TRIALS = 2
+END = lambda t: t > 60
+CHECKPT_DIR = os.path.join(DIR, 'checkpoints', 'octant_blimp')
+if not os.path.exists(CHECKPT_DIR):
+    os.makedirs(CHECKPT_DIR)
+
+
 def eval_genom(genome, config, port, dict_to_unlock, key='locked', sim=None):
     genome.fitness = .0
     net = neat.nn.FeedForwardNetwork.create(genome, config)
-    """    
-    def make_net(porty):
-        tt=(porty-23000)//2
-        def fake_net(_):
-            v=np.zeros(3)
-            v[tt%3]=1.
-            if tt>=3:
-                v=-v
-            return v
-        return fake_net
-    """
-    exp = xyzBlimp(num_agents=5,
-                   start_zone=lambda i: (i, 0, 1),
-                   scenePath=empty_path,
-                   blimpPath=narrow_blimp_path,
-                   networkfn=net.activate,
-                   sim=sim,
-                   simId=port,
-                   sleeptime=.01)
-    trials = 1
-    goals = exp.experiments(trials=trials, end_time=lambda t: t > 100)
-    genome.fitness += sum(goals) / trials
+
+    exp = exp_make(net, sim, port)
+    goals = exp.experiments(trials=TRIALS, end_time=END)
+    genome.fitness += sum(goals) / TRIALS
     dict_to_unlock[key] = False
     del exp
-    print(genome.fitness)
+    # print(genome.fitness)
 
 
 def eval_genomes(genomes,
                  config,
-                 num_simulators=4,
+                 num_simulators=6,
                  open_coppelia=True,
                  # this will open a bunch of coppelia sims on startup, if this is false, it just assumes they are open
                  # in the correct ports
@@ -234,7 +255,7 @@ def eval_genomes(genomes,
         processes[zmqport]['client'] = client
         processes[zmqport]['sim'] = client.getObject('sim')
         processes[zmqport]['locked'] = False  # if the simulator is being used for something
-
+    start_time = time.time()
     for genome_id, genome in genomes:
         # for each genome, assign a port, and create a thread
         # the ports should unlock as soon as an earlier thread is done with them
@@ -266,6 +287,7 @@ def eval_genomes(genomes,
                 done = False
         time.sleep(sleeptime)
     # maybe close the coppelia processes
+    dt = time.time() - start_time
     if close_after:
         for zmqport in processes:
             kill(processes[zmqport]['pid'])
@@ -282,23 +304,33 @@ def eval_genomes(genomes,
     time.sleep(resttime)
 
 
-p = neat.Population(config)
-p.add_reporter(neat.StdOutReporter(True))
-stats = neat.StatisticsReporter()
-p.add_reporter(stats)
-winner = p.run(eval_genomes, 10)
-print('\nBest genome:\n{!s}'.format(winner))
-print('\nOutput:')
-winner_net = neat.nn.FeedForwardNetwork.create(winner, config)
-exp = xyzBlimp(num_agents=5,
-               start_zone=lambda i: (i, 0, 1),
-               scenePath=empty_path,
-               blimpPath=narrow_blimp_path,
-               networkfn=winner_net.activate,
-               wakeup=['/home/rajbhandari/Downloads/CoppeliaSim_Edu_V4_3_0_rev12_Ubuntu20_04/coppeliaSim.sh']
-               )
-input("ENTER TO START")
-trials = 2
-goals = exp.experiments(trials=trials, end_time=lambda t: t > 100)
+if False:
+    p = neat.Population(config)
+    p.add_reporter(neat.StdOutReporter(True))
+    stats = neat.StatisticsReporter()
+    p.add_reporter(stats)
+    p.add_reporter(neat.Checkpointer(1, filename_prefix=os.path.join(CHECKPT_DIR, 'neat-checkpoint-')))
+    winner = p.run(eval_genomes, 20)
+    print('\nBest genome:\n{!s}'.format(winner))
+    print('\nOutput:')
+    winner_net = neat.nn.FeedForwardNetwork.create(winner, config)
+    exp = exp_make(winner_net,
+                   wakeup=['/home/rajbhandari/Downloads/CoppeliaSim_Edu_V4_3_0_rev12_Ubuntu20_04/coppeliaSim.sh'])
+    input("ENTER TO START")
+    trials = 2
+    goals = exp.experiments(trials=trials, end_time=END)
+    print(goals)
+    exp.kill()
+p = neat.Checkpointer.restore_checkpoint(os.path.join(CHECKPT_DIR, 'neat-checkpoint-18'))
+print(p)
+print(dir(p))
+for g in (p.population.values()):
+    print(g.fitness)
+quit()
+winner_net = p.best_genome
+
+exp = exp_make(winner_net,
+               wakeup=['/home/rajbhandari/Downloads/CoppeliaSim_Edu_V4_3_0_rev12_Ubuntu20_04/coppeliaSim.sh'])
+goals = exp.experiments(trials=2, end_time=END)
 print(goals)
 exp.kill()

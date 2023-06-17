@@ -506,7 +506,7 @@ class BlimpExperiment(Experiment):
             vec = neigh_pos - pos
             l_tant, k_tant = self._get_l_k_tant(vec=vec, l=l, k=k)
             output[l_tant][k_tant] += 1
-        return output
+        return np.array(output)
 
     def get_neighbors_2d_k_ant(self, agent_id, rng, k=8, spin=True):
         """
