@@ -5,8 +5,7 @@ import os
 from geometry_msgs.msg import Twist
 from geometry_msgs.msg import TwistStamped
 import time
-# from lta3.msg import state_18DOF
-from std_msgs.msg import Float64  # ,Float32MultiArray, MultiArrayDimension,
+from std_msgs.msg import Float64
 import sys
 import copy
 from collections import defaultdict

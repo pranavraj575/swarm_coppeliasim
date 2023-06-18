@@ -11,6 +11,7 @@ DIR = os.path.dirname(os.path.join(os.getcwd(), os.path.dirname(sys.argv[0])))
 frictionless_wall_path = os.path.join(DIR, 'scenes', 'FrictionlessWallClimb.ttt')
 empty_path = os.path.join(DIR, 'scenes', 'empty.ttt')
 narrow_blimp_path = os.path.join(DIR, 'ros_ctrl_models', 'blimp_narrow.ttm')
+COPPELIA_WAKEUP = '/home/rajbhandari/Downloads/CoppeliaSim_Edu_V4_3_0_rev12_Ubuntu20_04/coppeliaSim.sh'
 
 
 class Experiment:
@@ -168,7 +169,7 @@ class Experiment:
     def goal_data(self):
         """
         data to return at the end of each experiment trial
-        can be any type
+        @return: can be anything
         """
         raise NotImplementedError()
 
@@ -190,17 +191,17 @@ class BlimpExperiment(Experiment):
                  spawn_tries=100,
                  ):
         """
-
+        experiments involving blimp swarms (controlled by ROS velocity controller)
         @param num_agents: number of blimps in this swarm expiriment
         @param start_zone: int -> (RxR U R)^3 goes from the blimp number to the spawn area
                 (each dimension could be (value) or (low, high), chosen uniformly at random)
+        @param scenePath: path to coppeliasim scene
+        @param blimpPath: path to blimp for spawning
         @param sim: simulator, if already defined
         @param simId: simulator id, used to pass messages to correct topics
         @param msg_queue: queue length of ROS messages
         @param wakeup: code to run in command line before starting experiment
         @param sleeptime: time to wait before big commands (i.e. stop simulation, start simulation, pause simulation)
-        @param scenePath: path to coppeliasim scene
-        @param blimpPath: path to blimp for spawning
         @param spawn_tries: number of tries to spawn without collisions before giving up
                 if 1, then sets position, does not change if collision detected
         """
@@ -235,7 +236,7 @@ class BlimpExperiment(Experiment):
         agentHandle = self.sim.loadModel(os.path.abspath(os.path.expanduser(modelPath)))
         for _ in range(spawn_tries):
             Pos = []
-            rng=pos_rng()
+            rng = pos_rng()
             for k in range(3):
                 try:
                     Pos.append(np.random.uniform(rng[k][0], rng[k][1]))
@@ -261,62 +262,41 @@ class BlimpExperiment(Experiment):
         self.agentData = dict()
         for i in range(self.num_agents):
             this_agent = dict()
-            this_agent['agentHandle'] = self.spawnBlimp(self.modelPath, lambda:self.start_zone(i), self.spawn_tries)
+            this_agent['agentHandle'] = self.spawnBlimp(self.modelPath, lambda: self.start_zone(i), self.spawn_tries)
             this_agent['agent_id'] = i
 
             unique = str(time.time()).replace('.', '_')
             NODE = rclpy.create_node('lta_' + str(self.simId) + '_' + str(i) + '_NODE_' + unique)
+            this_agent['NODE'] = NODE
 
-            topicGlobal = TOPIC_PRE + str(self.simId) + '_' + str(i) + TOPIC_GLOBAL
-            topicUltra = TOPIC_PRE + str(self.simId) + '_' + str(i) + TOPIC_ULTRA
+            cmd_topic = TOPIC_PRE + str(self.simId) + '_' + str(i) + TOPIC_CMD
+            this_agent['cmd_topic'] = cmd_topic
 
-            topicCmdVel = TOPIC_PRE + str(self.simId) + '_' + str(i) + TOPIC_CMD
+            state_topic = TOPIC_PRE + str(self.simId) + '_' + str(i) + TOPIC_GLOBAL
+            this_agent['state_topic'] = state_topic
+            ultra_topic = TOPIC_PRE + str(self.simId) + '_' + str(i) + TOPIC_ULTRA
+            this_agent['ultra_topic'] = ultra_topic
 
-            # nodeCtrl = rclpy.create_node('lta_' + str(self.simId) + '_' + str(i) + '_publisher')
-            # vec_publisher = nodeCtrl.create_publisher(Twist, topicCmdVel, self.msg_queue)
-            vec_publisher = NODE.create_publisher(Twist, topicCmdVel, self.msg_queue)
-
-            # this_agent['nodeCtrl'] = nodeCtrl
-            this_agent['topicCmdVel'] = topicCmdVel
+            vec_publisher = NODE.create_publisher(Twist, cmd_topic, self.msg_queue)
             this_agent['vec_publisher'] = vec_publisher
 
-            # nodeState = rclpy.create_node('lta_' + str(self.simId) + '_' + str(i) + '_reciever')
-
-            # global NODE
-            # NODE = rclpy.create_node('test')
             callback = self.create_callback_twist(this_agent, 'state')
-            # state_subscriber = nodeState.create_subscription(TwistStamped,
-            #                                                 topicGlobal,
-            #                                                 callback,
-            #                                                 self.msg_queue)
             state_subscriber = NODE.create_subscription(TwistStamped,
-                                                        topicGlobal,
+                                                        state_topic,
                                                         callback,
                                                         self.msg_queue)
-            # this_agent['nodeState'] = nodeState
-            this_agent['topicGlobal'] = topicGlobal
             this_agent['state_subscriber'] = state_subscriber
 
             ultracallback = self.create_callback_float(this_agent, 'state')
-            # nodeUltra = rclpy.create_node(
-            #    'lta_' + str(self.simId) + '_' + str(i) + '_ultra')  # for recieving ultrasound
-            # ultra_subscriber = nodeUltra.create_subscription(Float64,
-            #                                                 topicUltra,
-            #                                                 ultracallback,
-            #                                                 10)
             ultra_subscriber = NODE.create_subscription(Float64,
-                                                        topicUltra,
+                                                        ultra_topic,
                                                         ultracallback,
                                                         self.msg_queue)
-            # this_agent['nodeUltra'] = nodeUltra
-            this_agent['topicUltra'] = topicUltra
             this_agent['ultra_subscriber'] = ultra_subscriber
+
             executor = rclpy.executors.MultiThreadedExecutor()
-            # executor.add_node(nodeUltra)
-            # executor.add_node(nodeState)
             executor.add_node(NODE)
             this_agent['executor'] = executor
-            this_agent['NODE'] = NODE
             self.agentData[i] = this_agent
 
     def despawnThings(self):
@@ -331,14 +311,6 @@ class BlimpExperiment(Experiment):
             for pub_key in ('vec_publisher',):
                 self.agentData[agent_id]['NODE'].destroy_publisher(pub_key)
             self.agentData[agent_id]['NODE'].destroy_node()
-        # for agent_id in self.agentData:
-        #    self.agentData[agent_id]['nodeState'].destroy_subscription('state_subscriber')
-        #    self.agentData[agent_id]['nodeUltra'].destroy_subscription('ultra_subscriber')
-        #    self.agentData[agent_id]['nodeCtrl'].destroy_subscription('vec_publisher')
-        #    for node_key in ('nodeUltra', 'nodeState','nodeCtrl'):
-        #        self.agentData[agent_id][node_key].destroy_node()
-        # global NODE
-        # NODE.destroy_node()
 
     ####################################################################################################################
     # ROS functions
@@ -352,8 +324,6 @@ class BlimpExperiment(Experiment):
             agent_ids = self.agentData.keys()
         for agent_id in agent_ids:
             self.agentData[agent_id]['executor'].spin_once(timeout_sec=.01)
-            # rclpy.spin_once(self.agentData[agent_id]['nodeState'], timeout_sec=.01)
-            # rclpy.spin_once(self.agentData[agent_id]['nodeUltra'], timeout_sec=.01)
 
     def create_callback_twist(self, dictionary, key, state_keys=('x', 'y', 'z', 'w', 'DEBUG')):
         """
@@ -373,7 +343,7 @@ class BlimpExperiment(Experiment):
             dictionary[key][state_keys[1]] = msg.twist.linear.y
             dictionary[key][state_keys[2]] = msg.twist.linear.z
             dictionary[key][state_keys[3]] = msg.twist.angular.z
-            dictionary[key][state_keys[4]] = 1.  # +=1.
+            dictionary[key][state_keys[4]] = 1.
 
         return callback
 
@@ -393,7 +363,7 @@ class BlimpExperiment(Experiment):
 
         def callback(msg):
             dictionary[key][state_key] = msg.data
-            dictionary[key][debug_key] = 1.  # +=1.
+            dictionary[key][debug_key] = 1.
 
         return callback
 
@@ -485,15 +455,15 @@ class BlimpExperiment(Experiment):
         """
         return self._gen_get_neighbors(agent_id, lambda id1, id2: self.within_range(id1, id2, rng, spin=False), spin)
 
-    def get_neighbors_3d_l_k_ant(self, agent_id, rng, k=8, l=2, spin=True):
+    def get_neighbors_3d_l_k_ant(self, agent_id, rng, l=2, k=8, spin=True):
         """
         gets count of neighbors in each l,k-ant
             i.e. l=2, k=1 is equivalent to 'north hemisphere, south hemisphere'
             l=2 k=4 is equivalent to octants of a sphere
         @param agent_id: agent id
         @param rng: range for which agents count as neighbors
-        @param k: divisions of theta to consider when using spherical coordinates
         @param l: divisions of phi to consider when using spherical coordinates
+        @param k: divisions of theta to consider when using spherical coordinates
         @param spin: whether to update all agents before checking neighbors
         @rtype: N^(l x k) array
         @return: return[i][j] specifies number of neighbors in the range phi=pi*[i,i+1)/l and theta=2*pi*[j,j+1)/k
@@ -523,8 +493,8 @@ class BlimpExperiment(Experiment):
         """
         return self.get_neighbors_3d_l_k_ant(agent_id=agent_id,
                                              rng=rng,
-                                             k=k,
                                              l=1,
+                                             k=k,
                                              spin=spin)[0]
 
     ####################################################################################################################
@@ -572,8 +542,9 @@ class blimpTest(BlimpExperiment):
                  command=(0., 0., 0.),
                  scene_path=empty_path,
                  blimp_path=narrow_blimp_path,
-                 simId=23000):
-        super().__init__(num_agents, start_zone, scene_path, blimp_path, simId=simId)
+                 simId=23000,
+                 wakeup=None):
+        super().__init__(num_agents, start_zone, scene_path, blimp_path, simId=simId,wakeup=wakeup)
         self.command = command
 
     ####################################################################################################################
@@ -602,5 +573,5 @@ class blimpTest(BlimpExperiment):
 
 
 if __name__ == "__main__":
-    bb = blimpTest(10, lambda i: ((-5, 5), (-5, 5), (1, 5)), command=(0, 0, .1))
+    bb = blimpTest(10, lambda i: ((-5, 5), (-5, 5), (1, 5)), command=(0, 0, .1),wakeup=[COPPELIA_WAKEUP])
     bb.run_exp(end_time=lambda t: False)

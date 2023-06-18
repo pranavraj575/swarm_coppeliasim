@@ -1,6 +1,5 @@
 from chain_siphon import *
 import csv
-from matplotlib import pyplot as plt
 import time, sys
 from zmqRemoteApi import RemoteAPIClient
 

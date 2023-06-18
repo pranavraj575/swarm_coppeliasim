@@ -56,7 +56,6 @@ def main(args=None):
     narrowModelPath = os.path.abspath(os.path.expanduser(MODELDIR))
     modelToLoad = narrowModelPath
 
-
     if RESET:
         sceneNamePath = os.path.abspath(os.path.expanduser(SCENEDIR))
         sim.stopSimulation()
@@ -77,7 +76,7 @@ def main(args=None):
     subscriberPos = NODE.create_subscription(TwistStamped, topicGlobal, callbackUpdateState, 10)
 
     DT = 50 / 1000
-    #sim.startSimulation()
+    # sim.startSimulation()
     test = np.array([.0, .0, .0, np.pi])
     f = 1.
     while True:
