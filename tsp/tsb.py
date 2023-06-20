@@ -147,10 +147,14 @@ class travelingSalesBlimp(BlimpExperiment):
         """
         step to take continuously during an experiment
         (should probably include a pause, since this will be running continuously)
+        @return: boolean, whether or not experiment is done
         """
         if self.goal_list is None:
+            self.sim.pauseSimulation()
             self.goal_list = self.make_goal_list()
             self.create_times()
+            self.sim.playSimulation()
+        done=True
         for agent_id in self.agentData:
             pos = self.get_position(agent_id=agent_id, use_ultra=False, spin=True)
             goals = self.goal_list[agent_id]
@@ -159,6 +163,7 @@ class travelingSalesBlimp(BlimpExperiment):
                 g_hand = None
                 goal = None
             else:
+                done=False
                 g_hand = goals[goal_index]
                 goal = self.pointData[g_hand]['pos']
                 is_depot = self.pointData[g_hand]['is depot']
@@ -185,13 +190,7 @@ class travelingSalesBlimp(BlimpExperiment):
                 if np.linalg.norm(vec) > self.speed:
                     vec = self.speed * vec / np.linalg.norm(vec)
             self.move_agent(agent_id, vec)
-
-    def is_done(self):
-        """
-        @return: whether the current run is finished
-        """
-        return (self.goal_list is not None) and all(
-            self.agentGoals[agent_id] >= len(self.goal_list[agent_id]) for agent_id in self.agentData)
+        return done
 
     def goal_data(self):
         """

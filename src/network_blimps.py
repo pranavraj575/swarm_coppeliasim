@@ -73,12 +73,21 @@ class blimpNet(BlimpExperiment):
         """
         step to take continuously during an experiment
         (should probably include a pause, since this will be running continuously)
+        @return: boolean, whether or not experiment is done
         """
         self.spin()
         for agent_id in self.agentData:
             z = self.network(self.get_network_input(agent_id))
             vec = self.get_vec_from_net_ouput(z, agent_id)
             self.move_agent(agent_id, vec)
+        return self.end_test()
+
+    def end_test(self):
+        """
+        Runs at the end of step to decide termination of experiment
+        @return: boolean of whether the experiment is done
+        """
+        raise NotImplementedError()
 
 
 class xyBlimp(blimpNet):
@@ -170,6 +179,7 @@ class xy_zero_Blimp(xyBlimp):
                  networkfn,
                  height_range,
                  use_ultra,
+                 end_time=10,
                  height_factor=.2,
                  sim=None,
                  simId=23000,
@@ -188,6 +198,7 @@ class xy_zero_Blimp(xyBlimp):
         @param networkfn: neural network function call for blimp to act
         @param height_range: R^2, height range to keep blimps at
         @param use_ultra: whether to use ultrasound to set height (and as network input)
+        @param end_time: time it takes for experiment to end
         @param height_factor: factor to multiply height adjust by
         @param sim: simulator, if already defined
         @param simId: simulator id, used to pass messages to correct topics
@@ -212,6 +223,7 @@ class xy_zero_Blimp(xyBlimp):
             wakeup=wakeup,
             sleeptime=sleeptime,
             spawn_tries=spawn_tries)
+        self.end_time = end_time
 
     ####################################################################################################################
     # Expiriment functions
@@ -229,6 +241,13 @@ class xy_zero_Blimp(xyBlimp):
             if bug == 0.:
                 raise Exception("ERROR DEBUG")
         return np.mean(s)
+
+    def end_test(self):
+        """
+        Runs at the end of step to decide termination of experiment
+        @return: boolean of whether the experiment is done
+        """
+        return self.sim.getSimulationTime() > self.end_time
 
 
 class xyzBlimp(blimpNet):
@@ -294,6 +313,7 @@ class xyz_zero_Blimp(xyzBlimp):
                  scenePath,
                  blimpPath,
                  networkfn,
+                 end_time=10,
                  sim=None,
                  simId=23000,
                  msg_queue=10,
@@ -309,6 +329,7 @@ class xyz_zero_Blimp(xyzBlimp):
         @param scenePath: path to coppeliasim scene
         @param blimpPath: path to blimp for spawning
         @param networkfn: neural network function call for blimp to act
+        @param end_time: time it takes for experiment to end
         @param sim: simulator, if already defined
         @param simId: simulator id, used to pass messages to correct topics
         @param msg_queue: queue length of ROS messages
@@ -329,6 +350,7 @@ class xyz_zero_Blimp(xyzBlimp):
             wakeup=wakeup,
             sleeptime=sleeptime,
             spawn_tries=spawn_tries)
+        self.end_time = end_time
 
     ####################################################################################################################
     # Expiriment functions
@@ -346,6 +368,13 @@ class xyz_zero_Blimp(xyzBlimp):
             if bug == 0.:
                 raise Exception("ERROR DEBUG")
         return np.mean(s)
+
+    def end_test(self):
+        """
+        Runs at the end of step to decide termination of experiment
+        @return: boolean of whether the experiment is done
+        """
+        return self.sim.getSimulationTime() > self.end_time
 
 
 class l_k_tantBlimp(blimpNet):
@@ -423,6 +452,7 @@ class l_k_tant_clump_blimp(l_k_tantBlimp):
                  scenePath,
                  blimpPath,
                  networkfn,
+                 end_time=10,
                  l=3,
                  k=4,
                  rng=2,
@@ -442,6 +472,7 @@ class l_k_tant_clump_blimp(l_k_tantBlimp):
         @param scenePath: path to coppeliasim scene
         @param blimpPath: path to blimp for spawning
         @param networkfn: neural network function call for blimp to act
+        @param end_time: time it takes for experiment to end
         @param l: divisions of phi to consider when using spherical coordinates
         @param k: divisions of theta to consider when using spherical coordinates
         @param rng: range for which agents count as neighbors
@@ -468,6 +499,7 @@ class l_k_tant_clump_blimp(l_k_tantBlimp):
             wakeup=wakeup,
             sleeptime=sleeptime,
             spawn_tries=spawn_tries)
+        self.end_time = end_time
 
     ####################################################################################################################
     # Expiriment functions
@@ -486,3 +518,10 @@ class l_k_tant_clump_blimp(l_k_tantBlimp):
                 s.append(-np.linalg.norm(pos1 - pos2))
                 # negative, we want to minimize distance between
         return np.mean(s)
+
+    def end_test(self):
+        """
+        Runs at the end of step to decide termination of experiment
+        @return: boolean of whether the experiment is done
+        """
+        return self.sim.getSimulationTime() > self.end_time

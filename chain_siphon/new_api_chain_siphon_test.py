@@ -7,6 +7,7 @@ class chainSiphon(BlimpExperiment):
                  num_agents,
                  goal_value,
                  start_zone=lambda i: ((.5, 6), (-2, 2), (1, 1.25)),
+                 end_time=300,
                  scenePath=frictionless_wall_path,
                  blimpPath=narrow_blimp_path,
                  sim=None,
@@ -37,6 +38,7 @@ class chainSiphon(BlimpExperiment):
                          sleeptime=sleeptime)
 
         self.weight = weight
+        self.end_time=end_time
         self.point_obstacles = point_obstacles
         self.obs_vector = obs_vector
         self.max_speed = max_speed
@@ -91,6 +93,11 @@ class chainSiphon(BlimpExperiment):
         return out
 
     def step(self):
+        """
+        step to take continuously during an experiment
+        (should probably include a pause, since this will be running continuously)
+        @return: boolean, whether or not experiment is done
+        """
         # self.spin()
         height = False
         for agent_id in self.agentData.keys():
@@ -239,6 +246,7 @@ class chainSiphon(BlimpExperiment):
                                obj_value,
                                len(neighbors)
                                ))
+        return self.sim.getSimulationTime()>self.end_time
 
     def data_publish(self, agent_id, agent_data):
         self.swarm_data[agent_id] = np.array(agent_data)
@@ -252,4 +260,4 @@ class chainSiphon(BlimpExperiment):
 
 
 bb = chainSiphon(6, goal_value=lambda pos: pos[0])
-print(bb.experiments(3, lambda t: t > 10))
+print(bb.experiments(3))

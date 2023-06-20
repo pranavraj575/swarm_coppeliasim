@@ -83,7 +83,7 @@ for part in (pp, bb.make_goal_partition()):
             print(ele)
         print()
 print(costs)
-bb.experiments(1, lambda t: bb.is_done())
+bb.experiments(1)
 bb.kill()
 quit()
 bb = doubleBlimp(lambda i: depot + np.random.normal((0, 0, 0), (1, 1, 0)),
@@ -101,4 +101,4 @@ bb = doubleBlimp(lambda i: depot + np.random.normal((0, 0, 0), (1, 1, 0)),
                  depot_tol=.5
                  )
 
-print(bb.experiments(1, lambda t: bb.is_done()))
+print(bb.experiments(1))

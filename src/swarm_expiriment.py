@@ -114,21 +114,20 @@ class Experiment:
             self.spawnThings()
 
     def run_exp(self,
-                end_time,
                 reset=True,
                 stop_after=False):
         """
         runs a single expiriment trial
-        @param end_time: R+ -> bool, given the time, decide whether to end experiment
-            (can obviously use other class variables like object positions to decide)
         @param reset: whether to reset the scene beforehand
         @param stop_after: whether to stop simulation after running experiment
         @return: returns result of self.goal_data
         """
         self.init_exp(reset)
         self.sim.startSimulation()
-        while rclpy.ok() and not end_time(self.sim.getSimulationTime()):
-            self.step()
+        while rclpy.ok():
+            done = self.step()
+            if done:
+                break
         while self.sim.simulation_paused != self.sim.getSimulationState():
             self.sim.pauseSimulation()
             time.sleep(self.sleeptime)
@@ -141,18 +140,15 @@ class Experiment:
         self.despawnThings()
         return output
 
-    def experiments(self, trials, end_time):
+    def experiments(self, trials):
         """
         runs multiple experiments, resetting scene at start of each one
         @param trials: number of experiments to run
-        @param end_time: R+ -> bool, given the time, decide whether to end experiment
-            (can obviously use other class variables like object positions to decide)
         @return: returns list of results of self.goal_data for each trial
         """
         results = []
         for trial in range(trials):
             data = self.run_exp(
-                end_time=end_time,
                 reset=True,
                 stop_after=False
             )
@@ -163,6 +159,7 @@ class Experiment:
         """
         step to take continuously during an experiment
         (should probably include a pause, since this will be running continuously)
+        @return: boolean, whether or not experiment is done
         """
         raise NotImplementedError()
 
@@ -554,11 +551,12 @@ class blimpTest(BlimpExperiment):
         """
         step to take continuously during an experiment
         just moves towards next agent's position
+        @return: boolean, whether or not experiment is done
         """
         for agent_id in self.agentData:
             pos = self.get_position(agent_id, use_ultra=False, spin=True)
-
             self.move_agent(agent_id, self.command)
+        return False
 
     def goal_data(self):
         """
@@ -574,4 +572,4 @@ class blimpTest(BlimpExperiment):
 
 if __name__ == "__main__":
     bb = blimpTest(10, lambda i: ((-5, 5), (-5, 5), (1, 5)), command=(0, 0, .1), wakeup=[COPPELIA_WAKEUP])
-    bb.run_exp(end_time=lambda t: False)
+    bb.run_exp()
