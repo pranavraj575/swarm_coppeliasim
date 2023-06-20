@@ -13,7 +13,7 @@ class blimpNet(BlimpExperiment):
                  simId=23000,
                  msg_queue=10,
                  wakeup=None,
-                 sleeptime=1.,
+                 sleeptime=.01,
                  spawn_tries=100,
                  ):
         """
@@ -32,16 +32,17 @@ class blimpNet(BlimpExperiment):
         @param spawn_tries: number of tries to spawn without collisions before giving up
                 if 1, then sets position, does not change if collision detected
         """
-        super().__init__(num_agents=num_agents,
-                         start_zone=start_zone,
-                         scenePath=scenePath,
-                         blimpPath=blimpPath,
-                         sim=sim,
-                         simId=simId,
-                         msg_queue=msg_queue,
-                         wakeup=wakeup,
-                         sleeptime=sleeptime,
-                         spawn_tries=spawn_tries)
+        super().__init__(
+            num_agents=num_agents,
+            start_zone=start_zone,
+            scenePath=scenePath,
+            blimpPath=blimpPath,
+            sim=sim,
+            simId=simId,
+            msg_queue=msg_queue,
+            wakeup=wakeup,
+            sleeptime=sleeptime,
+            spawn_tries=spawn_tries)
         self.network = networkfn
 
     ####################################################################################################################
@@ -89,11 +90,12 @@ class xyBlimp(blimpNet):
                  networkfn,
                  height_range,
                  use_ultra,
+                 height_factor=.2,
                  sim=None,
                  simId=23000,
                  msg_queue=10,
                  wakeup=None,
-                 sleeptime=1.,
+                 sleeptime=.01,
                  spawn_tries=100):
         """
         each blimp only sees xy coordinates, and returns an xy vector to go to
@@ -106,6 +108,7 @@ class xyBlimp(blimpNet):
         @param networkfn: neural network function call for blimp to act
         @param height_range: R^2, height range to keep blimps at
         @param use_ultra: whether to use ultrasound to set height (and as network input)
+        @param height_factor: factor to multiply height adjust by
         @param sim: simulator, if already defined
         @param simId: simulator id, used to pass messages to correct topics
         @param msg_queue: queue length of ROS messages
@@ -114,19 +117,21 @@ class xyBlimp(blimpNet):
         @param spawn_tries: number of tries to spawn without collisions before giving up
                 if 1, then sets position, does not change if collision detected
         """
-        super().__init__(num_agents=num_agents,
-                         start_zone=start_zone,
-                         scenePath=scenePath,
-                         blimpPath=blimpPath,
-                         networkfn=networkfn,
-                         sim=sim,
-                         simId=simId,
-                         msg_queue=msg_queue,
-                         wakeup=wakeup,
-                         sleeptime=sleeptime,
-                         spawn_tries=spawn_tries)
+        super().__init__(
+            num_agents=num_agents,
+            start_zone=start_zone,
+            scenePath=scenePath,
+            blimpPath=blimpPath,
+            networkfn=networkfn,
+            sim=sim,
+            simId=simId,
+            msg_queue=msg_queue,
+            wakeup=wakeup,
+            sleeptime=sleeptime,
+            spawn_tries=spawn_tries)
         self.height_range = height_range
         self.use_ultra = use_ultra
+        self.height_factor = height_factor
 
     ####################################################################################################################
     # network functions
@@ -153,7 +158,77 @@ class xyBlimp(blimpNet):
             h_adj = self.height_range[0] - z
         elif z > self.height_range[1]:
             h_adj = self.height_range[1] - z
-        return np.concatenate((np.array(output).flatten(), np.array([h_adj])))
+        return np.concatenate((np.array(output).flatten(), np.array([h_adj * self.height_factor])))
+
+
+class xy_zero_Blimp(xyBlimp):
+    def __init__(self,
+                 num_agents,
+                 start_zone,
+                 scenePath,
+                 blimpPath,
+                 networkfn,
+                 height_range,
+                 use_ultra,
+                 height_factor=.2,
+                 sim=None,
+                 simId=23000,
+                 msg_queue=10,
+                 wakeup=None,
+                 sleeptime=.01,
+                 spawn_tries=100):
+        """
+        xy sample that is rewarded for closeness to origin
+
+        @param num_agents: number of blimps in this swarm expiriment
+        @param start_zone: int -> (RxR U R)^3 goes from the blimp number to the spawn area
+                (each dimension could be (value) or (low, high), chosen uniformly at random)
+        @param scenePath: path to coppeliasim scene
+        @param blimpPath: path to blimp for spawning
+        @param networkfn: neural network function call for blimp to act
+        @param height_range: R^2, height range to keep blimps at
+        @param use_ultra: whether to use ultrasound to set height (and as network input)
+        @param height_factor: factor to multiply height adjust by
+        @param sim: simulator, if already defined
+        @param simId: simulator id, used to pass messages to correct topics
+        @param msg_queue: queue length of ROS messages
+        @param wakeup: code to run in command line before starting experiment
+        @param sleeptime: time to wait before big commands (i.e. stop simulation, start simulation, pause simulation)
+        @param spawn_tries: number of tries to spawn without collisions before giving up
+                if 1, then sets position, does not change if collision detected
+        """
+        super().__init__(
+            num_agents=num_agents,
+            start_zone=start_zone,
+            scenePath=scenePath,
+            blimpPath=blimpPath,
+            networkfn=networkfn,
+            height_range=height_range,
+            use_ultra=use_ultra,
+            height_factor=height_factor,
+            sim=sim,
+            simId=simId,
+            msg_queue=msg_queue,
+            wakeup=wakeup,
+            sleeptime=sleeptime,
+            spawn_tries=spawn_tries)
+
+    ####################################################################################################################
+    # Expiriment functions
+    ####################################################################################################################
+    def goal_data(self):
+        """
+        data to return at the end of each experiment trial
+        @return: negative average distance from origin
+        """
+        s = []
+        for agent_id in self.agentData:
+            pos = self.get_position(agent_id, use_ultra=False)[:2]
+            s.append(-np.linalg.norm(pos))
+            bug = self.get_state(agent_id)["DEBUG"]
+            if bug == 0.:
+                raise Exception("ERROR DEBUG")
+        return np.mean(s)
 
 
 class xyzBlimp(blimpNet):
@@ -167,7 +242,7 @@ class xyzBlimp(blimpNet):
                  simId=23000,
                  msg_queue=10,
                  wakeup=None,
-                 sleeptime=1.,
+                 sleeptime=.01,
                  spawn_tries=100):
         """
         each blimp only sees xyz coordinates, and returns an xyz vector to go to
@@ -186,17 +261,18 @@ class xyzBlimp(blimpNet):
         @param spawn_tries: number of tries to spawn without collisions before giving up
                 if 1, then sets position, does not change if collision detected
         """
-        super().__init__(num_agents,
-                         start_zone,
-                         scenePath,
-                         blimpPath,
-                         networkfn,
-                         sim=sim,
-                         simId=simId,
-                         msg_queue=msg_queue,
-                         wakeup=wakeup,
-                         sleeptime=sleeptime,
-                         spawn_tries=spawn_tries)
+        super().__init__(
+            num_agents=num_agents,
+            start_zone=start_zone,
+            scenePath=scenePath,
+            blimpPath=blimpPath,
+            networkfn=networkfn,
+            sim=sim,
+            simId=simId,
+            msg_queue=msg_queue,
+            wakeup=wakeup,
+            sleeptime=sleeptime,
+            spawn_tries=spawn_tries)
 
     ####################################################################################################################
     # network functions
@@ -222,7 +298,7 @@ class xyz_zero_Blimp(xyzBlimp):
                  simId=23000,
                  msg_queue=10,
                  wakeup=None,
-                 sleeptime=1.,
+                 sleeptime=.01,
                  spawn_tries=100):
         """
         xyz sample that is rewarded for closeness to origin
@@ -241,17 +317,18 @@ class xyz_zero_Blimp(xyzBlimp):
         @param spawn_tries: number of tries to spawn without collisions before giving up
                 if 1, then sets position, does not change if collision detected
         """
-        super().__init__(num_agents,
-                         start_zone,
-                         scenePath,
-                         blimpPath,
-                         networkfn,
-                         sim=sim,
-                         simId=simId,
-                         msg_queue=msg_queue,
-                         wakeup=wakeup,
-                         sleeptime=sleeptime,
-                         spawn_tries=spawn_tries)
+        super().__init__(
+            num_agents=num_agents,
+            start_zone=start_zone,
+            scenePath=scenePath,
+            blimpPath=blimpPath,
+            networkfn=networkfn,
+            sim=sim,
+            simId=simId,
+            msg_queue=msg_queue,
+            wakeup=wakeup,
+            sleeptime=sleeptime,
+            spawn_tries=spawn_tries)
 
     ####################################################################################################################
     # Expiriment functions
@@ -285,7 +362,7 @@ class l_k_tantBlimp(blimpNet):
                  simId=23000,
                  msg_queue=10,
                  wakeup=None,
-                 sleeptime=1.,
+                 sleeptime=.01,
                  spawn_tries=100):
         """
         each blimp sees its neighboring blimps, by seeing how many are in each l,k-tant
@@ -310,17 +387,18 @@ class l_k_tantBlimp(blimpNet):
         @param spawn_tries: number of tries to spawn without collisions before giving up
                 if 1, then sets position, does not change if collision detected
         """
-        super().__init__(num_agents,
-                         start_zone,
-                         scenePath,
-                         blimpPath,
-                         networkfn,
-                         sim=sim,
-                         simId=simId,
-                         msg_queue=msg_queue,
-                         wakeup=wakeup,
-                         sleeptime=sleeptime,
-                         spawn_tries=spawn_tries)
+        super().__init__(
+            num_agents=num_agents,
+            start_zone=start_zone,
+            scenePath=scenePath,
+            blimpPath=blimpPath,
+            networkfn=networkfn,
+            sim=sim,
+            simId=simId,
+            msg_queue=msg_queue,
+            wakeup=wakeup,
+            sleeptime=sleeptime,
+            spawn_tries=spawn_tries)
         self.l = l
         self.k = k
         self.rng = rng  # note we can do better than this, as this allows agents to see through walls
@@ -352,7 +430,7 @@ class l_k_tant_clump_blimp(l_k_tantBlimp):
                  simId=23000,
                  msg_queue=10,
                  wakeup=None,
-                 sleeptime=1.,
+                 sleeptime=.01,
                  spawn_tries=100,
                  ):
         """

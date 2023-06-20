@@ -1,6 +1,9 @@
+from src.network_blimps import *
+import os
 import threading
 import neat
-from src.network_blimps import *
+from evolution.better_pop import better_Population
+import gzip, random, pickle
 
 DIR = os.path.dirname(os.path.join(os.getcwd(), os.path.dirname(sys.argv[0])))
 config_file = os.path.join(DIR, 'config', 'test-config-feedforward')
@@ -26,6 +29,17 @@ def START_ZONE(i):
 
 
 def exp_make(net, sim=None, port=23000, wakeup=None):
+    return xy_zero_Blimp(num_agents=5,
+                         start_zone=START_ZONE,
+                         scenePath=empty_path,
+                         blimpPath=narrow_blimp_path,
+                         networkfn=net.activate,
+                         height_range=(1, 1),
+                         use_ultra=True,
+                         sim=sim,
+                         simId=port,
+                         wakeup=wakeup
+                         )
     return l_k_tant_clump_blimp(num_agents=5,
                                 start_zone=START_ZONE,
                                 scenePath=empty_path,
@@ -40,13 +54,37 @@ def exp_make(net, sim=None, port=23000, wakeup=None):
 
 
 TRIALS = 2
-END = lambda t: t > 60
-CHECKPT_DIR = os.path.join(DIR, 'checkpoints', 'octant_blimp')
+END = lambda t: t > 10
+NAME = 'xy_zero_test'
+CHECKPT_DIR = os.path.join(DIR, 'checkpoints', NAME)
+
+
+def MOST_RECENT(dir=CHECKPT_DIR):
+    out = None
+    if os.path.exists(dir):
+        for fil in os.listdir(dir):
+            if out is None:
+                out = fil
+            else:
+                out = max(fil, out, key=lambda f: int(f[f.rindex('-') + 1:]))
+    return out
+
+
 if not os.path.exists(CHECKPT_DIR):
     os.makedirs(CHECKPT_DIR)
 
 
+def restore_checkpoint(filename):
+    """Resumes the simulation from a previous saved point."""
+    with gzip.open(filename) as f:
+        generation, config, population, species_set, rndstate = pickle.load(f)
+        random.setstate(rndstate)
+        return better_Population(config, (population, species_set, generation))
+
+
 def eval_genom(genome, config, port, dict_to_unlock, key='locked', sim=None):
+    if genome.fitness is not None:
+        return
     genome.fitness = .0
     net = neat.nn.FeedForwardNetwork.create(genome, config)
 
@@ -60,7 +98,7 @@ def eval_genom(genome, config, port, dict_to_unlock, key='locked', sim=None):
 
 def eval_genomes(genomes,
                  config,
-                 num_simulators=6,
+                 num_simulators=10,
                  open_coppelia=True,
                  # this will open a bunch of coppelia sims on startup, if this is false, it just assumes they are open
                  # in the correct ports
@@ -71,7 +109,7 @@ def eval_genomes(genomes,
                  websocket_def_port=23050,
                  close_after=True,
                  sleeptime=.1,
-                 resttime=1,
+                 resttime=.1,
                  ):
     while True:
         try:
@@ -148,28 +186,29 @@ def eval_genomes(genomes,
     time.sleep(resttime)
 
 
-if False:
-    p = neat.Population(config)
+if True:
+    if MOST_RECENT() is not None:
+        p = restore_checkpoint(os.path.join(CHECKPT_DIR, MOST_RECENT()))
+    else:
+        p = better_Population(config)
     p.add_reporter(neat.StdOutReporter(True))
     stats = neat.StatisticsReporter()
     p.add_reporter(stats)
-    p.add_reporter(neat.Checkpointer(1, filename_prefix=os.path.join(CHECKPT_DIR, 'neat-checkpoint-')))
-    winner = p.run(eval_genomes, 20)
+    p.add_reporter(neat.checkpoint.Checkpointer(1, filename_prefix=os.path.join(CHECKPT_DIR, 'neat-checkpoint-')))
+    winner = p.run(eval_genomes, 2)
     print('\nBest genome:\n{!s}'.format(winner))
     print('\nOutput:')
     winner_net = neat.nn.FeedForwardNetwork.create(winner, config)
-    exp = exp_make(winner_net,
-                   wakeup=['/home/rajbhandari/Downloads/CoppeliaSim_Edu_V4_3_0_rev12_Ubuntu20_04/coppeliaSim.sh'])
-    input("ENTER TO START")
-    trials = 2
-    goals = exp.experiments(trials=trials, end_time=END)
-    print(goals)
-    exp.kill()
-p = neat.Checkpointer.restore_checkpoint(os.path.join(CHECKPT_DIR, 'neat-checkpoint-18'))
-print(p)
-print(dir(p))
-for g in (p.population.values()):
-    print(g.fitness)
+    if False:
+        exp = exp_make(winner_net,
+                       wakeup=['/home/rajbhandari/Downloads/CoppeliaSim_Edu_V4_3_0_rev12_Ubuntu20_04/coppeliaSim.sh'])
+        input("ENTER TO START")
+        trials = 2
+        goals = exp.experiments(trials=trials, end_time=END)
+        print(goals)
+        exp.kill()
+p = Checkpointer_hardly_knower.restore_checkpoint(os.path.join(CHECKPT_DIR, MOST_RECENT()))
+
 quit()
 winner_net = p.best_genome
 

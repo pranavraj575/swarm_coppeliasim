@@ -150,6 +150,7 @@ class travelingSalesBlimp(BlimpExperiment):
         """
         if self.goal_list is None:
             self.goal_list = self.make_goal_list()
+            self.create_times()
         for agent_id in self.agentData:
             pos = self.get_position(agent_id=agent_id, use_ultra=False, spin=True)
             goals = self.goal_list[agent_id]

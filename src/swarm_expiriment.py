@@ -20,7 +20,7 @@ class Experiment:
                  sim=None,
                  simId=23000,
                  wakeup=None,
-                 sleeptime=1.,
+                 sleeptime=.01,
                  ):
         """
 
@@ -187,7 +187,7 @@ class BlimpExperiment(Experiment):
                  simId=23000,
                  msg_queue=10,
                  wakeup=None,
-                 sleeptime=1.,
+                 sleeptime=.01,
                  spawn_tries=100,
                  ):
         """
@@ -544,7 +544,7 @@ class blimpTest(BlimpExperiment):
                  blimp_path=narrow_blimp_path,
                  simId=23000,
                  wakeup=None):
-        super().__init__(num_agents, start_zone, scene_path, blimp_path, simId=simId,wakeup=wakeup)
+        super().__init__(num_agents, start_zone, scene_path, blimp_path, simId=simId, wakeup=wakeup)
         self.command = command
 
     ####################################################################################################################
@@ -573,5 +573,5 @@ class blimpTest(BlimpExperiment):
 
 
 if __name__ == "__main__":
-    bb = blimpTest(10, lambda i: ((-5, 5), (-5, 5), (1, 5)), command=(0, 0, .1),wakeup=[COPPELIA_WAKEUP])
+    bb = blimpTest(10, lambda i: ((-5, 5), (-5, 5), (1, 5)), command=(0, 0, .1), wakeup=[COPPELIA_WAKEUP])
     bb.run_exp(end_time=lambda t: False)
