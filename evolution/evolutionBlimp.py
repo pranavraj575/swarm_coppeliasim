@@ -72,6 +72,7 @@ class EvolutionExperiment:
             neat.DefaultStagnation,
             config_file)
         self.exp_maker = exp_maker
+
     def train(self,
               generations,
               TRIALS,
@@ -85,6 +86,22 @@ class EvolutionExperiment:
               sleeptime=.1,
               resttime=.1,
               restore=True):
+        """
+        Trains the population for a number of generations
+        @param generations: number of generations to train for (NOTE: this includes the saved generation)
+        @param TRIALS: trials to evaluate each genome
+        @param num_simulators: number of coppelia sims to use
+        @param open_coppelia: whether to open the simulators each generation
+        @param headless: whether to run coppelia in headless mode
+        @param checkpt_freq: how often to save checkpoints
+        @param zmq_def_port: default port for ZMQ API
+        @param websocket_def_port: default port for the websocket
+        @param close_after: whether to close instances of coppelia after running this
+        @param sleeptime: time to sleep after important commands
+        @param resttime: time to sleep after each generation
+        @param restore: whether to restore progress
+        @return: best genome
+        """
         if restore and MOST_RECENT(self.checkpt_dir) is not None:
             print('RESTORING')
             p = restore_checkpoint(os.path.join(self.checkpt_dir, MOST_RECENT(self.checkpt_dir)))
@@ -121,10 +138,20 @@ class EvolutionExperiment:
                    dict_to_unlock,
                    key,
                    sim):
+        """
+        function to evaluate a single genome
+        @param genome: genome to evaluate
+        @param config: config to use
+        @param port: coppeliasim port to connect to
+        @param TRIALS: number of trials per genome
+        @param dict_to_unlock: dictionary to unlock, to indicate that we are done with simulator
+        @param key: key in dictionary to unlock
+        @param sim: simulator to use
+        """
         genome.fitness = .0
         net = neat.nn.FeedForwardNetwork.create(genome, config)
 
-        exp = self.exp_maker(net=net, sim=sim, port=port,wakeup=None)
+        exp = self.exp_maker(net=net, sim=sim, port=port, wakeup=None)
         goals = exp.experiments(trials=TRIALS)
         genome.fitness += sum(goals) / TRIALS
         dict_to_unlock[key] = False
@@ -144,6 +171,23 @@ class EvolutionExperiment:
                      sleeptime,
                      resttime,
                      ):
+        """
+        evaluates all genomes, requirements specified in the NEAT document
+        @note: what will be run is "lambda genomes, config: self.eval_genomes(genomes, config, ...)
+
+        @param genomes: genomes to evaluate
+        @param config: config to use
+        @param TRIALS: trials to evaluate each genome
+        @param num_simulators: number of simulators to use
+        @param open_coppelia: whether to open coppelia at the start
+        @param headless: whether to run coppelia in headless mode
+        @param port_step: amount to increment ports for different coppelia instances
+        @param zmq_def_port: default port for ZMQ api
+        @param websocket_def_port: default port for websocket
+        @param close_after: whether to close coppela after done
+        @param sleeptime: amount to sleep after important commands
+        @param resttime: amount to rest after done
+        """
         while True:
             try:
                 if not rclpy.ok():
@@ -226,6 +270,15 @@ class EvolutionExperiment:
         time.sleep(resttime)
 
     def result_of_experiment(self, trials=1, search_all_gens=False, display=True, start_coppelia=True):
+        """
+        runs an experiment with best genome found, returns results
+
+        @param trials: number of trials to run
+        @param search_all_gens: whether to search all checkpoints or just the most recent one
+        @param display: whether to open coppelia GUI
+        @param start_coppelia: whether to start coppelia at the beginning
+        @return: result of src.Experiment.experiments
+        """
         if start_coppelia:
             wakeup = ['/home/rajbhandari/Downloads/CoppeliaSim_Edu_V4_3_0_rev12_Ubuntu20_04/coppeliaSim.sh' +
                       ('' if display else ' -h')]
@@ -276,6 +329,7 @@ def expe_make(net, sim=None, port=23000, wakeup=None):
                                 l=L,
                                 k=K,
                                 wakeup=wakeup)
+
 
 ee = EvolutionExperiment('xy_zero_test', expe_make)
 ee.train(2, 2)
