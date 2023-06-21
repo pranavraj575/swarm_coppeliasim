@@ -2,8 +2,8 @@
 import random
 import math
 import time
-from src.cell import Cell
-from src.algorithm import depth_first_recursive_backtracker, binary_tree
+from pymaze.src.cell import Cell
+from pymaze.src.algorithm import depth_first_recursive_backtracker, binary_tree
 
 
 class Maze(object):
@@ -23,21 +23,29 @@ class Maze(object):
         grid (list): A copy of initial_grid (possible this is un-needed)
         """
 
-    def __init__(self, num_rows, num_cols, id=0, algorithm = "dfs_backtrack"):
+    def __init__(self, num_rows, num_cols, id=0, algorithm = "dfs_backtrack",entry=None,exit=None):
         """Creates a gird of Cell objects that are neighbors to each other.
 
             Args:
                     num_rows (int): The width of the maze, in cells
                     num_cols (int): The height of the maze in cells
                     id (id): An unique identifier
+                    entry (int,int): entry location, random if unspecified
+                    exit (int,int): exit location, random if unspecified
 
         """
         self.num_cols = num_cols
         self.num_rows = num_rows
         self.id = id
         self.grid_size = num_rows*num_cols
-        self.entry_coor = self._pick_random_entry_exit(None)
-        self.exit_coor = self._pick_random_entry_exit(self.entry_coor)
+        if entry is None:
+            self.entry_coor = self._pick_random_entry_exit(None)
+        else:
+            self.entry_coor=entry
+        if exit is None:
+            self.exit_coor = self._pick_random_entry_exit(self.entry_coor)
+        else:
+            self.exit_coor = exit
         self.generation_path = []
         self.solution_path = None
         self.initial_grid = self.generate_grid()

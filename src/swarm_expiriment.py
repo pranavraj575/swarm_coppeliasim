@@ -227,7 +227,7 @@ class BlimpExperiment(Experiment):
     ####################################################################################################################
     # init/shutdown functions
     ####################################################################################################################
-    def spawnBlimp(self, modelPath, pos_rng, spawn_tries):
+    def spawnBlimp(self, modelPath, pos_rng, spawn_tries, orientation=None):
         """
         spawns a model in a certian area
 
@@ -237,6 +237,7 @@ class BlimpExperiment(Experiment):
             (if tuple, than uniformly chooses from (low,high))
         @param spawn_tries: number of tries to spawn without collisions before giving up
                 if 1, then sets position, does not change if collision detected
+        @param orientation: R^3, orientation to spawn into, None if default model orientation
         @return: handle of model spawned
         """
         agentHandle = self.sim.loadModel(os.path.abspath(os.path.expanduser(modelPath)))
@@ -249,6 +250,8 @@ class BlimpExperiment(Experiment):
                 except:
                     Pos.append(float(rng[k]))
             self.sim.setObjectPosition(agentHandle, -1, Pos)
+            if orientation is not None:
+                self.sim.setObjectOrientation(agentHandle, -1, [float(o) for o in orientation])
             collisionResult, collidingObjectHandles = self.collision_check(agentHandle)
             if not collisionResult:
                 break
