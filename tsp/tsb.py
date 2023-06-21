@@ -32,6 +32,9 @@ class travelingSalesBlimp(BlimpExperiment):
                  depot_tol=1.,
                  ):
         """
+        Class to run a TSP problem with blimps. The 'experiment' will just run a predetermined path for each blimp
+            Important part is how the paths are calculated
+
         @param num_agents: number of blimps in this swarm expiriment
         @param start_zone: int -> (RxR U R)^3 goes from the blimp number to the spawn area
                 (each dimension could be (value) or (low, high), chosen uniformly at random)
@@ -135,6 +138,7 @@ class travelingSalesBlimp(BlimpExperiment):
     def find_handle(self, pt):
         """
         find a POI by its location (approx)
+
         @param pt: R^3 point to find handle of
         @return: handle of POI
         """
@@ -147,6 +151,7 @@ class travelingSalesBlimp(BlimpExperiment):
         """
         step to take continuously during an experiment
         (should probably include a pause, since this will be running continuously)
+
         @return: boolean, whether or not experiment is done
         """
         if self.goal_list is None:
@@ -195,6 +200,7 @@ class travelingSalesBlimp(BlimpExperiment):
     def goal_data(self):
         """
         data to return at the end of each experiment trial
+
         @return: nothing, this is not important here
         """
         return None
@@ -205,6 +211,7 @@ class travelingSalesBlimp(BlimpExperiment):
     def I(self, D, taus):
         """
         Information gain of a vector of POIs with tau value 'taus', if dwell times are 'D'
+
         @param D: M x 1 torch tensor of dwell times
         @param taus: M x 1 torch tensor of tau values
         @return: M x 1 torch tensor of entropy gain values for each POI
@@ -217,6 +224,7 @@ class travelingSalesBlimp(BlimpExperiment):
         """
         Returns value proportional to the discounted entropy gain with dwell times 'D', tau values 'taus'
             must be multiplied by exp(alpha * path cost for partition) to get actual discounted entropy
+
         @param D: M x 1 torch tensor of dwell times
         @param taus:  M x 1 torch tensor of tau values
         @return: torch constant of value proportional to discounted entropy gain (without beta)
@@ -227,6 +235,7 @@ class travelingSalesBlimp(BlimpExperiment):
     def create_times(self, goal_list=None):
         """
         uses torch gradient descent to find optimal dwell times for a given partition/TSP solution
+
         @param goal_list: list of goals for each agent to visit, if None we will make one using default method
         """
         self.times_created = True
@@ -267,6 +276,7 @@ class travelingSalesBlimp(BlimpExperiment):
     def get_tot_disc_entropy(self, goal_list=None):
         """
         gets total discounted entropy of a given goal list
+
         @param goal_list: list of list of handles, length num_agents, total of num_points elements that are not the depot
             (partition/TSP solution)
             if None, we will use default method
@@ -289,6 +299,7 @@ class travelingSalesBlimp(BlimpExperiment):
     def get_disc_entropy_from_part(self, partition):
         """
         gets the optimal discounted entropy from a partition
+
         @param partition: list of lists, length num_agents, total of num_points elements
             partition of the non-depot POIs
         @return: cost of solution, after running lkh and gradient descent
@@ -304,6 +315,7 @@ class travelingSalesBlimp(BlimpExperiment):
     def make_goal_list(self, partition=None):
         """
         gives each blimp a list of points to go to, in order
+
         @param partition: list of lists, length num_agents, total of num_points elements
             partition of the non-depot POIs
             if None, will use default method
@@ -324,9 +336,10 @@ class travelingSalesBlimp(BlimpExperiment):
 
     def lkhSolve(self, handles, factor=1000):
         """
-        https://pypi.org/project/lkh/
-        http://webhotel4.ruc.dk/~keld/research/LKH-3/LKH-3_REPORT.pdf
-        given handles, gives optimal order
+        given handles, gives approximation of optimal order
+            https://pypi.org/project/lkh/
+            http://webhotel4.ruc.dk/~keld/research/LKH-3/LKH-3_REPORT.pdf
+
         @param handles: list of handles to order
         @param factor: lkh takes integers, so we multiply coordinates by factor to increase precision
         @return: list of handles in order
@@ -354,7 +367,8 @@ class travelingSalesBlimp(BlimpExperiment):
     def make_goal_partition(self):
         """
         default partition solver, currently used KMeans
-        partitions the goals into a list for each blimp (order does not matter)
+            partitions the goals into a list for each blimp (order does not matter)
+
         @return: list of lists, length num_agents, total number of elements must be num_points (ignores depot)
                 elements are handles of POIs for each agent to visit
         """
@@ -369,6 +383,7 @@ class travelingSalesBlimp(BlimpExperiment):
     def cost_fn(self, h1, h2):
         """
         returns cost (euclidean distance) between two POIs
+
         @param h1: handle 1
         @param h2: handle 2
         @return: euclidean distance
@@ -378,6 +393,7 @@ class travelingSalesBlimp(BlimpExperiment):
     def get_cost(self, h1, h2, use_dict=True):
         """
         returns cost (defined in cost_fn) between two POIs
+
         @param h1: handle 1
         @param h2: handle 2
         @param use_dict: whether to calculate every time or use lookup table
@@ -394,6 +410,7 @@ class travelingSalesBlimp(BlimpExperiment):
     def get_path_cost(self, path):
         """
         returns total path cost of a path around POIS
+
         @param path: list of POI handles
         @return: path cost (using costs defined in cost_fn)
         """
@@ -434,6 +451,7 @@ class localSearchBlimp(travelingSalesBlimp):
                  ):
         """
         uses local search on top of partitioning methods specified
+
         @param num_agents: number of blimps in this swarm expiriment
         @param start_zone: int -> (RxR U R)^3 goes from the blimp number to the spawn area
                 (each dimension could be (value) or (low, high), chosen uniformly at random)
@@ -497,6 +515,7 @@ class localSearchBlimp(travelingSalesBlimp):
     def local_search_partitions(self, init_parts, checked=None):
         """
         local searches starting from init_parts as seeds
+
         @param init_parts: initial partitions to check
         @param checked: already ruled out partitions, defaults to nothing
         @return: list of lists, length num_agents, total number of elements must be num_points (ignores depot)
@@ -535,6 +554,7 @@ class localSearchBlimp(travelingSalesBlimp):
     def string_from_part(self, part):
         """
         returns string representing partition (ith index is the partition that the ith handle is assigned to)
+
         @param partition: partition of non-depot POI handles, list of lists
         @return: string representation
 
@@ -550,6 +570,7 @@ class localSearchBlimp(travelingSalesBlimp):
     def part_from_string(self, string):
         """
         returns partition from its string representation
+
         @param string: string representation
         @return: partition of non-depot POI handles, list of lists
 
@@ -563,6 +584,7 @@ class localSearchBlimp(travelingSalesBlimp):
     def get_neighbors(self, partition):
         """
         returns all neighbors of partition attained by switching one element
+
         @param partition: partition of non-depot POI handles, list of lists
         """
         for i in range(len(partition)):

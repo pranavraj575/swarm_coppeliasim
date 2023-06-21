@@ -13,6 +13,7 @@ CONFIG_DIR = os.path.join(DIR, 'config')
 def kill(proc_pid):
     """
     kills a process and processes it spawned
+
     @param proc_pid: id to kill
     """
     process = psutil.Process(proc_pid)
@@ -27,6 +28,7 @@ def kill(proc_pid):
 def restore_checkpoint(filename):
     """
     Resumes the simulation from a previous saved point.
+
     @param filename: filename to restore
     """
     with gzip.open(filename) as f:
@@ -38,6 +40,7 @@ def restore_checkpoint(filename):
 def MOST_RECENT(dir):
     """
     returns name of most recent saved file in dir (by naming conventions, assumes name ends wtih -#)
+
     @param dir: directory to check
     @return: filename
     """
@@ -57,6 +60,7 @@ class EvolutionExperiment:
                  exp_maker):
         """
         experiment to use NEAT evolutionary algorithm on a Experiment class (specifically a blimpNet)
+
         @param name: folder name of experiment, used for config file and for checkpoint directories
         @param exp_maker: (net,sim,port,wakeup) -> src.network_blimps.blimpNet
                 creates an Experiment to run given the NEAT network, simulator, port, and wakeup script
@@ -88,6 +92,7 @@ class EvolutionExperiment:
               restore=True):
         """
         Trains the population for a number of generations
+
         @param generations: number of generations to train for (NOTE: this includes the saved generation)
         @param TRIALS: trials to evaluate each genome
         @param num_simulators: number of coppelia sims to use
@@ -140,6 +145,7 @@ class EvolutionExperiment:
                    sim):
         """
         function to evaluate a single genome
+
         @param genome: genome to evaluate
         @param config: config to use
         @param port: coppeliasim port to connect to
@@ -173,6 +179,7 @@ class EvolutionExperiment:
                      ):
         """
         evaluates all genomes, requirements specified in the NEAT document
+
         @note: what will be run is "lambda genomes, config: self.eval_genomes(genomes, config, ...)
 
         @param genomes: genomes to evaluate

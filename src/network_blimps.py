@@ -18,6 +18,7 @@ class blimpNet(BlimpExperiment):
                  ):
         """
         experiement of blimp swarm each controlled by a neural network
+
         @param num_agents: number of blimps in this swarm expiriment
         @param start_zone: int -> (RxR U R)^3 goes from the blimp number to the spawn area
                 (each dimension could be (value) or (low, high), chosen uniformly at random)
@@ -51,6 +52,7 @@ class blimpNet(BlimpExperiment):
     def get_network_input(self, agent_id):
         """
         gets the network input for agent specified
+
         @param agent_id: agent to get input for
         @return: np array with correct dimensions
         """
@@ -60,11 +62,12 @@ class blimpNet(BlimpExperiment):
         """
         given network output, transform into control vector
             useful if we want edited controls (i.e. max speed or more drastic stuff like using position waypoints)
+
         @param output: network output
         @param agent_id: could be important for subclasses
         @return: control vector, probably R^3 encoding velocity goal
         """
-        return np.array(output).flatten()
+        raise NotImplementedError()
 
     ####################################################################################################################
     # Expiriment functions
@@ -73,6 +76,7 @@ class blimpNet(BlimpExperiment):
         """
         step to take continuously during an experiment
         (should probably include a pause, since this will be running continuously)
+
         @return: boolean, whether or not experiment is done
         """
         self.spin()
@@ -85,6 +89,7 @@ class blimpNet(BlimpExperiment):
     def end_test(self):
         """
         Runs at the end of step to decide termination of experiment
+
         @return: boolean of whether the experiment is done
         """
         raise NotImplementedError()
@@ -107,8 +112,9 @@ class xyBlimp(blimpNet):
                  sleeptime=.01,
                  spawn_tries=100):
         """
-        each blimp only sees xy coordinates, and returns an xy vector to go to
+        each blimp returns an xy vector to go to
             height is always kept at 'height_range', using ultrasound if use_ultra is true
+
         @param num_agents: number of blimps in this swarm expiriment
         @param start_zone: int -> (RxR U R)^3 goes from the blimp number to the spawn area
                 (each dimension could be (value) or (low, high), chosen uniformly at random)
@@ -145,19 +151,11 @@ class xyBlimp(blimpNet):
     ####################################################################################################################
     # network functions
     ####################################################################################################################
-    def get_network_input(self, agent_id):
-        """
-        gets the network input for agent specified
-        @param agent_id: agent to get input for
-        @return: R^2 np array
-        """
-        pos = self.get_position(agent_id, use_ultra=self.use_ultra, spin=True)[:2]
-        return pos.reshape((2, 1))
-
     def get_vec_from_net_ouput(self, output, agent_id):
         """
         given network output, transform into control vector
             useful if we want edited controls (i.e. max speed or more drastic stuff like using position waypoints)
+
         @param output: network output
         @return: control vector, probably R^3 encoding velocity goal
         """
@@ -188,7 +186,7 @@ class xy_zero_Blimp(xyBlimp):
                  sleeptime=.01,
                  spawn_tries=100):
         """
-        xy sample that is rewarded for closeness to origin
+        blimp only sees xy coordinates, rewarded for mean closeness to origin
 
         @param num_agents: number of blimps in this swarm expiriment
         @param start_zone: int -> (RxR U R)^3 goes from the blimp number to the spawn area
@@ -226,11 +224,25 @@ class xy_zero_Blimp(xyBlimp):
         self.end_time = end_time
 
     ####################################################################################################################
+    # network functions
+    ####################################################################################################################
+    def get_network_input(self, agent_id):
+        """
+        gets the network input for agent specified
+
+        @param agent_id: agent to get input for
+        @return: R^2 np array
+        """
+        pos = self.get_position(agent_id, use_ultra=self.use_ultra, spin=True)[:2]
+        return pos.reshape((2, 1))
+
+    ####################################################################################################################
     # Expiriment functions
     ####################################################################################################################
     def goal_data(self):
         """
         data to return at the end of each experiment trial
+
         @return: negative average distance from origin
         """
         s = []
@@ -245,6 +257,7 @@ class xy_zero_Blimp(xyBlimp):
     def end_test(self):
         """
         Runs at the end of step to decide termination of experiment
+
         @return: boolean of whether the experiment is done
         """
         return self.sim.getSimulationTime() > self.end_time
@@ -296,14 +309,16 @@ class xyzBlimp(blimpNet):
     ####################################################################################################################
     # network functions
     ####################################################################################################################
-    def get_network_input(self, agent_id):
+    def get_vec_from_net_ouput(self, output, agent_id):
         """
-        gets the network input for agent specified
-        @param agent_id: agent to get input for
-        @return: R^3 np array
+        given network output, transform into control vector
+            useful if we want edited controls (i.e. max speed or more drastic stuff like using position waypoints)
+
+        @param output: network output
+        @param agent_id: could be important for subclasses
+        @return: control vector, probably R^3 encoding velocity goal
         """
-        pos = self.get_position(agent_id, use_ultra=True, spin=True)
-        return pos.reshape((3, 1))
+        return np.array(output).flatten()
 
 
 class xyz_zero_Blimp(xyzBlimp):
@@ -353,11 +368,25 @@ class xyz_zero_Blimp(xyzBlimp):
         self.end_time = end_time
 
     ####################################################################################################################
+    # network functions
+    ####################################################################################################################
+    def get_network_input(self, agent_id):
+        """
+        gets the network input for agent specified
+
+        @param agent_id: agent to get input for
+        @return: R^3 np array
+        """
+        pos = self.get_position(agent_id, use_ultra=True, spin=True)
+        return pos.reshape((3, 1))
+
+    ####################################################################################################################
     # Expiriment functions
     ####################################################################################################################
     def goal_data(self):
         """
         data to return at the end of each experiment trial
+
         @return: negative average distance from origin
         """
         s = []
@@ -376,76 +405,7 @@ class xyz_zero_Blimp(xyzBlimp):
         """
         return self.sim.getSimulationTime() > self.end_time
 
-
-class l_k_tantBlimp(blimpNet):
-    def __init__(self,
-                 num_agents,
-                 start_zone,
-                 scenePath,
-                 blimpPath,
-                 networkfn,
-                 l,
-                 k,
-                 rng,
-                 sim=None,
-                 simId=23000,
-                 msg_queue=10,
-                 wakeup=None,
-                 sleeptime=.01,
-                 spawn_tries=100):
-        """
-        each blimp sees its neighboring blimps, by seeing how many are in each l,k-tant
-            viewed in spherical coordinates, l is the divisions of phi and k is the divisions of theta
-            for example, l=2, k=4 would be the octants of a sphere
-            rng is the range of neighbors that the blimp sees
-
-        @param num_agents: number of blimps in this swarm expiriment
-        @param start_zone: int -> (RxR U R)^3 goes from the blimp number to the spawn area
-                (each dimension could be (value) or (low, high), chosen uniformly at random)
-        @param scenePath: path to coppeliasim scene
-        @param blimpPath: path to blimp for spawning
-        @param networkfn: neural network function call for blimp to act
-        @param l: divisions of phi to consider when using spherical coordinates
-        @param k: divisions of theta to consider when using spherical coordinates
-        @param rng: range for which agents count as neighbors
-        @param sim: simulator, if already defined
-        @param simId: simulator id, used to pass messages to correct topics
-        @param msg_queue: queue length of ROS messages
-        @param wakeup: code to run in command line before starting experiment
-        @param sleeptime: time to wait before big commands (i.e. stop simulation, start simulation, pause simulation)
-        @param spawn_tries: number of tries to spawn without collisions before giving up
-                if 1, then sets position, does not change if collision detected
-        """
-        super().__init__(
-            num_agents=num_agents,
-            start_zone=start_zone,
-            scenePath=scenePath,
-            blimpPath=blimpPath,
-            networkfn=networkfn,
-            sim=sim,
-            simId=simId,
-            msg_queue=msg_queue,
-            wakeup=wakeup,
-            sleeptime=sleeptime,
-            spawn_tries=spawn_tries)
-        self.l = l
-        self.k = k
-        self.rng = rng  # note we can do better than this, as this allows agents to see through walls
-
-    ####################################################################################################################
-    # network functions
-    ####################################################################################################################
-    def get_network_input(self, agent_id):
-        """
-        gets the network input for agent specified
-        @param agent_id: agent to get input for
-        @return: R^(l*k) np array
-        """
-        l_k_tant = self.get_neighbors_3d_l_k_ant(agent_id, rng=self.rng, k=self.k, l=self.l, spin=True)
-        return l_k_tant.reshape((-1, 1))
-
-
-class l_k_tant_clump_blimp(l_k_tantBlimp):
+class l_k_tant_clump_blimp(blimpNet):
     def __init__(self,
                  num_agents,
                  start_zone,
@@ -464,7 +424,12 @@ class l_k_tant_clump_blimp(l_k_tantBlimp):
                  spawn_tries=100,
                  ):
         """
-        l,k-tant blimp experiment where the blimps are rewarded for being close together
+        each blimp sees its neighboring blimps, by seeing how many are in each l,k-tant
+            viewed in spherical coordinates, l is the divisions of phi and k is the divisions of theta
+            for example, l=2, k=4 would be the octants of a sphere
+            rng is the range of neighbors that the blimp sees
+
+        The blimps are rewarded for being close together
 
         @param num_agents: number of blimps in this swarm expiriment
         @param start_zone: int -> (RxR U R)^3 goes from the blimp number to the spawn area
@@ -500,6 +465,22 @@ class l_k_tant_clump_blimp(l_k_tantBlimp):
             sleeptime=sleeptime,
             spawn_tries=spawn_tries)
         self.end_time = end_time
+        self.l = l
+        self.k = k
+        self.rng = rng  # note we can do better than this, as this allows agents to see through walls
+
+    ####################################################################################################################
+    # network functions
+    ####################################################################################################################
+    def get_network_input(self, agent_id):
+        """
+        gets the network input for agent specified
+
+        @param agent_id: agent to get input for
+        @return: R^(l*k) np array
+        """
+        l_k_tant = self.get_neighbors_3d_l_k_ant(agent_id, rng=self.rng, k=self.k, l=self.l, spin=True)
+        return l_k_tant.reshape((-1, 1))
 
     ####################################################################################################################
     # Expiriment functions
@@ -507,6 +488,7 @@ class l_k_tant_clump_blimp(l_k_tantBlimp):
     def goal_data(self):
         """
         data to return at the end of each experiment trial
+
         @return: negative average distance between agents
         """
         s = []
@@ -522,6 +504,7 @@ class l_k_tant_clump_blimp(l_k_tantBlimp):
     def end_test(self):
         """
         Runs at the end of step to decide termination of experiment
+
         @return: boolean of whether the experiment is done
         """
         return self.sim.getSimulationTime() > self.end_time

@@ -23,6 +23,7 @@ class Experiment:
                  sleeptime=.01,
                  ):
         """
+        General class that intializes and runs a repeatable experiment, returning results
 
         @param scenePath: path to the scene to load
         @param sim: zqm simulator api, if None, than makes its own
@@ -80,10 +81,11 @@ class Experiment:
     def set_color(self, handle, color, type=None):
         """
         sets object color
+
         @param handle: object handle
         @param color: [0...255]^3
         @param type: color component, self.sim.colorcomponent_ambient_diffuse is the best other option
-        https://www.coppeliarobotics.com/helpFiles/en/apiConstants.htm#colorComponents
+            https://www.coppeliarobotics.com/helpFiles/en/apiConstants.htm#colorComponents
         """
         if type is None:
             type = self.sim.colorcomponent_emission
@@ -96,6 +98,7 @@ class Experiment:
     def init_exp(self, reset):
         """
         initializes the expiriment
+
         @param reset: whether to rest the current scene
         """
         while True:
@@ -118,6 +121,7 @@ class Experiment:
                 stop_after=False):
         """
         runs a single expiriment trial
+
         @param reset: whether to reset the scene beforehand
         @param stop_after: whether to stop simulation after running experiment
         @return: returns result of self.goal_data
@@ -143,6 +147,7 @@ class Experiment:
     def experiments(self, trials):
         """
         runs multiple experiments, resetting scene at start of each one
+
         @param trials: number of experiments to run
         @return: returns list of results of self.goal_data for each trial
         """
@@ -159,6 +164,7 @@ class Experiment:
         """
         step to take continuously during an experiment
         (should probably include a pause, since this will be running continuously)
+
         @return: boolean, whether or not experiment is done
         """
         raise NotImplementedError()
@@ -166,6 +172,7 @@ class Experiment:
     def goal_data(self):
         """
         data to return at the end of each experiment trial
+
         @return: can be anything
         """
         raise NotImplementedError()
@@ -189,6 +196,7 @@ class BlimpExperiment(Experiment):
                  ):
         """
         experiments involving blimp swarms (controlled by ROS velocity controller)
+
         @param num_agents: number of blimps in this swarm expiriment
         @param start_zone: int -> (RxR U R)^3 goes from the blimp number to the spawn area
                 (each dimension could be (value) or (low, high), chosen uniformly at random)
@@ -222,6 +230,7 @@ class BlimpExperiment(Experiment):
     def spawnBlimp(self, modelPath, pos_rng, spawn_tries):
         """
         spawns a model in a certian area
+
         @param modelPath: path to .ttm model to spawn
         @param pos_rng: ()->(R U R^2)^3, range to spawn into
             (if single value, this is the value for the respective coordinate)
@@ -299,6 +308,7 @@ class BlimpExperiment(Experiment):
     def despawnThings(self):
         """
         to be run at end of each expiriment
+
         @note: FOR SOME REASON, it works better to not delete the nodes, and just leave them as warnings
         """
         return
@@ -315,6 +325,7 @@ class BlimpExperiment(Experiment):
     def spin(self, agent_ids=None):
         """
         spins the sensor nodes for given list of agents
+
         @param agent_ids: agents to 'sense', if None does all agents
         """
         if agent_ids is None:
@@ -325,6 +336,7 @@ class BlimpExperiment(Experiment):
     def create_callback_twist(self, dictionary, key, state_keys=('x', 'y', 'z', 'w', 'DEBUG')):
         """
         creates a callback that updates the "key" element of "dictionary" with the twist state
+
         @param dictionary: dictionary to update
         @param key: key in dictionary to update
         @param state_keys: keys to put x,y,z,w,DEBUG values
@@ -347,6 +359,7 @@ class BlimpExperiment(Experiment):
     def create_callback_float(self, dictionary, key, state_key='ultra', debug_key="ULTRA_DEBUG"):
         """
         creates a callback that updates the "key" element of "dictionary" with the twist state
+
         @param dictionary: dictionary to update
         @param key: key in dictionary to update
         @param state_key: key to put float values
@@ -370,6 +383,7 @@ class BlimpExperiment(Experiment):
     def collision_check(self, agentHandle, handle2=None):
         """
         returns whether agent is colliding with some object
+
         @param agentHandle: handle to check collision
         @param handle2: handle to check collision
             (if None, then checks all objects)
@@ -391,6 +405,7 @@ class BlimpExperiment(Experiment):
         """
         publishes a vector to an agent
             (currently publishes a velocity goal, and LUA controls in blimpNew.lua takes care of rest)
+
         @param agent_id: agent id to publish to
         @param vec: vector to publish
 
@@ -408,6 +423,8 @@ class BlimpExperiment(Experiment):
 
     def get_state(self, agent_id, spin=True):
         """
+        returns state of agent
+
         @param agent_id: agent id
         @param spin: whether to update agent before getting state
         @rtype: dictionary
@@ -420,6 +437,7 @@ class BlimpExperiment(Experiment):
     def get_position(self, agent_id, use_ultra=False, spin=True):
         """
         returns position of agent
+
         @param agent_id: agent id
         @param use_ultra: whether to use ultrasound sensor as opposed to state['z']
         @param spin: whether to update agent before getting state
@@ -432,6 +450,7 @@ class BlimpExperiment(Experiment):
     def _gen_get_neighbors(self, agent_id, is_neigh, spin=False):
         """
         gets neighbors of an agent, general implementation
+
         @param agent_id: agent id
         @param is_neigh: agent_id1 x agent_id2 -> bool; returns if agent 2 is a neighbor of agent 1
         @param spin: whether to update all agents before checking neighbors
@@ -445,6 +464,7 @@ class BlimpExperiment(Experiment):
     def get_neighbors_range(self, agent_id, rng, spin=False):
         """
         gets neighbors of an agent, range implementation
+
         @param agent_id: agent id
         @param rng: radius around agent to register as a neighbor (in 3d)
         @param spin: whether to update all agents before checking neighbors
@@ -457,6 +477,7 @@ class BlimpExperiment(Experiment):
         gets count of neighbors in each l,k-ant
             i.e. l=2, k=1 is equivalent to 'north hemisphere, south hemisphere'
             l=2 k=4 is equivalent to octants of a sphere
+
         @param agent_id: agent id
         @param rng: range for which agents count as neighbors
         @param l: divisions of phi to consider when using spherical coordinates
@@ -479,6 +500,7 @@ class BlimpExperiment(Experiment):
         """
         gets count of neighbors in each k-ant
             i.e. k=4 is equivalent to quadrants of the xy plane
+
         @param agent_id: agent id
         @param rng: range for which agents count as neighbors
         @param k: divisions of theta to consider when using spherical coordinates
@@ -501,6 +523,7 @@ class BlimpExperiment(Experiment):
     def within_range(self, id1, id2, rng, spin=False):
         """
         checks whether id1 agent is within 'range' of id2 agent
+
         @param id1: agent 1 id
         @param id2: agent 2 id
         @param rng: R, range to check
@@ -516,6 +539,7 @@ class BlimpExperiment(Experiment):
         gets l,k-tant of vec
             i.e. l=2, k=1 is equivalent to 'north hemisphere, south hemisphere'
             l=2 k=4 is equivalent to octants of a sphere
+
         @param vec: vector to check
         @param l: divisions of phi to consider when using spherical coordinates
         @param k: divisions of theta to consider when using spherical coordinates
@@ -550,7 +574,8 @@ class blimpTest(BlimpExperiment):
     def step(self):
         """
         step to take continuously during an experiment
-        just moves towards next agent's position
+            just moves towards next agent's position
+
         @return: boolean, whether or not experiment is done
         """
         for agent_id in self.agentData:

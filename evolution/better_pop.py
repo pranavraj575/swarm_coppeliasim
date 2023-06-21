@@ -15,6 +15,7 @@ class better_Population(Population):
     def run(self, fitness_function, n=None, reeval_first_gen=False):
         """
         reorders Population's run method so that saving happens before remaking a population
+
         @param reeval_first_gen: whether to set all fitness values to None initially
         """
         if self.config.no_fitness_termination and (n is None):
