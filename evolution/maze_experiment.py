@@ -1,6 +1,4 @@
 from src.network_blimps import *
-from pymaze.src.maze_manager import MazeManager
-from pymaze.src.maze import Maze
 
 class aMazeBlimp(xyBlimp):
     def __init__(self,
