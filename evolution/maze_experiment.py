@@ -2,8 +2,10 @@ from src.network_blimps import *
 from pymaze.src.maze_manager import MazeManager
 from pymaze.src.maze import Maze
 
+maze_view = os.path.join(DIR, 'scenes', 'maze_view.ttt')
 wall_path = os.path.join(DIR, 'models', '2x2m_wall.ttm')
 cell_path = os.path.join(DIR, 'models', 'cell_of_holding.ttm')
+cell_path = os.path.join(DIR, 'models', 'round_cell_of_holding.ttm')
 
 
 class aMazeBlimp(xyBlimp):
@@ -41,11 +43,14 @@ class aMazeBlimp(xyBlimp):
         @param height_range: R^2, height range to keep blimps at
         @param use_ultra: whether to use ultrasound to set height (and as network input)
         @param maze_entry_gen: () -> dict, generates a dictionary, required keys are
-                'maze': pymaze.src.Maze,
-                'entry': location of entry
-                'orientation': orientation of entry
-                'wall': wall to enter maze in (should be redundant)
-                'exit': location of exit
+                    'maze': pymaze.src.Maze,
+                    'entry': location of entry
+                    'entry_orientation': orientation of entry
+                    'entry_wall': wall to enter maze in (should be redundant)
+                    'exit': location of exit
+                non required keys, put in if you want a cell at the finish
+                    'exit_orientation': orientation of entry
+                    'exit_wall': wall to enter maze in (should be redundant)
         @param wallPath: path to the wall object to build the maze out of
         @param cellPath: path for cell of holding
         @param grid_size: size of grid in m (should also match horizontal length of wall)
@@ -81,6 +86,8 @@ class aMazeBlimp(xyBlimp):
         self.grid_size = grid_size
         self.wall_handles = []
         self.wall_spawn_height = wall_spawn_height
+        self.cell_handle = None
+        self.exit_cell_handle = None
 
     ####################################################################################################################
     # init/shutdown functions
@@ -98,16 +105,19 @@ class aMazeBlimp(xyBlimp):
         h_shift = np.array((self.grid_size / 2, 0., 0.))
         v_shift = np.array((0., self.grid_size / 2, 0.))
         cell_loc = np.zeros(3)
+        exit_cell_loc = np.zeros(3)
         done = set()
         for i in range(self.maze.num_rows):
             for j in range(self.maze.num_cols):
                 # NOTE: negative since it seems coordinates are row, -column
                 # like row major order
                 loc = np.array((j * self.grid_size + self.grid_size / 2,
-                                -i * self.grid_size + self.grid_size / 2,
+                                -i * self.grid_size - self.grid_size / 2,
                                 self.wall_spawn_height))
                 if (i, j) == maze_dict['entry']:
                     cell_loc = loc
+                if (i, j) == maze_dict['exit']:
+                    exit_cell_loc = loc
 
                 if self.maze.initial_grid[i][j].walls['right']:
                     if (i, j, 'right') not in done:
@@ -135,16 +145,57 @@ class aMazeBlimp(xyBlimp):
                     done.add((i, j, 'bottom'))
                     done.add((i + 1, j, 'top'))
 
-        if maze_dict['wall'] == 'top':
+        if maze_dict['entry_wall'] == 'top':
             cell_loc += v_shift
-        elif maze_dict['wall'] == 'bottom':
+        elif maze_dict['entry_wall'] == 'bottom':
             cell_loc -= v_shift
-        elif maze_dict['wall'] == 'left':
+        elif maze_dict['entry_wall'] == 'left':
             cell_loc -= h_shift
         else:
             cell_loc += h_shift
-        self.cell_handle = self.spawnBlimp(self.cellPath, lambda: cell_loc, 1, maze_dict['orientation'])
+        self.cell_handle = self.spawnBlimp(self.cellPath, lambda: cell_loc, 1, maze_dict['entry_orientation'])
+        if 'exit_wall' in maze_dict:
+            if maze_dict['exit_wall'] == 'top':
+                exit_cell_loc += v_shift
+            elif maze_dict['exit_wall'] == 'bottom':
+                exit_cell_loc -= v_shift
+            elif maze_dict['exit_wall'] == 'left':
+                exit_cell_loc -= h_shift
+            else:
+                exit_cell_loc += h_shift
+            self.exit_cell_handle = self.spawnBlimp(self.cellPath, lambda: exit_cell_loc, 1,
+                                                    maze_dict['exit_orientation'])
         super().spawnThings()
+
+    ####################################################################################################################
+    # Agent functions
+    ####################################################################################################################
+    def get_xy_pos(self, agent_id, spin=True):
+        """
+        returns 2-d position of agent
+
+        @param agent_id: agent id
+        @param spin: whether to update agent before getting state
+        @rtype: R^2 numpy array
+        @return: position of agent
+        """
+        s = self.get_state(agent_id, spin=spin)
+        return np.array((s['x'], s['y']))
+
+    def get_grid_loc(self, agent_id, spin=True):
+
+        """
+        returns position of agent on grid
+
+        @param agent_id: agent id
+        @param spin: whether to update agent before getting state
+        @rtype: N^2
+        @return: grid location of agent
+        """
+        x, y = self.get_xy_pos(agent_id=agent_id, spin=spin)
+        j = np.floor(x / self.grid_size)
+        i = np.floor(-y / self.grid_size)
+        return i, j
 
 
 class amazingBlimp(aMazeBlimp):
@@ -161,6 +212,7 @@ class amazingBlimp(aMazeBlimp):
                  cellPath,
                  grid_size,
                  wall_spawn_height,
+                 end_time,
                  height_factor=.2,
                  sim=None,
                  simId=23000,
@@ -189,6 +241,7 @@ class amazingBlimp(aMazeBlimp):
         @param cellPath: path for cell of holding
         @param grid_size: size of grid in m (should also match horizontal length of wall)
         @param wall_spawn_height: height to spawn wall
+        @param end_time: time to end experiment
         @param height_factor: factor to multiply height adjust by
         @param sim: simulator, if already defined
         @param simId: simulator id, used to pass messages to correct topics
@@ -218,6 +271,7 @@ class amazingBlimp(aMazeBlimp):
             wakeup=wakeup,
             sleeptime=sleeptime,
             spawn_tries=spawn_tries)
+        self.end_time = end_time
 
     ####################################################################################################################
     # network functions
@@ -241,52 +295,90 @@ class amazingBlimp(aMazeBlimp):
 
         @return: boolean of whether the experiment is done
         """
-        return False
+        return self.sim.getSimulationTime() > self.end_time
+
+    def goal_data(self):
+        """
+        data to return at the end of each experiment trial
+
+        @return: negative averate manhattan distance from end tile,
+                agent counts as 0 if completed (in exit cell)
+        """
+        s = []
+        for agent_id in self.agentData:
+            i, j = self.get_grid_loc(agent_id)
+            ex_1, ex_2 = self.maze.exit_coor
+            manhattan = abs(i - ex_1) + abs(j - ex_2)
+            if i >= self.maze.num_rows:
+                manhattan = 0
+            s.append(-manhattan)
+            bug = self.get_state(agent_id)["DEBUG"]
+            if bug == 0.:
+                raise Exception("ERROR DEBUG")
+        return s
 
 
-ENTRY = (0, 2)
+if __name__ == "__main__":
+    ENTRY = (0, np.random.randint(0, 5))
+    EXIT = (4, np.random.randint(0, 5))
+
+    CENTER = np.array((1 + 2 * ENTRY[1], 5))
+    R = 2.7
 
 
-def START_ZONE(i):
-    return ((2, 8), (4, 10), 1)
+    def START_ZONE(i):
+        out = CENTER - 2 * R
+        while np.linalg.norm(out - CENTER) > R:
+            out = CENTER + np.random.uniform(-R, R, 2)
+        return (out[0], out[1], 1)
 
 
-def make_maze():
-    H, W = (5, 5)
-    mm = Maze(H, W, entry=ENTRY, exit=(4, 2))
-    entry = mm.entry_coor
-    orientation = None
-    wall = None
-    if entry[0] == 0 and not mm.initial_grid[entry[0]][entry[1]].walls['top']:
-        wall = 'top'
-        orientation = np.pi
-    if entry[1] == 0 and not mm.initial_grid[entry[0]][entry[1]].walls['left']:
-        wall = 'left'
-        orientation = 3 * np.pi / 2
-    if entry[0] == H - 1 and not mm.initial_grid[entry[0]][entry[1]].walls['bottom']:
-        wall = 'bottom'
-        orientation = 0
-    if entry[1] == W - 1 and not mm.initial_grid[entry[0]][entry[1]].walls['right']:
-        wall = 'right'
-        orientation = np.pi / 2
-    return {'maze': mm,
-            'entry': entry,
-            'exit': mm.exit_coor,
-            'wall': wall,
-            'orientation': (0, 0, orientation)}
+    def make_maze():
+        H, W = (5, 5)
+        mm = Maze(H, W, entry=ENTRY, exit=EXIT)
+        entry = mm.entry_coor
+        ext = mm.exit_coor
+        orientations = []
+        walls = []
+        for cell in entry, ext:
+            wall = None
+            orientation = None
+            if cell[0] == 0 and not mm.initial_grid[cell[0]][cell[1]].walls['top']:
+                wall = 'top'
+                orientation = np.pi
+            if cell[1] == 0 and not mm.initial_grid[cell[0]][cell[1]].walls['left']:
+                wall = 'left'
+                orientation = 3 * np.pi / 2
+            if cell[0] == H - 1 and not mm.initial_grid[cell[0]][cell[1]].walls['bottom']:
+                wall = 'bottom'
+                orientation = 0
+            if cell[1] == W - 1 and not mm.initial_grid[cell[0]][cell[1]].walls['right']:
+                wall = 'right'
+                orientation = np.pi / 2
+            orientations.append(orientation)
+            walls.append(wall)
+        return {'maze': mm,
+                'entry': entry,
+                'exit': ext,
+                'entry_wall': walls[0],
+                'entry_orientation': (0, 0, orientations[0]),
+                'exit_wall': walls[1],
+                'exit_orientation': (0, 0, orientations[1]), }
 
 
-bb = amazingBlimp(num_agents=1,
-                  start_zone=START_ZONE,
-                  scenePath=empty_path,
-                  blimpPath=narrow_blimp_path,
-                  networkfn=lambda x: (0, -1),
-                  height_range=(1, 1),
-                  use_ultra=False,
-                  maze_entry_gen=make_maze,
-                  wallPath=wall_path,
-                  cellPath=cell_path,
-                  grid_size=2,
-                  wakeup=[COPPELIA_WAKEUP],
-                  wall_spawn_height=1)
-bb.experiments(1)
+    bb = amazingBlimp(num_agents=2,
+                      start_zone=START_ZONE,
+                      scenePath=maze_view,
+                      blimpPath=narrow_blimp_path,
+                      networkfn=lambda x: (0, -1),
+                      height_range=(1, 1),
+                      use_ultra=False,
+                      maze_entry_gen=make_maze,
+                      wallPath=wall_path,
+                      end_time=100,
+                      cellPath=cell_path,
+                      grid_size=2,
+                      wakeup=[COPPELIA_WAKEUP],
+                      wall_spawn_height=1)
+    print(bb.experiments(2))
+    bb.kill()
