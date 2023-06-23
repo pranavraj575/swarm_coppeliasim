@@ -23,6 +23,7 @@ class aMazeBlimp(xyBlimp):
                  wall_spawn_height,
                  end_time,
                  cell_filename='round_cell_of_holding.ttm',
+                 cover_dir=os.path.join(DIR, 'models', 'covers'),
                  height_factor=.2,
                  sim=None,
                  simId=23000,
@@ -57,6 +58,8 @@ class aMazeBlimp(xyBlimp):
         @param wall_spawn_height: height to spawn wall
         @param end_time: time to end experiment
         @param cell_filename: filename that holding cell is saved as, will be searched for under wall_dir
+        @param cover_dir: directory for lid of maze, None if no lid
+            files should look like '5x5.ttm'
         @param height_factor: factor to multiply height adjust by
         @param sim: simulator, if already defined
         @param simId: simulator id, used to pass messages to correct topics
@@ -91,6 +94,7 @@ class aMazeBlimp(xyBlimp):
         self.exit_cell_handle = None
         self.walls_to_handle = None
         self.wall_dir = wall_dir
+        self.cover_dir = cover_dir
         self.cellPath = os.path.join(self.wall_dir, cell_filename)
         self.len_to_wall = dict()
         for fn in os.listdir(self.wall_dir):
@@ -194,7 +198,7 @@ class aMazeBlimp(xyBlimp):
                     self.walls_to_handle[self.wall_pair(w)] = hand
                 walls = walls[len(used):]
 
-        for j in range(self.maze.num_cols+1):  # also do last col
+        for j in range(self.maze.num_cols + 1):  # also do last col
             locs = []
             walls = []
             for i in range(self.maze.num_rows):
@@ -245,6 +249,23 @@ class aMazeBlimp(xyBlimp):
                 exit_cell_loc += h_shift
             self.exit_cell_handle = self.spawnBlimp(self.cellPath, lambda: exit_cell_loc, 1,
                                                     maze_dict['exit_orientation'])
+        if self.cover_dir is not None:
+            h=self.maze.num_rows*self.grid_size
+            if int(h)==h:
+                h=int(h)
+            w=self.maze.num_cols*self.grid_size
+            if int(w)==w:
+                w=int(w)
+            fn = os.path.join(self.cover_dir, str(h) + 'x' + str(w) + '.ttm')
+            if not os.path.exists(fn):
+                print("ERROR: " + fn + ' does not exist, not spawning lid')
+            else:
+                self.lid_handle = self.spawnBlimp(modelPath=fn,
+                                                  pos_rng=lambda: (self.grid_size*self.maze.num_cols/2,
+                                                                   -self.grid_size*self.maze.num_rows/2,
+                                                                   self.wall_spawn_height*2
+                                                                   ),
+                                                  spawn_tries=1)
         super().spawnThings()
 
     ####################################################################################################################
@@ -426,6 +447,7 @@ class amazingBlimp(aMazeBlimp):
                  wall_spawn_height,
                  end_time,
                  cell_filename='round_cell_of_holding.ttm',
+                 cover_dir=os.path.join(DIR, 'models', 'covers'),
                  rng=2,
                  height_factor=.2,
                  sim=None,
@@ -456,6 +478,8 @@ class amazingBlimp(aMazeBlimp):
         @param wall_spawn_height: height to spawn wall
         @param end_time: time to end experiment
         @param cell_filename: filename that holding cell is saved as, will be searched for under wall_dir
+        @param cover_dir: directory for lid of maze, None if no lid
+            files should look like '5x5.ttm'
         @param rng: range to sense neighbors
         @param height_factor: factor to multiply height adjust by
         @param sim: simulator, if already defined
@@ -477,6 +501,7 @@ class amazingBlimp(aMazeBlimp):
             maze_entry_gen=maze_entry_gen,
             wall_dir=wall_dir,
             cell_filename=cell_filename,
+            cover_dir=cover_dir,
             grid_size=grid_size,
             wall_spawn_height=wall_spawn_height,
             end_time=end_time,
@@ -531,8 +556,8 @@ class amazingBlimp(aMazeBlimp):
 if __name__ == "__main__":
     H, W = (5, 5)
     ENTRY = (0, np.random.randint(0, W))
-    EXIT = (H-1, np.random.randint(0, W))
-    D=2
+    EXIT = (H - 1, np.random.randint(0, W))
+    D = 2
     CENTER = np.array((D/2 + D*ENTRY[1], 5))
     R = 2.7
 

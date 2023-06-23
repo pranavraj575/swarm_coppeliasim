@@ -21,8 +21,8 @@ compatibility_threshold = 3.0
 [DefaultGenome]
 # node activation options
 activation_default      = sigmoid
-activation_mutate_rate  = 0.1
-activation_options      = sigmoid identity
+activation_mutate_rate  = 0.0
+activation_options      = sigmoid
 
 # node aggregation options
 aggregation_default     = sum

@@ -45,6 +45,7 @@ class blimpNet(BlimpExperiment):
             sleeptime=sleeptime,
             spawn_tries=spawn_tries)
         self.network = networkfn
+        self.last_time = 0
 
     ####################################################################################################################
     # network functions
@@ -84,6 +85,9 @@ class blimpNet(BlimpExperiment):
             z = self.network(self.get_network_input(agent_id))
             vec = self.get_vec_from_net_ouput(z, agent_id)
             self.move_agent(agent_id, vec)
+        t = self.sim.getSimulationTime()
+        # print('cycle time:',t-self.last_time,end='\r')
+        self.last_time = t
         return self.end_test()
 
     def end_test(self):
@@ -159,13 +163,15 @@ class xyBlimp(blimpNet):
         @param output: network output
         @return: control vector, probably R^3 encoding velocity goal
         """
+        xy = np.array(output).flatten()  # this is in ([0,1]^2)
+        xy = xy*2 - 1  # cast into [-1,1]^2
         z = self.get_position(agent_id, use_ultra=self.use_ultra, spin=True)[2]
         h_adj = 0.
         if z < self.height_range[0]:
             h_adj = self.height_range[0] - z
         elif z > self.height_range[1]:
             h_adj = self.height_range[1] - z
-        return np.concatenate((np.array(output).flatten(), np.array([h_adj*self.height_factor])))
+        return np.concatenate((xy, np.array([h_adj*self.height_factor])))
 
 
 class xy_zero_Blimp(xyBlimp):
@@ -318,7 +324,9 @@ class xyzBlimp(blimpNet):
         @param agent_id: could be important for subclasses
         @return: control vector, probably R^3 encoding velocity goal
         """
-        return np.array(output).flatten()
+        xyz = np.array(output).flatten()  # this is in ([0,1]^3)
+        xyz = xyz*2 - 1  # cast into [-1,1]^3
+        return xyz
 
 
 class xyz_zero_Blimp(xyzBlimp):
