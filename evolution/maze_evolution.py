@@ -3,8 +3,9 @@ from evolution.evolutionBlimp import EvolutionExperiment
 
 
 def expe_make(net, sim=None, port=23000, wakeup=None):
-    ENTRY = (0, np.random.randint(0, 5))
-    EXIT = (4, np.random.randint(0, 5))
+    H, W = (5, 5)
+    ENTRY = (0, np.random.randint(0, W))
+    EXIT = (H-1, np.random.randint(0, W))
 
     CENTER = np.array((1 + 2*ENTRY[1], 5))
     R = 2.7
@@ -16,7 +17,6 @@ def expe_make(net, sim=None, port=23000, wakeup=None):
         return (out[0], out[1], 1)
 
     def make_maze():
-        H, W = (5, 5)
         mm = Maze(H, W, entry=ENTRY, exit=EXIT)
         entry = mm.entry_coor
         ext = mm.exit_coor
@@ -45,19 +45,19 @@ def expe_make(net, sim=None, port=23000, wakeup=None):
                 'entry_wall': walls[0],
                 'entry_orientation': (0, 0, orientations[0]),
                 'exit_wall': walls[1],
-                'exit_orientation': (0, 0, orientations[1]), }
+                'exit_orientation': (0, 0, orientations[1]),
+                }
 
     return amazingBlimp(num_agents=25,
                         start_zone=START_ZONE,
                         scenePath=maze_view_path,
                         blimpPath=narrow_blimp_path,
-                        cellPath=round_cell_path,
                         networkfn=net.activate,
                         end_time=180,
                         grid_size=2,
                         maze_entry_gen=make_maze,
                         wall_spawn_height=1,
-                        wallPath=wall_path,
+                        wall_dir=wall_path,
                         height_range=(1, 1),
                         use_ultra=True,
                         sim=sim,
@@ -70,10 +70,11 @@ def expe_make(net, sim=None, port=23000, wakeup=None):
 ee = EvolutionExperiment(name='25_blimp_5x5maze',
                          exp_maker=expe_make,
                          config_name='blimp_maze')
-ee.train(generations=20,
+ee.train(generations=1,
          TRIALS=1,
          num_simulators=8,
          headless=True,
-         restore=False,
+         restore=True,
          evaluate_each_gen=True,
          )
+ee.result_of_experiment(search_all_gens=True)

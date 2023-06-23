@@ -3,7 +3,7 @@ from src.network_blimps import *
 from pymaze.src.maze import Maze
 
 maze_view_path = os.path.join(DIR, 'scenes', 'maze_view.ttt')
-wall_path = os.path.join(DIR, 'models', '2x2m_wall.ttm')
+wall_path = os.path.join(DIR, 'models', 'walls', '3m')
 cell_path = os.path.join(DIR, 'models', 'cell_of_holding.ttm')
 round_cell_path = os.path.join(DIR, 'models', 'round_cell_of_holding.ttm')
 
@@ -18,11 +18,11 @@ class aMazeBlimp(xyBlimp):
                  height_range,
                  use_ultra,
                  maze_entry_gen,
-                 wallPath,
-                 cellPath,
+                 wall_dir,
                  grid_size,
                  wall_spawn_height,
                  end_time,
+                 cell_filename='round_cell_of_holding.ttm',
                  height_factor=.2,
                  sim=None,
                  simId=23000,
@@ -52,11 +52,11 @@ class aMazeBlimp(xyBlimp):
                 non required keys, put in if you want a cell at the finish
                     'exit_orientation': orientation of entry
                     'exit_wall': wall to enter maze in (should be redundant)
-        @param wallPath: path to the wall object to build the maze out of
-        @param cellPath: path for cell of holding
+        @param wall_dir: path to the wall directory (files should look like 2x3.ttm)
         @param grid_size: size of grid in m (should also match horizontal length of wall)
         @param wall_spawn_height: height to spawn wall
         @param end_time: time to end experiment
+        @param cell_filename: filename that holding cell is saved as, will be searched for under wall_dir
         @param height_factor: factor to multiply height adjust by
         @param sim: simulator, if already defined
         @param simId: simulator id, used to pass messages to correct topics
@@ -83,8 +83,6 @@ class aMazeBlimp(xyBlimp):
             spawn_tries=spawn_tries)
         self.maze_entry_gen = maze_entry_gen
         self.maze = None
-        self.wallPath = wallPath
-        self.cellPath = cellPath
         self.grid_size = grid_size
         self.wall_handles = []
         self.wall_spawn_height = wall_spawn_height
@@ -92,10 +90,57 @@ class aMazeBlimp(xyBlimp):
         self.cell_handle = None
         self.exit_cell_handle = None
         self.walls_to_handle = None
+        self.wall_dir = wall_dir
+        self.cellPath = os.path.join(self.wall_dir, cell_filename)
+        self.len_to_wall = dict()
+        for fn in os.listdir(self.wall_dir):
+            if 'x' in fn:
+                self.len_to_wall[float(fn[:fn.index('x')])] = os.path.join(self.wall_dir, fn)
 
     ####################################################################################################################
     # init/shutdown functions
     ####################################################################################################################
+    def spawn_largest_wall(self, locs, orientation):
+        """
+        spawns largest wall that covers the start of the locations
+            assumes locs are consecutive and in order
+
+        @param locs: list of locations, averaged to get center of wall
+        @return: list of wall handles, locations used, locations unused
+        """
+        length = (len(locs)*self.grid_size)
+        if length == int(length):
+            length = int(length)
+        else:
+            print("WARNING, LENGTH IS NOT INTEGER")
+
+        if length in self.len_to_wall:
+            return (self.spawnBlimp(modelPath=self.len_to_wall[length],
+                                    pos_rng=lambda: np.sum(locs, axis=0)/len(locs),
+                                    orientation=orientation,
+                                    spawn_tries=1),
+                    locs,
+                    [])
+        if len(locs) == 1:
+            raise Exception('wall of length ' + str(self.grid_size) + ' not in directory')
+        handle, used, unused = self.spawn_largest_wall(locs[:-1], orientation)
+        unused.append(locs[-1])
+        return handle, used, unused
+
+    def spawn_best_wall(self, locs, orientation):
+        """
+        spawns walls of size self.grid_size that cover the locations
+            assumes locs are consecutive and in order, spawns larger wall if possible
+
+        @param locs: list of locations, averaged to get center of wall
+        @return: list of (wall handle, locations)
+        """
+        hands = []
+        while len(locs):
+            hand, used, locs = self.spawn_largest_wall(locs, orientation=orientation)
+            hands.append((hand, used))
+        return hands
+
     def spawnThings(self):
         """
         to be run at start of each expiriment
@@ -108,48 +153,78 @@ class aMazeBlimp(xyBlimp):
         self.walls_to_handle = dict()
         h_shift = np.array((self.grid_size/2, 0., 0.))
         v_shift = np.array((0., self.grid_size/2, 0.))
-        cell_loc = np.zeros(3)
-        exit_cell_loc = np.zeros(3)
-        for i in range(self.maze.num_rows):
+        cell_loc = np.array((maze_dict['entry'][1]*self.grid_size + self.grid_size/2,
+                             -maze_dict['entry'][0]*self.grid_size - self.grid_size/2,
+                             self.wall_spawn_height))
+        exit_cell_loc = np.array((maze_dict['exit'][1]*self.grid_size + self.grid_size/2,
+                                  -maze_dict['exit'][0]*self.grid_size - self.grid_size/2,
+                                  self.wall_spawn_height))
+
+        for i in range(self.maze.num_rows + 1):  # also do last row
+            locs = []
+            walls = []
             for j in range(self.maze.num_cols):
+                wall = (i, j, 'top')
+                if i == self.maze.num_rows:
+                    wall = self.wall_pair(wall)
+
                 # NOTE: negative since it seems coordinates are row, -column
                 # like row major order
-                loc = np.array((j*self.grid_size + self.grid_size/2,
-                                -i*self.grid_size - self.grid_size/2,
+                loc = np.array((wall[1]*self.grid_size + self.grid_size/2,
+                                -wall[0]*self.grid_size - self.grid_size/2,
                                 self.wall_spawn_height))
-                if (i, j) == maze_dict['entry']:
-                    cell_loc = loc
-                if (i, j) == maze_dict['exit']:
-                    exit_cell_loc = loc
 
-                if self.maze.initial_grid[i][j].walls['right']:
-                    wall = (i, j, 'right')
-                    if wall not in self.walls_to_handle:
-                        hand = self.spawnBlimp(self.wallPath, lambda: loc + h_shift, 1, (0, 0, np.pi/2))
-                        self.walls_to_handle[wall] = hand
-                        self.walls_to_handle[self.wall_pair(wall)] = hand
+                if self.maze.initial_grid[wall[0]][wall[1]].walls[wall[2]]:
+                    fixed_loc = loc + v_shift*(1 if wall[2] == 'top' else -1)
+                    locs.append(fixed_loc)
+                    walls.append(wall)
+                else:
+                    stuff = self.spawn_best_wall(locs=locs, orientation=(0, 0, 0))
+                    locs = []
+                    for hand, used in stuff:
+                        for w in walls[:len(used)]:
+                            self.walls_to_handle[w] = hand
+                            self.walls_to_handle[self.wall_pair(w)] = hand
+                        walls = walls[len(used):]
 
-                if self.maze.initial_grid[i][j].walls['top']:
-                    wall = (i, j, 'top')
-                    if wall not in self.walls_to_handle:
-                        hand = self.spawnBlimp(self.wallPath, lambda: loc + v_shift, 1)
-                        self.walls_to_handle[wall] = hand
-                        self.walls_to_handle[self.wall_pair(wall)] = hand
+            stuff = self.spawn_best_wall(locs=locs, orientation=(0, 0, 0))
+            for hand, used in stuff:
+                for w in walls[:len(used)]:
+                    self.walls_to_handle[w] = hand
+                    self.walls_to_handle[self.wall_pair(w)] = hand
+                walls = walls[len(used):]
 
-                if self.maze.initial_grid[i][j].walls['left']:
-                    wall = (i, j, 'left')
-                    if wall not in self.walls_to_handle:
-                        hand = self.spawnBlimp(self.wallPath, lambda: loc - h_shift, 1, (0, 0, np.pi/2))
-                        self.walls_to_handle[wall] = hand
-                        self.walls_to_handle[self.wall_pair(wall)] = hand
+        for j in range(self.maze.num_cols+1):  # also do last col
+            locs = []
+            walls = []
+            for i in range(self.maze.num_rows):
+                wall = (i, j, 'left')
+                if j == self.maze.num_cols:
+                    wall = self.wall_pair(wall)
 
-                if self.maze.initial_grid[i][j].walls['bottom']:
-                    wall = (i, j, 'bottom')
-                    if wall not in self.walls_to_handle:
-                        hand = self.spawnBlimp(self.wallPath, lambda: loc - v_shift, 1)
-                        self.walls_to_handle[wall] = hand
-                        self.walls_to_handle[self.wall_pair(wall)] = hand
+                loc = np.array((wall[1]*self.grid_size + self.grid_size/2,
+                                -wall[0]*self.grid_size - self.grid_size/2,
+                                self.wall_spawn_height))
 
+                if self.maze.initial_grid[wall[0]][wall[1]].walls[wall[2]]:
+                    fixed_loc = loc + h_shift*(1 if wall[2] == 'right' else -1)
+                    locs.append(fixed_loc)
+                    walls.append(wall)
+                else:
+                    stuff = self.spawn_best_wall(locs=locs, orientation=(0, 0, np.pi/2))
+                    locs = []
+                    for hand, used in stuff:
+                        for w in walls[:len(used)]:
+                            self.walls_to_handle[w] = hand
+                            self.walls_to_handle[self.wall_pair(w)] = hand
+                        walls = walls[len(used):]
+
+            stuff = self.spawn_best_wall(locs=locs, orientation=(0, 0, np.pi/2))
+            for hand, used in stuff:
+                for w in walls[:len(used)]:
+                    self.walls_to_handle[w] = hand
+                    self.walls_to_handle[self.wall_pair(w)] = hand
+                walls = walls[len(used):]
         if maze_dict['entry_wall'] == 'top':
             cell_loc += v_shift
         elif maze_dict['entry_wall'] == 'bottom':
@@ -346,11 +421,11 @@ class amazingBlimp(aMazeBlimp):
                  height_range,
                  use_ultra,
                  maze_entry_gen,
-                 wallPath,
-                 cellPath,
+                 wall_dir,
                  grid_size,
                  wall_spawn_height,
                  end_time,
+                 cell_filename='round_cell_of_holding.ttm',
                  rng=2,
                  height_factor=.2,
                  sim=None,
@@ -376,11 +451,11 @@ class amazingBlimp(aMazeBlimp):
                 'orientation': orientation of entry
                 'wall': wall to enter maze in (should be redundant)
                 'exit': location of exit
-        @param wallPath: path to the wall object to build the maze out of
-        @param cellPath: path for cell of holding
+        @param wall_dir: path to the wall directory (files should look like 2x3.ttm)
         @param grid_size: size of grid in m (should also match horizontal length of wall)
         @param wall_spawn_height: height to spawn wall
         @param end_time: time to end experiment
+        @param cell_filename: filename that holding cell is saved as, will be searched for under wall_dir
         @param rng: range to sense neighbors
         @param height_factor: factor to multiply height adjust by
         @param sim: simulator, if already defined
@@ -400,8 +475,8 @@ class amazingBlimp(aMazeBlimp):
             height_range=height_range,
             use_ultra=use_ultra,
             maze_entry_gen=maze_entry_gen,
-            wallPath=wallPath,
-            cellPath=cellPath,
+            wall_dir=wall_dir,
+            cell_filename=cell_filename,
             grid_size=grid_size,
             wall_spawn_height=wall_spawn_height,
             end_time=end_time,
@@ -454,10 +529,11 @@ class amazingBlimp(aMazeBlimp):
 
 
 if __name__ == "__main__":
-    ENTRY = (0, np.random.randint(0, 5))
-    EXIT = (4, np.random.randint(0, 5))
-
-    CENTER = np.array((1 + 2*ENTRY[1], 5))
+    H, W = (5, 5)
+    ENTRY = (0, np.random.randint(0, W))
+    EXIT = (H-1, np.random.randint(0, W))
+    D=2
+    CENTER = np.array((D/2 + D*ENTRY[1], 5))
     R = 2.7
 
 
@@ -469,7 +545,6 @@ if __name__ == "__main__":
 
 
     def make_maze():
-        H, W = (5, 5)
         mm = Maze(H, W, entry=ENTRY, exit=EXIT)
         entry = mm.entry_coor
         ext = mm.exit_coor
@@ -509,11 +584,10 @@ if __name__ == "__main__":
                       height_range=(1, 1),
                       use_ultra=False,
                       maze_entry_gen=make_maze,
-                      wallPath=wall_path,
+                      wall_dir=wall_path,
                       end_time=100,
-                      cellPath=round_cell_path,
-                      grid_size=2,
+                      grid_size=D,
                       wakeup=[COPPELIA_WAKEUP],
-                      wall_spawn_height=1)
+                      wall_spawn_height=1.5)
     print(bb.experiments(2))
     bb.kill()
