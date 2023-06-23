@@ -115,7 +115,8 @@ class EvolutionExperiment:
                    TRIALS,
                    dict_to_unlock,
                    key,
-                   sim):
+                   sim,
+                   print_genum):
         """
         function to evaluate a single genome
 
@@ -126,6 +127,7 @@ class EvolutionExperiment:
         @param dict_to_unlock: dictionary to unlock, to indicate that we are done with simulator
         @param key: key in dictionary to unlock
         @param sim: simulator to use
+        @param print_genum: prints number if positive, nothing if negative
         """
         genome.fitness = .0
         net = neat.nn.FeedForwardNetwork.create(genome, config)
@@ -135,6 +137,8 @@ class EvolutionExperiment:
         genome.fitness += sum(goals)/TRIALS
         dict_to_unlock[key] = False
         del exp
+        if print_genum >= 0:
+            print('finished genome:', print_genum, '/', config.pop_size, end='\r')
 
     def eval_genomes(self,
                      genomes,
@@ -205,7 +209,9 @@ class EvolutionExperiment:
         start_time = time.time()
 
         # evaluate the genomes
+        i = 0
         for genome_id, genome in genomes:
+            i += 1
             if self.just_restored:
                 # if we just restored, we can skip evaluating this generation
                 continue
@@ -226,8 +232,11 @@ class EvolutionExperiment:
                                                                              port=zmqport,
                                                                              dict_to_unlock=processes[zmqport],
                                                                              key='locked',
-                                                                             sim=processes[zmqport]['sim']
+                                                                             sim=processes[zmqport]['sim'],
+                                                                             print_genum=(
+                                                                                 i if zmqport == zmq_def_port else -1)
                                                                              ),
+                                              daemon=True
                                               )
                         th.start()
                         time.sleep(sleeptime)
@@ -372,6 +381,6 @@ if __name__ == "__main__":
 
 
     ee = EvolutionExperiment('xy_zero_test', expe_make)
-    ee.train(2, 2)
+    ee.train(2, 2, evaluate_each_gen=True)
     print('here')
     ee.result_of_experiment()

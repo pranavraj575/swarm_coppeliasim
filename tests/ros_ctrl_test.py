@@ -75,7 +75,7 @@ def main(args=None):
     publisherAlign = NODE.create_publisher(Twist, topicCmdVel, 10)
     subscriberPos = NODE.create_subscription(TwistStamped, topicGlobal, callbackUpdateState, 10)
 
-    DT = 50 / 1000
+    DT = 50/1000
     # sim.startSimulation()
     test = np.array([.0, .0, .0, np.pi])
     f = 1.
@@ -84,9 +84,9 @@ def main(args=None):
 
         msgTwist = Twist()
 
-        msgTwist.linear.x = test[0] * f
-        msgTwist.linear.y = test[1] * f
-        msgTwist.linear.z = test[2] * f
+        msgTwist.linear.x = test[0]*f
+        msgTwist.linear.y = test[1]*f
+        msgTwist.linear.z = test[2]*f
         msgTwist.angular.z = test[3]
         msgTwist.angular.x = 0.  # NOTE: this tells the blimp that we care about heading
         publisherAlign.publish(msgTwist)
@@ -101,11 +101,11 @@ def main(args=None):
     # plt.plot([r[k] for r in RECORD]); leg.append('POSITION')
     VEL = []
     for i in range(len(POS) - 1):
-        VEL.append((POS[i + 1] - POS[i]) / DT)
+        VEL.append((POS[i + 1] - POS[i])/DT)
     # plt.plot([v[k] for v in VEL]); leg.append('VELOCITY')
     ACC = []
     for i in range(len(VEL) - 1):
-        ACC.append((VEL[i + 1] - VEL[i]) / DT)
+        ACC.append((VEL[i + 1] - VEL[i])/DT)
     # ACC=ACC[-50:]
     CONTROL = VEL
     fun = lambda v: v[-1]
@@ -119,7 +119,7 @@ def main(args=None):
         plt.plot([fun(v) for v in CONTROL])
         leg.append('CONTROL')
     if fun is not None:
-        print(sum([fun(v) for v in CONTROL]) / len(CONTROL))
+        print(sum([fun(v) for v in CONTROL])/len(CONTROL))
         print('goal', fun(test))
     plt.legend(leg)
     plt.show()

@@ -250,12 +250,12 @@ class aMazeBlimp(xyBlimp):
             self.exit_cell_handle = self.spawnBlimp(self.cellPath, lambda: exit_cell_loc, 1,
                                                     maze_dict['exit_orientation'])
         if self.cover_dir is not None:
-            h=self.maze.num_rows*self.grid_size
-            if int(h)==h:
-                h=int(h)
-            w=self.maze.num_cols*self.grid_size
-            if int(w)==w:
-                w=int(w)
+            h = self.maze.num_rows*self.grid_size
+            if int(h) == h:
+                h = int(h)
+            w = self.maze.num_cols*self.grid_size
+            if int(w) == w:
+                w = int(w)
             fn = os.path.join(self.cover_dir, str(h) + 'x' + str(w) + '.ttm')
             if not os.path.exists(fn):
                 print("ERROR: " + fn + ' does not exist, not spawning lid')
@@ -605,7 +605,7 @@ if __name__ == "__main__":
                       start_zone=START_ZONE,
                       scenePath=maze_view_path,
                       blimpPath=narrow_blimp_path,
-                      networkfn=lambda x: (0, -1),
+                      networkfn=lambda x: (.5, 0),
                       height_range=(1, 1),
                       use_ultra=False,
                       maze_entry_gen=make_maze,

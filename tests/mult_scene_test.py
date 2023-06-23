@@ -49,12 +49,13 @@ p = subprocess.Popen(cmd + param() + param2(), stdout=subprocess.PIPE, shell=Tru
 q = subprocess.Popen(cmd + param(step=STEP) + param2(step=STEP), stdout=subprocess.PIPE, shell=True)
 from src.swarm_expiriment import *
 import threading
-bb = blimpTest(10, lambda i: ((-5, 5), (-5, 5), (1, 5)), command=(0, 0, .1),simId=23000)
-bb2 = blimpTest(10, lambda i: ((-5, 5), (-5, 5), (1, 5)), command=(0, 0, -.1),simId=23000+STEP)
-tt=threading.Thread(target=lambda:bb.run_exp(end_time=lambda t: False))
-tt2=threading.Thread(target=lambda:bb2.run_exp(end_time=lambda t: False))
+
+bb = blimpTest(10, lambda i: ((-5, 5), (-5, 5), (1, 5)), command=(0, 0, .1), simId=23000)
+bb2 = blimpTest(10, lambda i: ((-5, 5), (-5, 5), (1, 5)), command=(0, 0, -.1), simId=23000 + STEP)
+tt = threading.Thread(target=lambda: bb.run_exp(end_time=lambda t: False))
+tt2 = threading.Thread(target=lambda: bb2.run_exp(end_time=lambda t: False))
 tt.start()
-time.sleep(1) # vaguely important?
+time.sleep(1)  # vaguely important?
 tt2.start()
 while True:
     time.sleep(1)
@@ -101,7 +102,7 @@ NODE = rclpy.create_node('test')
 publisherAlign = NODE.create_publisher(Twist, topicCmdVel, 10)
 subscriberPos = NODE.create_subscription(TwistStamped, topicGlobal, callbackUpdateState, 10)
 
-DT = 50 / 1000
+DT = 50/1000
 sim.startSimulation()
 sim2.startSimulation()
 for _ in range(5000):
@@ -114,7 +115,6 @@ for _ in range(5000):
     msgTwist.linear.z = 0.
     publisherAlign.publish(msgTwist)
     time.sleep(.01)
-
 
 kill(p.pid)
 kill(q.pid)
