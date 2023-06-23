@@ -165,7 +165,7 @@ class xyBlimp(blimpNet):
             h_adj = self.height_range[0] - z
         elif z > self.height_range[1]:
             h_adj = self.height_range[1] - z
-        return np.concatenate((np.array(output).flatten(), np.array([h_adj * self.height_factor])))
+        return np.concatenate((np.array(output).flatten(), np.array([h_adj*self.height_factor])))
 
 
 class xy_zero_Blimp(xyBlimp):
@@ -405,6 +405,7 @@ class xyz_zero_Blimp(xyzBlimp):
         """
         return self.sim.getSimulationTime() > self.end_time
 
+
 class l_k_tant_clump_blimp(blimpNet):
     def __init__(self,
                  num_agents,
@@ -455,9 +456,6 @@ class l_k_tant_clump_blimp(blimpNet):
             scenePath=scenePath,
             blimpPath=blimpPath,
             networkfn=networkfn,
-            l=l,
-            k=k,
-            rng=rng,
             sim=sim,
             simId=simId,
             msg_queue=msg_queue,
@@ -479,7 +477,14 @@ class l_k_tant_clump_blimp(blimpNet):
         @param agent_id: agent to get input for
         @return: R^(l*k) np array
         """
-        l_k_tant = self.get_neighbors_3d_l_k_ant(agent_id, rng=self.rng, k=self.k, l=self.l, spin=True)
+        l_k_tant = self.get_neighbors_3d_l_k_ant(agent_id=agent_id,
+                                                 is_neigh=lambda id1, id2: self.within_range(id1=id1,
+                                                                                             id2=id2,
+                                                                                             rng=self.rng,
+                                                                                             spin=False),
+                                                 k=self.k,
+                                                 l=self.l,
+                                                 spin=True)
         return l_k_tant.reshape((-1, 1))
 
     ####################################################################################################################

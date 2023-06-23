@@ -3,7 +3,7 @@ from tsp.tsb import *
 points = 10
 R = 2
 num = 3
-off = R * num / 2 + .5
+off = R*num/2 + .5
 depot = np.array((0, 0, 1))
 
 pounts = 10
@@ -40,10 +40,10 @@ H = [h for h in handles if not bb.pointData[h]['is depot']]
 if False:
     pp = [[], []]
     for h in H:
-        pp[int(np.random.random() * 1.1)].append(h)
+        pp[int(np.random.random()*1.1)].append(h)
     costs = []
-    for part_index in range(int(2 ** len(H))):
-        part_str = bin(2 ** len(H) + part_index)[3:]
+    for part_index in range(int(2**len(H))):
+        part_str = bin(2**len(H) + part_index)[3:]
         pp = [[], []]
         for i, h in enumerate(H):
             pp[int(part_str[i])].append(h)
@@ -59,7 +59,7 @@ if False:
 H = [h for h in handles if not bb.pointData[h]['is depot']]
 costs = []
 part_index = 179
-part_str = bin(2 ** len(H) + part_index)[3:]
+part_str = bin(2**len(H) + part_index)[3:]
 pp = [[], []]
 for i, h in enumerate(H):
     pp[int(part_str[i])].append(h)
@@ -89,10 +89,10 @@ quit()
 bb = doubleBlimp(lambda i: depot + np.random.normal((0, 0, 0), (1, 1, 0)),
                  num_points=10,
                  spawn_pt_info=lambda i: {
-                     'pos': .25 * np.random.normal((0, 0, 0), (1, 10, 1)) +
-                            np.array((R * np.cos(i * 2 * np.pi / points) + (3 * R * (i // points)) - off,
+                     'pos': .25*np.random.normal((0, 0, 0), (1, 10, 1)) +
+                            np.array((R*np.cos(i*2*np.pi/points) + (3*R*(i//points)) - off,
                                       0,
-                                      1.5 + R + R * np.sin(i * 2 * np.pi / points))),
+                                      1.5 + R + R*np.sin(i*2*np.pi/points))),
                      'tau': 1E0},
                  alpha=1E-3,
                  grads_per_epoch=2000,

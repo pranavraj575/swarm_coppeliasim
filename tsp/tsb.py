@@ -159,7 +159,7 @@ class travelingSalesBlimp(BlimpExperiment):
             self.goal_list = self.make_goal_list()
             self.create_times()
             self.sim.playSimulation()
-        done=True
+        done = True
         for agent_id in self.agentData:
             pos = self.get_position(agent_id=agent_id, use_ultra=False, spin=True)
             goals = self.goal_list[agent_id]
@@ -168,7 +168,7 @@ class travelingSalesBlimp(BlimpExperiment):
                 g_hand = None
                 goal = None
             else:
-                done=False
+                done = False
                 g_hand = goals[goal_index]
                 goal = self.pointData[g_hand]['pos']
                 is_depot = self.pointData[g_hand]['is depot']
@@ -191,9 +191,9 @@ class travelingSalesBlimp(BlimpExperiment):
             if goal is None:
                 vec = np.zeros(3)
             else:
-                vec = (goal - pos) * .5
+                vec = (goal - pos)*.5
                 if np.linalg.norm(vec) > self.speed:
-                    vec = self.speed * vec / np.linalg.norm(vec)
+                    vec = self.speed*vec/np.linalg.norm(vec)
             self.move_agent(agent_id, vec)
         return done
 
@@ -216,8 +216,8 @@ class travelingSalesBlimp(BlimpExperiment):
         @param taus: M x 1 torch tensor of tau values
         @return: M x 1 torch tensor of entropy gain values for each POI
         """
-        E = .5 * torch.exp(-D / taus)
-        eyes = (1 - E) * torch.log(1 - E) - E * (np.log(2) + D / taus) + np.log(2)
+        E = .5*torch.exp(-D/taus)
+        eyes = (1 - E)*torch.log(1 - E) - E*(np.log(2) + D/taus) + np.log(2)
         return eyes
 
     def prop_to_J(self, D, taus):
@@ -230,7 +230,7 @@ class travelingSalesBlimp(BlimpExperiment):
         @return: torch constant of value proportional to discounted entropy gain (without beta)
         """
         eyes = self.I(D, taus)
-        return torch.exp(-self.alpha * torch.sum(D)) * torch.sum(eyes)
+        return torch.exp(-self.alpha*torch.sum(D))*torch.sum(eyes)
 
     def create_times(self, goal_list=None):
         """
@@ -292,7 +292,7 @@ class travelingSalesBlimp(BlimpExperiment):
             pc = self.get_path_cost(handles)
             D = torch.tensor([[self.pointData[hand]['time']] for hand in H])
             taus = torch.tensor([[self.pointData[hand]['tau']] for hand in H])
-            J = np.exp(-self.alpha * pc) * self.prop_to_J(D, taus)
+            J = np.exp(-self.alpha*pc)*self.prop_to_J(D, taus)
             S += J
         return S
 
@@ -329,7 +329,7 @@ class travelingSalesBlimp(BlimpExperiment):
             cycle = part + [self.depotData['handle']]  # adds depot to partition
             cycle = self.lkhSolve(cycle)
             i = cycle.index(self.depotData['handle'])
-            cycle = [cycle[(j + i) % len(cycle)] for j in range(len(cycle))]
+            cycle = [cycle[(j + i)%len(cycle)] for j in range(len(cycle))]
             cycle.append(self.depotData['handle'])
             out.append(cycle)
         return out
@@ -356,7 +356,7 @@ class travelingSalesBlimp(BlimpExperiment):
         for i, key in enumerate(handles):
             f.write(str(i + 1) + ' ')
             for v in self.pointData[key]['pos']:
-                f.write(str(int(round(v * factor))) + ' ')
+                f.write(str(int(round(v*factor))) + ' ')
             f.write('\n')
             node_to_key[i + 1] = key
         f.close()

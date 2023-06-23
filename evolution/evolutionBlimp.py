@@ -10,50 +10,6 @@ CHECKPT_DIR = os.path.join(DIR, 'checkpoints')
 CONFIG_DIR = os.path.join(DIR, 'config')
 
 
-def kill(proc_pid):
-    """
-    kills a process and processes it spawned
-
-    @param proc_pid: id to kill
-    """
-    process = psutil.Process(proc_pid)
-    for proc in process.children(recursive=True):
-        try:
-            proc.kill()
-        except:
-            pass
-    process.kill()
-
-
-def restore_checkpoint(filename):
-    """
-    Resumes the simulation from a previous saved point.
-
-    @param filename: filename to restore
-    """
-    with gzip.open(filename) as f:
-        generation, config, population, species_set, rndstate = pickle.load(f)
-        random.setstate(rndstate)
-        return better_Population(config, (population, species_set, generation))
-
-
-def MOST_RECENT(dir):
-    """
-    returns name of most recent saved file in dir (by naming conventions, assumes name ends wtih -#)
-
-    @param dir: directory to check
-    @return: filename
-    """
-    out = None
-    if os.path.exists(dir):
-        for fil in os.listdir(dir):
-            if out is None:
-                out = fil
-            else:
-                out = max(fil, out, key=lambda f: int(f[f.rindex('-') + 1:]))
-    return out
-
-
 class EvolutionExperiment:
     def __init__(self,
                  name,
@@ -64,6 +20,8 @@ class EvolutionExperiment:
         @param name: folder name of experiment, used for config file and for checkpoint directories
         @param exp_maker: (net,sim,port,wakeup) -> src.network_blimps.blimpNet
                 creates an Experiment to run given the NEAT network, simulator, port, and wakeup script
+
+        @note: the output of an experiment must be a real number type, since it is used as fitness
         """
         self.checkpt_dir = os.path.join(CHECKPT_DIR, name)
         if not os.path.exists(self.checkpt_dir):
@@ -77,6 +35,9 @@ class EvolutionExperiment:
             config_file)
         self.exp_maker = exp_maker
 
+    ####################################################################################################################
+    # evolutionary training functions
+    ####################################################################################################################
     def train(self,
               generations,
               TRIALS,
@@ -107,9 +68,9 @@ class EvolutionExperiment:
         @param restore: whether to restore progress
         @return: best genome
         """
-        if restore and MOST_RECENT(self.checkpt_dir) is not None:
+        if restore and self.MOST_RECENT(self.checkpt_dir) is not None:
             print('RESTORING')
-            p = restore_checkpoint(os.path.join(self.checkpt_dir, MOST_RECENT(self.checkpt_dir)))
+            p = self.restore_checkpoint(os.path.join(self.checkpt_dir, self.MOST_RECENT(self.checkpt_dir)))
         else:
             p = better_Population(self.config)
         p.add_reporter(neat.StdOutReporter(True))
@@ -157,9 +118,9 @@ class EvolutionExperiment:
         genome.fitness = .0
         net = neat.nn.FeedForwardNetwork.create(genome, config)
 
-        exp = self.exp_maker(net=net, sim=sim, port=port, wakeup=None)
+        exp: blimpNet = self.exp_maker(net=net, sim=sim, port=port, wakeup=None)
         goals = exp.experiments(trials=TRIALS)
-        genome.fitness += sum(goals) / TRIALS
+        genome.fitness += sum(goals)/TRIALS
         dict_to_unlock[key] = False
         del exp
 
@@ -206,12 +167,12 @@ class EvolutionExperiment:
         processes = dict()
         # open coppeliasim instances on different ports
         for i in range(num_simulators):
-            zmqport = zmq_def_port + port_step * i
+            zmqport = zmq_def_port + port_step*i
 
             if open_coppelia:
                 processes[zmqport] = dict()
                 cmd = COPPELIA_WAKEUP + (' -h' if headless else '') + \
-                      ' -GwsRemoteApi.port=' + str(websocket_def_port + port_step * i) + \
+                      ' -GwsRemoteApi.port=' + str(websocket_def_port + port_step*i) + \
                       ' -GzmqRemoteApi.rpcPort=' + str(zmqport)
                 p = subprocess.Popen(cmd, stdout=subprocess.PIPE, shell=True)
                 processes[zmqport]['subproc'] = p
@@ -265,7 +226,7 @@ class EvolutionExperiment:
         dt = time.time() - start_time
         if close_after:
             for zmqport in processes:
-                kill(processes[zmqport]['pid'])
+                self.kill(processes[zmqport]['pid'])
 
             while True:
                 try:
@@ -276,6 +237,9 @@ class EvolutionExperiment:
                     time.sleep(sleeptime)
         time.sleep(resttime)
 
+    ####################################################################################################################
+    # output functions
+    ####################################################################################################################
     def result_of_experiment(self, trials=1, search_all_gens=False, display=True, start_coppelia=True):
         """
         runs an experiment with best genome found, returns results
@@ -292,53 +256,101 @@ class EvolutionExperiment:
         else:
             wakeup = []
         winner = None
-        for name in (os.listdir(self.checkpt_dir) if search_all_gens else [MOST_RECENT(self.checkpt_dir)]):
-            p = restore_checkpoint(os.path.join(self.checkpt_dir, name))
+        for name in (os.listdir(self.checkpt_dir) if search_all_gens else [self.MOST_RECENT(self.checkpt_dir)]):
+            p = self.restore_checkpoint(os.path.join(self.checkpt_dir, name))
             gen_winner = max([p.population[g] for g in p.population], key=lambda genome: genome.fitness)
             winner = gen_winner if winner is None else max([winner, gen_winner], key=lambda genome: genome.fitness)
         winner_net = neat.nn.FeedForwardNetwork.create(winner, self.config)
-        exp = self.exp_maker(net=winner_net, wakeup=wakeup)
+        exp: blimpNet = self.exp_maker(net=winner_net, wakeup=wakeup)
         goals = exp.experiments(trials=trials)
         exp.kill()
         return goals
 
+    ####################################################################################################################
+    # utility functions
+    ####################################################################################################################
+    @staticmethod
+    def MOST_RECENT(dir):
+        """
+        returns name of most recent saved file in dir (by naming conventions, assumes name ends wtih -#)
 
-L = 3
-K = 4
-INPUT_DIM = L * K
+        @param dir: directory to check
+        @return: filename
+        """
+        out = None
+        if os.path.exists(dir):
+            for fil in os.listdir(dir):
+                if out is None:
+                    out = fil
+                else:
+                    out = max(fil, out, key=lambda f: int(f[f.rindex('-') + 1:]))
+        return out
+
+    @staticmethod
+    def kill(proc_pid):
+        """
+        kills a process and processes it spawned
+
+        @param proc_pid: id to kill
+        """
+        process = psutil.Process(proc_pid)
+        for proc in process.children(recursive=True):
+            try:
+                proc.kill()
+            except:
+                pass
+        process.kill()
+
+    @staticmethod
+    def restore_checkpoint(filename):
+        """
+        Resumes the simulation from a previous saved point.
+
+        @param filename: filename to restore
+        """
+        with gzip.open(filename) as f:
+            generation, config, population, species_set, rndstate = pickle.load(f)
+            random.setstate(rndstate)
+            return better_Population(config, (population, species_set, generation))
 
 
-def START_ZONE(i):
-    return ((-2, 2), (-2, 2), (1, 3))
+if __name__ == "__main__":
+    L = 3
+    K = 4
+    INPUT_DIM = L*K
 
 
-def expe_make(net, sim=None, port=23000, wakeup=None):
-    return xy_zero_Blimp(num_agents=5,
-                         start_zone=START_ZONE,
-                         scenePath=empty_path,
-                         blimpPath=narrow_blimp_path,
-                         networkfn=net.activate,
-                         height_range=(1, 1),
-                         use_ultra=True,
-                         sim=sim,
-                         simId=port,
-                         wakeup=wakeup,
-                         sleeptime=.01
-                         )
-    return l_k_tant_clump_blimp(num_agents=5,
-                                start_zone=START_ZONE,
-                                scenePath=empty_path,
-                                blimpPath=narrow_blimp_path,
-                                networkfn=net.activate,
-                                sim=sim,
-                                simId=port,
-                                sleeptime=.01,
-                                l=L,
-                                k=K,
-                                wakeup=wakeup)
+    def START_ZONE(i):
+        return ((-2, 2), (-2, 2), (1, 3))
 
 
-ee = EvolutionExperiment('xy_zero_test', expe_make)
-ee.train(2, 2)
-print('here')
-ee.result_of_experiment()
+    def expe_make(net, sim=None, port=23000, wakeup=None):
+        return xy_zero_Blimp(num_agents=5,
+                             start_zone=START_ZONE,
+                             scenePath=empty_path,
+                             blimpPath=narrow_blimp_path,
+                             networkfn=net.activate,
+                             height_range=(1, 1),
+                             use_ultra=True,
+                             sim=sim,
+                             simId=port,
+                             wakeup=wakeup,
+                             sleeptime=.01
+                             )
+        return l_k_tant_clump_blimp(num_agents=5,
+                                    start_zone=START_ZONE,
+                                    scenePath=empty_path,
+                                    blimpPath=narrow_blimp_path,
+                                    networkfn=net.activate,
+                                    sim=sim,
+                                    simId=port,
+                                    sleeptime=.01,
+                                    l=L,
+                                    k=K,
+                                    wakeup=wakeup)
+
+
+    ee = EvolutionExperiment('xy_zero_test', expe_make)
+    ee.train(2, 2)
+    print('here')
+    ee.result_of_experiment()

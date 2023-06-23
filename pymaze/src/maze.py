@@ -207,6 +207,6 @@ class Maze(object):
         """
 
         if algorithm == "dfs_backtrack":
-            depth_first_recursive_backtracker(self, start_coor)
+            depth_first_recursive_backtracker(self, start_coor,debug=False)
         elif algorithm == "bin_tree":
             binary_tree(self, start_coor)

@@ -475,21 +475,21 @@ class BlimpExperiment(Experiment):
         """
         return self._gen_get_neighbors(agent_id, lambda id1, id2: self.within_range(id1, id2, rng, spin=False), spin)
 
-    def get_neighbors_3d_l_k_ant(self, agent_id, rng, l=2, k=8, spin=True):
+    def get_neighbors_3d_l_k_ant(self, agent_id, is_neigh, l=2, k=8, spin=True):
         """
         gets count of neighbors in each l,k-ant
             i.e. l=2, k=1 is equivalent to 'north hemisphere, south hemisphere'
             l=2 k=4 is equivalent to octants of a sphere
 
         @param agent_id: agent id
-        @param rng: range for which agents count as neighbors
+        @param is_neigh: agent_id1 x agent_id2 -> bool; returns if agent 2 is a neighbor of agent 1
         @param l: divisions of phi to consider when using spherical coordinates
         @param k: divisions of theta to consider when using spherical coordinates
         @param spin: whether to update all agents before checking neighbors
         @rtype: N^(l x k) array
         @return: return[i][j] specifies number of neighbors in the range phi=pi*[i,i+1)/l and theta=2*pi*[j,j+1)/k
         """
-        neighbors = self.get_neighbors_range(agent_id, rng, spin=spin)
+        neighbors = self._gen_get_neighbors(agent_id=agent_id, is_neigh=is_neigh, spin=spin)
         output = [[0 for _ in range(k)] for _ in range(l)]
         pos = self.get_position(agent_id, use_ultra=False, spin=False)
         for neigh_id in neighbors:
@@ -499,13 +499,13 @@ class BlimpExperiment(Experiment):
             output[l_tant][k_tant] += 1
         return np.array(output)
 
-    def get_neighbors_2d_k_ant(self, agent_id, rng, k=8, spin=True):
+    def get_neighbors_2d_k_ant(self, agent_id, is_neigh, k=8, spin=True):
         """
         gets count of neighbors in each k-ant
             i.e. k=4 is equivalent to quadrants of the xy plane
 
         @param agent_id: agent id
-        @param rng: range for which agents count as neighbors
+        @param is_neigh: agent_id1 x agent_id2 -> bool; returns if agent 2 is a neighbor of agent 1
         @param k: divisions of theta to consider when using spherical coordinates
         @param spin: whether to update all agents before checking neighbors
         @rtype: N^k array
@@ -514,7 +514,7 @@ class BlimpExperiment(Experiment):
         @note: when getting neighbors with range, z direction is considered,
         """
         return self.get_neighbors_3d_l_k_ant(agent_id=agent_id,
-                                             rng=rng,
+                                             is_neigh=is_neigh,
                                              l=1,
                                              k=k,
                                              spin=spin)[0]
@@ -549,13 +549,13 @@ class BlimpExperiment(Experiment):
         @return: l-tant, k-tant;
             i.e. return of i,j means in spherical coords, vec is in range phi=pi*[i,i+1)/l and theta=2*pi*[j,j+1)/k
         """
-        theta = np.arctan2(vec[1], vec[0]) % (2 * np.pi)
-        phi = np.pi / 2 - np.arctan2(vec[2], np.linalg.norm(vec[:2]))
+        theta = np.arctan2(vec[1], vec[0])%(2*np.pi)
+        phi = np.pi/2 - np.arctan2(vec[2], np.linalg.norm(vec[:2]))
 
-        l_tant = int(l * phi / (np.pi))
+        l_tant = int(l*phi/(np.pi))
         # is in range [0,l], needs to be clipped if phi=pi
 
-        k_tant = int(k * theta / (2 * np.pi))
+        k_tant = int(k*theta/(2*np.pi))
         # will always be in range [0,k)
         return min(l - 1, l_tant), k_tant
 
