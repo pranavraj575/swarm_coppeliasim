@@ -2,18 +2,15 @@ from src.maze_blimps import *
 from evolution.evolutionBlimp import EvolutionExperiment
 
 
-
-
-
 def expe_make(net, sim=None, port=23000, wakeup=None):
     ENTRY = (0, np.random.randint(0, 5))
     EXIT = (4, np.random.randint(0, 5))
 
-    CENTER = np.array((1 + 2 * ENTRY[1], 5))
+    CENTER = np.array((1 + 2*ENTRY[1], 5))
     R = 2.7
 
     def START_ZONE(i):
-        out = CENTER - 2 * R
+        out = CENTER - 2*R
         while np.linalg.norm(out - CENTER) > R:
             out = CENTER + np.random.uniform(-R, R, 2)
         return (out[0], out[1], 1)
@@ -33,13 +30,13 @@ def expe_make(net, sim=None, port=23000, wakeup=None):
                 orientation = np.pi
             if cell[1] == 0 and not mm.initial_grid[cell[0]][cell[1]].walls['left']:
                 wall = 'left'
-                orientation = 3 * np.pi / 2
+                orientation = 3*np.pi/2
             if cell[0] == H - 1 and not mm.initial_grid[cell[0]][cell[1]].walls['bottom']:
                 wall = 'bottom'
                 orientation = 0
             if cell[1] == W - 1 and not mm.initial_grid[cell[0]][cell[1]].walls['right']:
                 wall = 'right'
-                orientation = np.pi / 2
+                orientation = np.pi/2
             orientations.append(orientation)
             walls.append(wall)
         return {'maze': mm,
@@ -50,13 +47,13 @@ def expe_make(net, sim=None, port=23000, wakeup=None):
                 'exit_wall': walls[1],
                 'exit_orientation': (0, 0, orientations[1]), }
 
-    return amazingBlimp(num_agents=5,
+    return amazingBlimp(num_agents=25,
                         start_zone=START_ZONE,
                         scenePath=maze_view_path,
                         blimpPath=narrow_blimp_path,
                         cellPath=round_cell_path,
                         networkfn=net.activate,
-                        end_time=10,
+                        end_time=180,
                         grid_size=2,
                         maze_entry_gen=make_maze,
                         wall_spawn_height=1,
@@ -68,5 +65,15 @@ def expe_make(net, sim=None, port=23000, wakeup=None):
                         wakeup=wakeup,
                         sleeptime=.01
                         )
-ee=EvolutionExperiment('blimp_maze',expe_make)
-ee.train(2,2,num_simulators=1,headless=False,restore=False)
+
+
+ee = EvolutionExperiment(name='25_blimp_5x5maze',
+                         exp_maker=expe_make,
+                         config_name='blimp_maze')
+ee.train(generations=20,
+         TRIALS=1,
+         num_simulators=8,
+         headless=True,
+         restore=False,
+         evaluate_each_gen=True,
+         )

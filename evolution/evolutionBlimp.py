@@ -13,20 +13,24 @@ CONFIG_DIR = os.path.join(DIR, 'config')
 class EvolutionExperiment:
     def __init__(self,
                  name,
-                 exp_maker):
+                 exp_maker,
+                 config_name=None):
         """
         experiment to use NEAT evolutionary algorithm on a Experiment class (specifically a blimpNet)
 
-        @param name: folder name of experiment, used for config file and for checkpoint directories
+        @param name: folder name of experiment, used for checkpoint directories and maybe for config file
         @param exp_maker: (net,sim,port,wakeup) -> src.network_blimps.blimpNet
                 creates an Experiment to run given the NEAT network, simulator, port, and wakeup script
+        @param config_name: file name of config file, defaults to the 'name' param
 
         @note: the output of an experiment must be a real number type, since it is used as fitness
         """
+        if config_name is None:
+            config_name = name
         self.checkpt_dir = os.path.join(CHECKPT_DIR, name)
         if not os.path.exists(self.checkpt_dir):
             os.makedirs(self.checkpt_dir)
-        config_file = os.path.join(CONFIG_DIR, name)
+        config_file = os.path.join(CONFIG_DIR, config_name)
         self.config = neat.Config(
             neat.DefaultGenome,
             neat.DefaultReproduction,
@@ -34,6 +38,7 @@ class EvolutionExperiment:
             neat.DefaultStagnation,
             config_file)
         self.exp_maker = exp_maker
+        self.just_restored = False
 
     ####################################################################################################################
     # evolutionary training functions
@@ -41,6 +46,7 @@ class EvolutionExperiment:
     def train(self,
               generations,
               TRIALS,
+              evaluate_each_gen,
               num_simulators=8,
               open_coppelia=True,
               headless=True,
@@ -56,6 +62,9 @@ class EvolutionExperiment:
 
         @param generations: number of generations to train for (NOTE: this includes the saved generation)
         @param TRIALS: trials to evaluate each genome
+        @param evaluate_each_gen: whether to evaluate each genome each generation
+            if False, keeps the fitness score of a genome evaluated in the previous generation
+            This parameter will not affect the restored checkpoint generation
         @param num_simulators: number of coppelia sims to use
         @param open_coppelia: whether to open the simulators each generation
         @param headless: whether to run coppelia in headless mode
@@ -71,6 +80,8 @@ class EvolutionExperiment:
         if restore and self.MOST_RECENT(self.checkpt_dir) is not None:
             print('RESTORING')
             p = self.restore_checkpoint(os.path.join(self.checkpt_dir, self.MOST_RECENT(self.checkpt_dir)))
+            self.just_restored = True
+
         else:
             p = better_Population(self.config)
         p.add_reporter(neat.StdOutReporter(True))
@@ -83,6 +94,7 @@ class EvolutionExperiment:
         winner = p.run(lambda genomes, config: self.eval_genomes(genomes=genomes,
                                                                  config=config,
                                                                  TRIALS=TRIALS,
+                                                                 evaluate_each_gen=evaluate_each_gen,
                                                                  num_simulators=num_simulators,
                                                                  open_coppelia=open_coppelia,
                                                                  headless=headless,
@@ -128,6 +140,7 @@ class EvolutionExperiment:
                      genomes,
                      config,
                      TRIALS,
+                     evaluate_each_gen,
                      num_simulators,
                      open_coppelia,
                      headless,
@@ -146,6 +159,9 @@ class EvolutionExperiment:
         @param genomes: genomes to evaluate
         @param config: config to use
         @param TRIALS: trials to evaluate each genome
+        @param evaluate_each_gen: whether to evaluate each genome each generation
+            if False, keeps the fitness score of a genome evaluated in the previous generation
+            This parameter will not affect the restored checkpoint generation
         @param num_simulators: number of simulators to use
         @param open_coppelia: whether to open coppelia at the start
         @param headless: whether to run coppelia in headless mode
@@ -190,7 +206,11 @@ class EvolutionExperiment:
 
         # evaluate the genomes
         for genome_id, genome in genomes:
-            if genome.fitness is not None:
+            if self.just_restored:
+                # if we just restored, we can skip evaluating this generation
+                continue
+            if (not evaluate_each_gen) and (genome.fitness is not None):
+                # we can skip if we are not evaluating pre-evaluated genomes, and this genome is pre-evaluated
                 continue
             # for each genome, assign a port, and create a thread
             # the ports should unlock as soon as an earlier thread is done with them
@@ -236,6 +256,7 @@ class EvolutionExperiment:
                 except:
                     time.sleep(sleeptime)
         time.sleep(resttime)
+        self.just_restored = False
 
     ####################################################################################################################
     # output functions
