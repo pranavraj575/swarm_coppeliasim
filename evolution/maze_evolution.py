@@ -1,5 +1,6 @@
 from src.maze_blimps import *
 from evolution.evolutionBlimp import EvolutionExperiment
+import sys
 
 AGENTS = 20
 END = 60
@@ -74,11 +75,13 @@ def expe_make(net, sim=None, port=23000, wakeup=None):
 ee = EvolutionExperiment(name=str(AGENTS) + '_blimp_' + str(H) + 'x' + str(W) + 'maze',
                          exp_maker=expe_make,
                          config_name='blimp_maze')
-ee.train(generations=10,
-         TRIALS=2,
-         num_simulators=8,
-         headless=True,
-         restore=True,
-         evaluate_each_gen=True,
-         )
-ee.result_of_experiment(search_all_gens=True)
+if '--train' in sys.argv:
+    ee.train(generations=10,
+             TRIALS=2,
+             num_simulators=8,
+             headless=True,
+             restore=True,
+             evaluate_each_gen=True,
+             )
+if '--show' in sys.argv:
+    ee.result_of_experiment(search_all_gens=False)

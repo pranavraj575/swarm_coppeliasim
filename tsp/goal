@@ -8,3 +8,5 @@ given partition, the positions can also be used with LKH to find route for each 
 
 
 find a PARTITION (my part) heuristic that maximizes discounted information gain
+
+USE SPECTRAL PARTITIONING ALGORITHM

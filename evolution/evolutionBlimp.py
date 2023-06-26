@@ -236,7 +236,6 @@ class EvolutionExperiment:
                                                                              print_genum=(
                                                                                  i if zmqport == zmq_def_port else -1)
                                                                              ),
-                                              daemon=True
                                               )
                         th.start()
                         time.sleep(sleeptime)
