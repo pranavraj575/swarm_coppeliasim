@@ -47,7 +47,7 @@ def main(args=None):
     client = RemoteAPIClient()
     sim = client.getObject('sim')
 
-    RESET = False
+    RESET = True
 
     DIR = os.path.dirname(os.path.join(os.getcwd(), os.path.dirname(sys.argv[0])))
     MODELDIR = os.path.join(DIR, 'ros_ctrl_models', 'blimp_narrow.ttm')
@@ -76,7 +76,7 @@ def main(args=None):
     subscriberPos = NODE.create_subscription(TwistStamped, topicGlobal, callbackUpdateState, 10)
 
     DT = 50/1000
-    # sim.startSimulation()
+    sim.startSimulation()
     test = np.array([.0, .0, .0, np.pi])
     f = 1.
     while True:
