@@ -51,7 +51,6 @@ class Experiment:
     ####################################################################################################################
     # init/shutdown functions (needs implementation in subclass)
     ####################################################################################################################
-
     def spawnThings(self):
         """
         to be run at start of each expiriment
@@ -94,7 +93,6 @@ class Experiment:
     ####################################################################################################################
     # Expiriment functions (some need implementation in subclass)
     ####################################################################################################################
-
     def init_exp(self, reset):
         """
         initializes the expiriment
@@ -522,7 +520,6 @@ class BlimpExperiment(Experiment):
     ####################################################################################################################
     # utility functions
     ####################################################################################################################
-
     def within_range(self, id1, id2, rng, spin=False):
         """
         checks whether id1 agent is within 'range' of id2 agent

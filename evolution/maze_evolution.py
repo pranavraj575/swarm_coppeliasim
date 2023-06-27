@@ -1,8 +1,26 @@
 from src.maze_blimps import *
 from evolution.evolutionBlimp import EvolutionExperiment
-import sys
+import argparse
 
-AGENTS = 20
+parser = argparse.ArgumentParser(description="for creating and running maze evolutionary experiments")
+parser.add_argument("-a", "--agents", type=int, required=False, default=20,
+                    help="Specify number of agents")
+parser.add_argument("-g", "--generations", type=int, required=False, default=0,
+                    help="generations to train for")
+parser.add_argument("--num_sims", type=int, required=False, default=8,
+                    help="number of simulators to use for training")
+parser.add_argument("--offset", type=int, required=False, default=0,
+                    help="offset port number (should be number of simulators already in use)")
+parser.add_argument("--port_step", type=int, required=False, default=2,
+                    help="ports to skip for each new coppeliasim instance")
+parser.add_argument("--overwrite", action="store_true", required=False,
+                    help="whether to overwrite start instead of starting at recent checkpoint")
+parser.add_argument("--show", action="store_true", required=False,
+                    help="whether to show result at end")
+args = parser.parse_args()
+AGENTS = args.agents
+gens = args.generations
+
 END = 60
 H = 5
 W = 5
@@ -53,7 +71,7 @@ def expe_make(net, sim=None, port=23000, wakeup=None):
                 # 'exit_orientation': (0, 0, orientations[1]),
                 }
 
-    return amazingBlimp(num_agents=AGENTS,
+    return maxAmazingBlimp(num_agents=AGENTS,
                         start_zone=START_ZONE,
                         scenePath=maze_view_path,
                         blimpPath=narrow_blimp_path,
@@ -72,16 +90,22 @@ def expe_make(net, sim=None, port=23000, wakeup=None):
                         )
 
 
-ee = EvolutionExperiment(name=str(AGENTS) + '_blimp_' + str(H) + 'x' + str(W) + 'maze',
+ee = EvolutionExperiment(name=str(AGENTS) + '_blimp_' + str(H) + 'x' + str(W) + 'maze_max_goal',
                          exp_maker=expe_make,
                          config_name='blimp_maze')
-if '--train' in sys.argv:
-    ee.train(generations=10,
+if gens:
+    port_step = args.port_step
+    zmq_def_port = 23000 + port_step*args.offset
+    websocket_def_port = 23050 + port_step*args.offset
+
+    ee.train(generations=gens,
              TRIALS=2,
-             num_simulators=8,
+             num_simulators=args.num_sims,
              headless=True,
-             restore=True,
+             restore=not args.overwrite,
              evaluate_each_gen=True,
+             zmq_def_port=zmq_def_port,
+             websocket_def_port=websocket_def_port
              )
-if '--show' in sys.argv:
+if args.show:
     ee.result_of_experiment(search_all_gens=False)

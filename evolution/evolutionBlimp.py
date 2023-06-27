@@ -51,6 +51,7 @@ class EvolutionExperiment:
               open_coppelia=True,
               headless=True,
               checkpt_freq=1,
+              port_step=2,
               zmq_def_port=23000,
               websocket_def_port=23050,
               close_after=True,
@@ -69,6 +70,7 @@ class EvolutionExperiment:
         @param open_coppelia: whether to open the simulators each generation
         @param headless: whether to run coppelia in headless mode
         @param checkpt_freq: how often to save checkpoints
+        @param port_step: amount to increment ports for different coppelia instances
         @param zmq_def_port: default port for ZMQ API
         @param websocket_def_port: default port for the websocket
         @param close_after: whether to close instances of coppelia after running this
@@ -98,7 +100,7 @@ class EvolutionExperiment:
                                                                  num_simulators=num_simulators,
                                                                  open_coppelia=open_coppelia,
                                                                  headless=headless,
-                                                                 port_step=2,
+                                                                 port_step=port_step,
                                                                  zmq_def_port=zmq_def_port,
                                                                  websocket_def_port=websocket_def_port,
                                                                  close_after=close_after,

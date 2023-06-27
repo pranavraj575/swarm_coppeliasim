@@ -321,26 +321,6 @@ class aMazeBlimp(xyBlimp):
         """
         return self.sim.getSimulationTime() > self.end_time
 
-    def goal_data(self):
-        """
-        data to return at the end of each experiment trial
-
-        @return: negative averate manhattan distance from end tile,
-                agent counts as 0 if completed (in exit cell)
-        """
-        s = []
-        for agent_id in self.agentData:
-            i, j = self.get_grid_loc(agent_id)
-            ex_1, ex_2 = self.maze.exit_coor
-            manhattan = abs(i - ex_1) + abs(j - ex_2)
-            if i >= self.maze.num_rows:
-                manhattan = 0
-            s.append(-manhattan)
-            bug = self.get_state(agent_id)["DEBUG"]
-            if bug == 0.:
-                raise Exception("ERROR DEBUG")
-        return np.mean(s)
-
     ####################################################################################################################
     # utility functions
     ####################################################################################################################
@@ -383,7 +363,7 @@ class aMazeBlimp(xyBlimp):
         """
         return int(np.floor(x/self.grid_size))
 
-    def is_wall_btwn(self, pos1, pos2):
+    def is_wall_btwn(self, pos0, pos1):
         """
         returns if there are any walls between two positions
 
@@ -391,7 +371,7 @@ class aMazeBlimp(xyBlimp):
         @param pos1: R^2, x,y
         @return: boolean of if any of the walls between pos0 and pos1 are in the placed walls
         """
-        return any(wall in self.walls_to_handle for wall in self.all_walls_btwn(pos1, pos2))
+        return any(wall in self.walls_to_handle for wall in self.all_walls_btwn(pos0, pos1))
 
     def all_walls_btwn(self, pos0, pos1):
         """
@@ -551,6 +531,142 @@ class amazingBlimp(aMazeBlimp):
                                              k=8,
                                              spin=True)
         return k_tant.reshape((-1, 1))
+
+    ####################################################################################################################
+    # Expiriment functions
+    ####################################################################################################################
+    def goal_data(self):
+        """
+        data to return at the end of each experiment trial
+
+        @return: negative averate manhattan distance from end tile,
+                agent counts as 0 if completed (in exit cell)
+        """
+        s = []
+        ex_1, ex_2 = self.maze.exit_coor
+        for agent_id in self.agentData:
+            i, j = self.get_grid_loc(agent_id)
+            if i >= self.maze.num_rows:
+                manhattan = 0
+            else:
+                manhattan = abs(i - ex_1) + abs(j - ex_2)
+            s.append(-manhattan)
+            bug = self.get_state(agent_id)["DEBUG"]
+            if bug == 0.:
+                raise Exception("ERROR DEBUG")
+        return np.mean(s)
+
+
+class maxAmazingBlimp(amazingBlimp):
+    def __init__(self,
+                 num_agents,
+                 start_zone,
+                 scenePath,
+                 blimpPath,
+                 networkfn,
+                 height_range,
+                 use_ultra,
+                 maze_entry_gen,
+                 wall_dir,
+                 grid_size,
+                 wall_spawn_height,
+                 end_time,
+                 cell_filename='round_cell_of_holding.ttm',
+                 cover_dir=os.path.join(DIR, 'models', 'covers'),
+                 rng=2,
+                 height_factor=.2,
+                 sim=None,
+                 simId=23000,
+                 msg_queue=10,
+                 wakeup=None,
+                 sleeptime=.01,
+                 spawn_tries=100):
+        """
+        maze blimp, fitness is recorded as the negative distance of the furthest blimp along
+            if any blimps successfully complete the maze, fitness is the number of successful blimps
+
+        @param num_agents: number of blimps in this swarm expiriment
+        @param start_zone: int -> (RxR U R)^3 goes from the blimp number to the spawn area
+                (each dimension could be (value) or (low, high), chosen uniformly at random)
+        @param scenePath: path to coppeliasim scene
+        @param blimpPath: path to blimp for spawning
+        @param networkfn: neural network function call for blimp to act
+        @param height_range: R^2, height range to keep blimps at
+        @param use_ultra: whether to use ultrasound to set height (and as network input)
+        @param maze_entry_gen: () -> dict, generates a dictionary, required keys are
+                'maze': pymaze.src.Maze,
+                'entry': location of entry
+                'orientation': orientation of entry
+                'wall': wall to enter maze in (should be redundant)
+                'exit': location of exit
+        @param wall_dir: path to the wall directory (files should look like 2x3.ttm)
+        @param grid_size: size of grid in m (should also match horizontal length of wall)
+        @param wall_spawn_height: height to spawn wall
+        @param end_time: time to end experiment
+        @param cell_filename: filename that holding cell is saved as, will be searched for under wall_dir
+        @param cover_dir: directory for lid of maze, None if no lid
+            files should look like '5x5.ttm'
+        @param rng: range to sense neighbors
+        @param height_factor: factor to multiply height adjust by
+        @param sim: simulator, if already defined
+        @param simId: simulator id, used to pass messages to correct topics
+        @param msg_queue: queue length of ROS messages
+        @param wakeup: code to run in command line before starting experiment
+        @param sleeptime: time to wait before big commands (i.e. stop simulation, start simulation, pause simulation)
+        @param spawn_tries: number of tries to spawn without collisions before giving up
+                if 1, then sets position, does not change if collision detected
+        """
+        super().__init__(num_agents,
+                         start_zone,
+                         scenePath,
+                         blimpPath,
+                         networkfn,
+                         height_range,
+                         use_ultra,
+                         maze_entry_gen,
+                         wall_dir,
+                         grid_size,
+                         wall_spawn_height,
+                         end_time,
+                         cell_filename=cell_filename,
+                         cover_dir=cover_dir,
+                         rng=rng,
+                         height_factor=height_factor,
+                         sim=sim,
+                         simId=simId,
+                         msg_queue=msg_queue,
+                         wakeup=wakeup,
+                         sleeptime=sleeptime,
+                         spawn_tries=spawn_tries)
+
+    ####################################################################################################################
+    # Expiriment functions
+    ####################################################################################################################
+    def goal_data(self):
+        """
+        data to return at the end of each experiment trial
+
+        @return: negative averate manhattan distance from end tile,
+                agent counts as 0 if completed (in exit cell)
+        """
+        completed = 0
+        furthest = -float('inf')
+        ex_1, ex_2 = self.maze.exit_coor
+        for agent_id in self.agentData:
+            i, j = self.get_grid_loc(agent_id)
+            if i >= self.maze.num_rows:
+                manhattan = 0
+            else:
+                manhattan = abs(i - ex_1) + abs(j - ex_2)
+
+            if manhattan == 0:
+                # finished the maze
+                completed += 1
+            furthest = max(furthest, -manhattan)
+            bug = self.get_state(agent_id)["DEBUG"]
+            if bug == 0.:
+                raise Exception("ERROR DEBUG")
+        return completed + furthest  # completed is positive iff furthest is 0
 
 
 if __name__ == "__main__":
