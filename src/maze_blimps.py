@@ -11,7 +11,6 @@ round_cell_path = os.path.join(DIR, 'models', 'round_cell_of_holding.ttm')
 class aMazeBlimp(xyBlimp):
     def __init__(self,
                  num_agents,
-                 start_zone,
                  scenePath,
                  blimpPath,
                  networkfn,
@@ -23,6 +22,8 @@ class aMazeBlimp(xyBlimp):
                  wall_spawn_height,
                  end_time,
                  cell_filename='round_cell_of_holding.ttm',
+                 cell_center_offset=(0, 5),
+                 cell_radius=3,
                  cover_dir=os.path.join(DIR, 'models', 'covers'),
                  height_factor=.2,
                  sim=None,
@@ -37,8 +38,6 @@ class aMazeBlimp(xyBlimp):
         @note: since this inherits xyBlimp, output should be 2d
 
         @param num_agents: number of blimps in this swarm expiriment
-        @param start_zone: int -> (RxR U R)^3 goes from the blimp number to the spawn area
-                (each dimension could be (value) or (low, high), chosen uniformly at random)
         @param scenePath: path to coppeliasim scene
         @param blimpPath: path to blimp for spawning
         @param networkfn: neural network function call for blimp to act
@@ -58,6 +57,9 @@ class aMazeBlimp(xyBlimp):
         @param wall_spawn_height: height to spawn wall
         @param end_time: time to end experiment
         @param cell_filename: filename that holding cell is saved as, will be searched for under wall_dir
+        @param cell_center_offset: x,y offset of the 'center' of the starting cell from the gate
+            used for spawning blimps
+        @param cell_radius: radius to spawn blimps from cell center to still be within cell
         @param cover_dir: directory for lid of maze, None if no lid
             files should look like '5x5.ttm'
         @param height_factor: factor to multiply height adjust by
@@ -71,7 +73,7 @@ class aMazeBlimp(xyBlimp):
         """
         super().__init__(
             num_agents=num_agents,
-            start_zone=start_zone,
+            start_zone=None,  # we will make start zone according to the maze
             scenePath=scenePath,
             blimpPath=blimpPath,
             networkfn=networkfn,
@@ -96,7 +98,10 @@ class aMazeBlimp(xyBlimp):
         self.wall_dir = wall_dir
         self.cover_dir = cover_dir
         self.cellPath = os.path.join(self.wall_dir, cell_filename)
+        self.cell_radius = cell_radius
+        self.cell_center_offset = cell_center_offset
         self.len_to_wall = dict()
+        self.still_at_spawn = None
         for fn in os.listdir(self.wall_dir):
             if 'x' in fn:
                 self.len_to_wall[float(fn[:fn.index('x')])] = os.path.join(self.wall_dir, fn)
@@ -229,14 +234,33 @@ class aMazeBlimp(xyBlimp):
                     self.walls_to_handle[w] = hand
                     self.walls_to_handle[self.wall_pair(w)] = hand
                 walls = walls[len(used):]
+        cell_offset = self.cell_center_offset
         if maze_dict['entry_wall'] == 'top':
             cell_loc += v_shift
+            cell_offset = np.array(cell_offset)  # offset for now
+            self.still_at_spawn = lambda pos: pos[1] >= cell_loc[1]
         elif maze_dict['entry_wall'] == 'bottom':
             cell_loc -= v_shift
+            cell_offset = np.array((-cell_offset[0], -cell_offset[1]))
+            self.still_at_spawn = lambda pos: pos[1] <= cell_loc[1]
         elif maze_dict['entry_wall'] == 'left':
             cell_loc -= h_shift
+            cell_offset = np.array((-cell_offset[1], cell_offset[0]))
+            self.still_at_spawn = lambda pos: pos[0] <= cell_loc[0]
         else:
             cell_loc += h_shift
+            cell_offset = np.array((cell_offset[1], -cell_offset[0]))
+            self.still_at_spawn = lambda pos: pos[0] >= cell_loc[0]
+        cell_center = cell_loc[:2] + cell_offset
+
+        def START(i):
+            out = cell_center - 2*self.cell_radius
+            while np.linalg.norm(out - cell_center) > self.cell_radius:
+                out = cell_center + np.random.uniform(-self.cell_radius, self.cell_radius, 2)
+            return out[0], out[1], self.wall_spawn_height
+
+        self.start_zone = START
+
         self.cell_handle = self.spawnBlimp(self.cellPath, lambda: cell_loc, 1, maze_dict['entry_orientation'])
         if 'exit_wall' in maze_dict:
             if maze_dict['exit_wall'] == 'top':
@@ -415,7 +439,6 @@ class aMazeBlimp(xyBlimp):
 class amazingBlimp(aMazeBlimp):
     def __init__(self,
                  num_agents,
-                 start_zone,
                  scenePath,
                  blimpPath,
                  networkfn,
@@ -427,6 +450,8 @@ class amazingBlimp(aMazeBlimp):
                  wall_spawn_height,
                  end_time,
                  cell_filename='round_cell_of_holding.ttm',
+                 cell_center_offset=(0, 5),
+                 cell_radius=3,
                  cover_dir=os.path.join(DIR, 'models', 'covers'),
                  rng=2,
                  height_factor=.2,
@@ -440,8 +465,6 @@ class amazingBlimp(aMazeBlimp):
         test of maze blimp, network function takes octant sensing and returns a direction
 
         @param num_agents: number of blimps in this swarm expiriment
-        @param start_zone: int -> (RxR U R)^3 goes from the blimp number to the spawn area
-                (each dimension could be (value) or (low, high), chosen uniformly at random)
         @param scenePath: path to coppeliasim scene
         @param blimpPath: path to blimp for spawning
         @param networkfn: neural network function call for blimp to act
@@ -458,6 +481,9 @@ class amazingBlimp(aMazeBlimp):
         @param wall_spawn_height: height to spawn wall
         @param end_time: time to end experiment
         @param cell_filename: filename that holding cell is saved as, will be searched for under wall_dir
+        @param cell_center_offset: x,y offset of the 'center' of the starting cell from the gate
+            used for spawning blimps
+        @param cell_radius: radius to spawn blimps from cell center to still be within cell
         @param cover_dir: directory for lid of maze, None if no lid
             files should look like '5x5.ttm'
         @param rng: range to sense neighbors
@@ -472,7 +498,6 @@ class amazingBlimp(aMazeBlimp):
         """
         super().__init__(
             num_agents=num_agents,
-            start_zone=start_zone,
             scenePath=scenePath,
             blimpPath=blimpPath,
             networkfn=networkfn,
@@ -481,6 +506,8 @@ class amazingBlimp(aMazeBlimp):
             maze_entry_gen=maze_entry_gen,
             wall_dir=wall_dir,
             cell_filename=cell_filename,
+            cell_center_offset=cell_center_offset,
+            cell_radius=cell_radius,
             cover_dir=cover_dir,
             grid_size=grid_size,
             wall_spawn_height=wall_spawn_height,
@@ -546,10 +573,14 @@ class amazingBlimp(aMazeBlimp):
         ex_1, ex_2 = self.maze.exit_coor
         for agent_id in self.agentData:
             i, j = self.get_grid_loc(agent_id)
-            if i >= self.maze.num_rows:
-                manhattan = 0
-            else:
-                manhattan = abs(i - ex_1) + abs(j - ex_2)
+            pos = self.get_xy_pos(agent_id)
+            manhattan = abs(i - ex_1) + abs(j - ex_2)
+
+            # if out of bounds and out of spawn area
+            if ((i >= self.maze.num_rows or i < 0) or
+                    (j >= self.maze.num_cols or j < 0)):
+                if not self.still_at_spawn(pos):
+                    manhattan = 0
             s.append(-manhattan)
             bug = self.get_state(agent_id)["DEBUG"]
             if bug == 0.:
@@ -560,7 +591,6 @@ class amazingBlimp(aMazeBlimp):
 class maxAmazingBlimp(amazingBlimp):
     def __init__(self,
                  num_agents,
-                 start_zone,
                  scenePath,
                  blimpPath,
                  networkfn,
@@ -586,8 +616,6 @@ class maxAmazingBlimp(amazingBlimp):
             if any blimps successfully complete the maze, fitness is the number of successful blimps
 
         @param num_agents: number of blimps in this swarm expiriment
-        @param start_zone: int -> (RxR U R)^3 goes from the blimp number to the spawn area
-                (each dimension could be (value) or (low, high), chosen uniformly at random)
         @param scenePath: path to coppeliasim scene
         @param blimpPath: path to blimp for spawning
         @param networkfn: neural network function call for blimp to act
@@ -616,18 +644,17 @@ class maxAmazingBlimp(amazingBlimp):
         @param spawn_tries: number of tries to spawn without collisions before giving up
                 if 1, then sets position, does not change if collision detected
         """
-        super().__init__(num_agents,
-                         start_zone,
-                         scenePath,
-                         blimpPath,
-                         networkfn,
-                         height_range,
-                         use_ultra,
-                         maze_entry_gen,
-                         wall_dir,
-                         grid_size,
-                         wall_spawn_height,
-                         end_time,
+        super().__init__(num_agents=num_agents,
+                         scenePath=scenePath,
+                         blimpPath=blimpPath,
+                         networkfn=networkfn,
+                         height_range=height_range,
+                         use_ultra=use_ultra,
+                         maze_entry_gen=maze_entry_gen,
+                         wall_dir=wall_dir,
+                         grid_size=grid_size,
+                         wall_spawn_height=wall_spawn_height,
+                         end_time=end_time,
                          cell_filename=cell_filename,
                          cover_dir=cover_dir,
                          rng=rng,
@@ -654,10 +681,14 @@ class maxAmazingBlimp(amazingBlimp):
         ex_1, ex_2 = self.maze.exit_coor
         for agent_id in self.agentData:
             i, j = self.get_grid_loc(agent_id)
-            if i >= self.maze.num_rows:
-                manhattan = 0
-            else:
-                manhattan = abs(i - ex_1) + abs(j - ex_2)
+            pos = self.get_xy_pos(agent_id)
+            manhattan = abs(i - ex_1) + abs(j - ex_2)
+
+            # if out of bounds and out of spawn area
+            if ((i >= self.maze.num_rows or i < 0) or
+                    (j >= self.maze.num_cols or j < 0)):
+                if not self.still_at_spawn(pos):
+                    manhattan = 0
 
             if manhattan == 0:
                 # finished the maze
@@ -718,7 +749,6 @@ if __name__ == "__main__":
 
 
     bb = amazingBlimp(num_agents=5,
-                      start_zone=START_ZONE,
                       scenePath=maze_view_path,
                       blimpPath=narrow_blimp_path,
                       networkfn=lambda x: (.5, 0),

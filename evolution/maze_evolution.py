@@ -7,6 +7,12 @@ parser.add_argument("-a", "--agents", type=int, required=False, default=20,
                     help="Specify number of agents")
 parser.add_argument("-g", "--generations", type=int, required=False, default=0,
                     help="generations to train for")
+parser.add_argument("--height", type=int, required=False, default=5,
+                    help="height of maze")
+parser.add_argument("--width", type=int, required=False, default=5,
+                    help="width of maze")
+parser.add_argument("--range", type=int, required=False, default=5,
+                    help="range to detect neighbors")
 parser.add_argument("--num_sims", type=int, required=False, default=8,
                     help="number of simulators to use for training")
 parser.add_argument("--offset", type=int, required=False, default=0,
@@ -20,29 +26,36 @@ parser.add_argument("--show", action="store_true", required=False,
 args = parser.parse_args()
 AGENTS = args.agents
 gens = args.generations
+RANGE=args.range
 
 END = 60
-H = 5
-W = 5
-DIFF=True
+H = args.height
+W = args.width
+print(args.show)
+DIFF = True
+ALWAYS_DOWN=False
+
 
 def expe_make(net, sim=None, port=23000, wakeup=None):
-    ENTRY = (0, np.random.randint(0, W))
-
-    CENTER = np.array((1 + 2*ENTRY[1], 5))
-    R = 2.7
-
-    def START_ZONE(i):
-        out = CENTER - 2*R
-        while np.linalg.norm(out - CENTER) > R:
-            out = CENTER + np.random.uniform(-R, R, 2)
-        return (out[0], out[1], 1)
 
     def make_maze():
-        EXIT = (H - 1, np.random.randint(0, W))
+        ENTRY = (0, np.random.random())
+        EXIT = (1, np.random.random())
+        if not ALWAYS_DOWN:
+            if np.random.random()<.5: # opposite direction
+                ENTRY=1,ENTRY[1]
+                EXIT=0,EXIT[1]
+            if np.random.random()<.5: # swap xy
+                ENTRY=ENTRY[1],ENTRY[0]
+                EXIT=EXIT[1],EXIT[0]
+        ENTRY=min(int(ENTRY[0]*H),H-1),min(int(ENTRY[1]*W),W-1)
+        EXIT = min(int(EXIT[0]*H), H - 1), min(int(EXIT[1]*W), W - 1)
+
         if DIFF:
-            while EXIT[1]==ENTRY[1]:
-                EXIT = (H - 1, np.random.randint(0, W))
+            while EXIT[0] == ENTRY[0]:
+                EXIT = (np.random.randint(0, H),EXIT[1])
+            while EXIT[1] == ENTRY[1]:
+                EXIT = (EXIT[0], np.random.randint(0, W))
         mm = Maze(H, W, entry=ENTRY, exit=EXIT)
         entry = mm.entry_coor
         ext = mm.exit_coor
@@ -75,25 +88,26 @@ def expe_make(net, sim=None, port=23000, wakeup=None):
                 }
 
     return maxAmazingBlimp(num_agents=AGENTS,
-                        start_zone=START_ZONE,
-                        scenePath=maze_view_path,
-                        blimpPath=narrow_blimp_path,
-                        networkfn=net.activate,
-                        end_time=END,
-                        grid_size=2,
-                        maze_entry_gen=make_maze,
-                        wall_spawn_height=1.5,
-                        wall_dir=wall_path,
-                        height_range=(1, 1),
-                        use_ultra=True,
-                        sim=sim,
-                        simId=port,
-                        wakeup=wakeup,
-                        sleeptime=.01
-                        )
+                           scenePath=maze_view_path,
+                           blimpPath=narrow_blimp_path,
+                           networkfn=net.activate,
+                           end_time=END,
+                           rng=RANGE,
+                           grid_size=2,
+                           maze_entry_gen=make_maze,
+                           wall_spawn_height=1.5,
+                           wall_dir=wall_path,
+                           height_range=(1, 1),
+                           use_ultra=True,
+                           sim=sim,
+                           simId=port,
+                           wakeup=wakeup,
+                           sleeptime=.01
+                           )
 
-save_name=str(AGENTS) + '_blimp_' + str(H) + 'x' + str(W) + 'maze_max_goal'
-print("SAVING TO:",save_name)
+
+save_name = str(AGENTS) + '_blimp_' + str(H) + 'x' + str(W) + 'maze_max_goal_range_'+str(RANGE)
+print("SAVING TO:", save_name)
 ee = EvolutionExperiment(name=save_name,
                          exp_maker=expe_make,
                          config_name='blimp_maze')
@@ -105,11 +119,11 @@ if gens:
     ee.train(generations=gens,
              TRIALS=2,
              num_simulators=args.num_sims,
-             headless=True,
+             headless=not args.show,
              restore=not args.overwrite,
              evaluate_each_gen=True,
              zmq_def_port=zmq_def_port,
              websocket_def_port=websocket_def_port
              )
 if args.show:
-    ee.result_of_experiment(search_all_gens=False)
+    print(ee.result_of_experiment(search_all_gens=False))
