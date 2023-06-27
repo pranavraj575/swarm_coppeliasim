@@ -24,7 +24,7 @@ gens = args.generations
 END = 60
 H = 5
 W = 5
-
+DIFF=True
 
 def expe_make(net, sim=None, port=23000, wakeup=None):
     ENTRY = (0, np.random.randint(0, W))
@@ -40,6 +40,9 @@ def expe_make(net, sim=None, port=23000, wakeup=None):
 
     def make_maze():
         EXIT = (H - 1, np.random.randint(0, W))
+        if DIFF:
+            while EXIT[1]==ENTRY[1]:
+                EXIT = (H - 1, np.random.randint(0, W))
         mm = Maze(H, W, entry=ENTRY, exit=EXIT)
         entry = mm.entry_coor
         ext = mm.exit_coor
