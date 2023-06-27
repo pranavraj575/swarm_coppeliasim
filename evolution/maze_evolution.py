@@ -89,8 +89,9 @@ def expe_make(net, sim=None, port=23000, wakeup=None):
                         sleeptime=.01
                         )
 
-
-ee = EvolutionExperiment(name=str(AGENTS) + '_blimp_' + str(H) + 'x' + str(W) + 'maze_max_goal',
+save_name=str(AGENTS) + '_blimp_' + str(H) + 'x' + str(W) + 'maze_max_goal'
+print("SAVING TO:",save_name)
+ee = EvolutionExperiment(name=save_name,
                          exp_maker=expe_make,
                          config_name='blimp_maze')
 if gens:
