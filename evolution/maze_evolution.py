@@ -19,7 +19,7 @@ parser.add_argument("--num_sims", type=int, required=False, default=8,
                     help="number of simulators to use for training")
 parser.add_argument("--offset", type=int, required=False, default=0,
                     help="offset port number (should be number of simulators already in use)")
-parser.add_argument("--port_step", type=int, required=False, default=1,
+parser.add_argument("--port_step", type=int, required=False, default=2,
                     help="ports to skip for each new coppeliasim instance")
 parser.add_argument("--overwrite", action="store_true", required=False,
                     help="whether to overwrite start instead of starting at recent checkpoint")
