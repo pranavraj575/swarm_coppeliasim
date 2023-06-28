@@ -51,7 +51,7 @@ class EvolutionExperiment:
               open_coppelia=True,
               headless=True,
               checkpt_freq=1,
-              port_step=2,
+              port_step=1,
               zmq_def_port=23000,
               websocket_def_port=23050,
               close_after=True,

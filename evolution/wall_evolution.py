@@ -37,7 +37,7 @@ parser.add_argument("--num_sims", type=int, required=False, default=8,
                     help="number of simulators to use for training")
 parser.add_argument("--offset", type=int, required=False, default=0,
                     help="offset port number (should be number of simulators already in use)")
-parser.add_argument("--port_step", type=int, required=False, default=2,
+parser.add_argument("--port_step", type=int, required=False, default=1,
                     help="ports to skip for each new coppeliasim instance")
 parser.add_argument("--overwrite", action="store_true", required=False,
                     help="whether to overwrite start instead of starting at recent checkpoint")
@@ -100,7 +100,8 @@ if gens:
              restore=not args.overwrite,
              evaluate_each_gen=True,
              zmq_def_port=zmq_def_port,
-             websocket_def_port=websocket_def_port
+             websocket_def_port=websocket_def_port,
+             port_step=port_step,
              )
 if args.show:
     print(ee.result_of_experiment(search_all_gens=False))
