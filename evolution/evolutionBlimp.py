@@ -281,6 +281,8 @@ class EvolutionExperiment:
         @param start_coppelia: whether to start coppelia at the beginning
         @return: result of src.Experiment.experiments
         """
+        if self.MOST_RECENT(self.checkpt_dir) is None:
+            raise Exception("DIRECTORY EMPTY: "+self.checkpt_dir)
         if start_coppelia:
             wakeup = ['/home/rajbhandari/Downloads/CoppeliaSim_Edu_V4_3_0_rev12_Ubuntu20_04/coppeliaSim.sh' +
                       ('' if display else ' -h')]
