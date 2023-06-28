@@ -289,8 +289,7 @@ class EvolutionExperiment:
         if self.MOST_RECENT(self.checkpt_dir) is None:
             raise Exception("DIRECTORY EMPTY: " + self.checkpt_dir)
         if start_coppelia:
-            wakeup = ['/home/rajbhandari/Downloads/CoppeliaSim_Edu_V4_3_0_rev12_Ubuntu20_04/coppeliaSim.sh' +
-                      ('' if display else ' -h')]
+            wakeup = [COPPELIA_WAKEUP + ('' if display else ' -h')]
         else:
             wakeup = []
         winner = None
