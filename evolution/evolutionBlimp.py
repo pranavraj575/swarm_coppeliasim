@@ -12,13 +12,13 @@ CONFIG_DIR = os.path.join(DIR, 'config')
 
 class EvolutionExperiment:
     def __init__(self,
-                 name,
+                 checkpt_dir,
                  exp_maker,
                  config_name=None):
         """
         experiment to use NEAT evolutionary algorithm on a Experiment class (specifically a blimpNet)
 
-        @param name: folder name of experiment, used for checkpoint directories and maybe for config file
+        @param checkpt_dir: folder name of experiment, used for checkpoint directories and maybe for config file
         @param exp_maker: (net,sim,port,wakeup) -> src.network_blimps.blimpNet
                 creates an Experiment to run given the NEAT network, simulator, port, and wakeup script
         @param config_name: file name of config file, defaults to the 'name' param
@@ -26,10 +26,10 @@ class EvolutionExperiment:
         @note: the output of an experiment must be a real number type, since it is used as fitness
         """
         if config_name is None:
-            config_name = name
-        self.checkpt_dir = os.path.join(CHECKPT_DIR, name)
+            config_name = checkpt_dir
+        self.checkpt_dir = checkpt_dir
         if not os.path.exists(self.checkpt_dir):
-            os.makedirs(self.checkpt_dir)
+            raise Exception("CHECKPOINT PATH DOES NOT EXIST: " + self.checkpt_dir)
         config_file = os.path.join(CONFIG_DIR, config_name)
         self.config = neat.Config(
             neat.DefaultGenome,
@@ -282,7 +282,7 @@ class EvolutionExperiment:
         @return: result of src.Experiment.experiments
         """
         if self.MOST_RECENT(self.checkpt_dir) is None:
-            raise Exception("DIRECTORY EMPTY: "+self.checkpt_dir)
+            raise Exception("DIRECTORY EMPTY: " + self.checkpt_dir)
         if start_coppelia:
             wakeup = ['/home/rajbhandari/Downloads/CoppeliaSim_Edu_V4_3_0_rev12_Ubuntu20_04/coppeliaSim.sh' +
                       ('' if display else ' -h')]

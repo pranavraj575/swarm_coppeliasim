@@ -10,6 +10,7 @@ DIR = os.path.dirname(os.path.join(os.getcwd(), os.path.dirname(sys.argv[0])))
 
 frictionless_wall_path = os.path.join(DIR, 'scenes', 'FrictionlessWallClimb.ttt')
 wall_climb_path = os.path.join(DIR, 'scenes', 'WallClimb.ttt')
+caged_wall_climb_path = os.path.join(DIR, 'scenes', 'wall_climb_caged.ttt')
 empty_path = os.path.join(DIR, 'scenes', 'empty.ttt')
 narrow_blimp_path = os.path.join(DIR, 'ros_ctrl_models', 'blimp_narrow.ttm')
 COPPELIA_WAKEUP = '/home/rajbhandari/Downloads/CoppeliaSim_Edu_V4_3_0_rev12_Ubuntu20_04/coppeliaSim.sh'

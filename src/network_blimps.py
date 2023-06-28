@@ -165,7 +165,7 @@ class xyBlimp(blimpNet):
         """
         xy = np.array(output).flatten()  # this is in ([0,1]^2)
         xy = xy*2 - 1  # cast into [-1,1]^2
-        z = self.get_position(agent_id, use_ultra=self.use_ultra, spin=True)[2]
+        z = self.get_position(agent_id, use_ultra=self.use_ultra, spin=False)[2]
         h_adj = 0.
         if z < self.height_range[0]:
             h_adj = self.height_range[0] - z

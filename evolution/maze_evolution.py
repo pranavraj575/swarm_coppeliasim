@@ -7,6 +7,8 @@ parser.add_argument("-a", "--agents", type=int, required=False, default=20,
                     help="Specify number of agents")
 parser.add_argument("-g", "--generations", type=int, required=False, default=0,
                     help="generations to train for")
+parser.add_argument("--create", action="store_true", required=False,
+                    help="whether to create new directory")
 parser.add_argument("--height", type=int, required=False, default=5,
                     help="height of maze")
 parser.add_argument("--width", type=int, required=False, default=5,
@@ -26,33 +28,32 @@ parser.add_argument("--show", action="store_true", required=False,
 args = parser.parse_args()
 AGENTS = args.agents
 gens = args.generations
-RANGE=args.range
+RANGE = args.range
 
 END = 60
 H = args.height
 W = args.width
 DIFF = True
-ALWAYS_DOWN=False
+ALWAYS_DOWN = False
 
 
 def expe_make(net, sim=None, port=23000, wakeup=None):
-
     def make_maze():
         ENTRY = (0, np.random.random())
         EXIT = (1, np.random.random())
         if not ALWAYS_DOWN:
-            if np.random.random()<.5: # opposite direction
-                ENTRY=1,ENTRY[1]
-                EXIT=0,EXIT[1]
-            if np.random.random()<.5: # swap xy
-                ENTRY=ENTRY[1],ENTRY[0]
-                EXIT=EXIT[1],EXIT[0]
-        ENTRY=min(int(ENTRY[0]*H),H-1),min(int(ENTRY[1]*W),W-1)
+            if np.random.random() < .5:  # opposite direction
+                ENTRY = 1, ENTRY[1]
+                EXIT = 0, EXIT[1]
+            if np.random.random() < .5:  # swap xy
+                ENTRY = ENTRY[1], ENTRY[0]
+                EXIT = EXIT[1], EXIT[0]
+        ENTRY = min(int(ENTRY[0]*H), H - 1), min(int(ENTRY[1]*W), W - 1)
         EXIT = min(int(EXIT[0]*H), H - 1), min(int(EXIT[1]*W), W - 1)
 
         if DIFF:
             while EXIT[0] == ENTRY[0]:
-                EXIT = (np.random.randint(0, H),EXIT[1])
+                EXIT = (np.random.randint(0, H), EXIT[1])
             while EXIT[1] == ENTRY[1]:
                 EXIT = (EXIT[0], np.random.randint(0, W))
         mm = Maze(H, W, entry=ENTRY, exit=EXIT)
@@ -97,6 +98,7 @@ def expe_make(net, sim=None, port=23000, wakeup=None):
                            wall_spawn_height=1.5,
                            wall_dir=wall_path,
                            height_range=(1, 1),
+                           height_factor=1.,
                            use_ultra=True,
                            sim=sim,
                            simId=port,
@@ -105,9 +107,16 @@ def expe_make(net, sim=None, port=23000, wakeup=None):
                            )
 
 
-save_name = str(AGENTS) + '_blimp_' + str(H) + 'x' + str(W) + 'maze_max_goal_range_'+str(RANGE).replace('.','_')
-print("SAVING TO:", save_name)
-ee = EvolutionExperiment(name=save_name,
+save_name = str(AGENTS) + '_blimp_' + str(H) + 'x' + str(W) + 'maze_max_goal_range_' + str(RANGE).replace('.', '_')
+checkpt_dir = os.path.join(DIR, 'checkpoints', save_name)
+
+print("SAVING TO:", checkpt_dir)
+if not os.path.exists(checkpt_dir):
+    if args.create:
+        os.makedirs(checkpt_dir)
+    else:
+        raise Exception("DIRECTORY DOES NOT EXIST (try running with --create): " + checkpt_dir)
+ee = EvolutionExperiment(checkpt_dir=checkpt_dir,
                          exp_maker=expe_make,
                          config_name='blimp_maze')
 if gens:

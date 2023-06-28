@@ -7,6 +7,8 @@ parser.add_argument("-a", "--agents", type=int, required=False, default=20,
                     help="Specify number of agents")
 parser.add_argument("-g", "--generations", type=int, required=False, default=0,
                     help="generations to train for")
+parser.add_argument("--create", action="store_true", required=False,
+                    help="whether to create new directory")
 
 parser.add_argument("--height_lower", type=float, required=False, default=.8,
                     help="lower bound of height to hold blimps at")
@@ -58,13 +60,14 @@ def SPAWN_ZONE(i):
 def expe_make(net, sim=None, port=23000, wakeup=None):
     return xy_wall_climb_blimp(num_agents=AGENTS,
                                start_zone=SPAWN_ZONE,
-                               scenePath=wall_climb_path,
+                               scenePath=caged_wall_climb_path,
                                blimpPath=narrow_blimp_path,
                                networkfn=net.activate,
                                end_time=END,
                                rng=RANGE,
                                height_range=(h_low, h_upp),
                                use_ultra=True,
+                               height_factor=1.,
                                sim=sim,
                                simId=port,
                                wakeup=wakeup,
@@ -72,10 +75,17 @@ def expe_make(net, sim=None, port=23000, wakeup=None):
                                )
 
 
-save_name = str(AGENTS) + '_blimp_height_' + str(h_low).replace('.','_')+"_to_"+str(h_upp).replace('.','_') + \
-            '_wall_climb_neighbor_rng_' + str(RANGE).replace('.','_')
-print("SAVING TO:", save_name)
-ee = EvolutionExperiment(name=save_name,
+save_name = str(AGENTS) + '_blimp_height_' + str(h_low).replace('.', '_') + "_to_" + str(h_upp).replace('.', '_') + \
+            '_wall_climb_neighbor_rng_' + str(RANGE).replace('.', '_')
+checkpt_dir = os.path.join(DIR, 'checkpoints', save_name)
+print("SAVING TO:", checkpt_dir)
+
+if not os.path.exists(checkpt_dir):
+    if args.create:
+        os.makedirs(checkpt_dir)
+    else:
+        raise Exception("DIRECTORY DOES NOT EXIST (try running with --create): " + checkpt_dir)
+ee = EvolutionExperiment(checkpt_dir=checkpt_dir,
                          exp_maker=expe_make,
                          config_name='blimp_wall')
 if gens:
