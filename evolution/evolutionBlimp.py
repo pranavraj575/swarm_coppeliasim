@@ -57,7 +57,8 @@ class EvolutionExperiment:
               close_after=True,
               sleeptime=.1,
               resttime=.1,
-              restore=True):
+              restore=True,
+              partial_save=False):
         """
         Trains the population for a number of generations
 
@@ -77,6 +78,7 @@ class EvolutionExperiment:
         @param sleeptime: time to sleep after important commands
         @param resttime: time to sleep after each generation
         @param restore: whether to restore progress
+        @param partial_save: whether to save calculated fitness scores while training a generation
         @return: best genome
         """
         if restore and self.MOST_RECENT(self.checkpt_dir) is not None:
@@ -106,6 +108,7 @@ class EvolutionExperiment:
                                                                  close_after=close_after,
                                                                  sleeptime=sleeptime,
                                                                  resttime=resttime,
+                                                                 partial_save=partial_save
                                                                  ),
                        generations)
         return winner
@@ -156,6 +159,7 @@ class EvolutionExperiment:
                      close_after,
                      sleeptime,
                      resttime,
+                     partial_save,
                      ):
         """
         evaluates all genomes, requirements specified in the NEAT document
@@ -177,6 +181,7 @@ class EvolutionExperiment:
         @param close_after: whether to close coppela after done
         @param sleeptime: amount to sleep after important commands
         @param resttime: amount to rest after done
+        @param partial_save: whether to save calculated fitness scores while training a generation
         """
         while True:
             try:
