@@ -9,6 +9,7 @@ from std_msgs.msg import Float64
 DIR = os.path.dirname(os.path.join(os.getcwd(), os.path.dirname(sys.argv[0])))
 
 frictionless_wall_path = os.path.join(DIR, 'scenes', 'FrictionlessWallClimb.ttt')
+wall_climb_path = os.path.join(DIR, 'scenes', 'WallClimb.ttt')
 empty_path = os.path.join(DIR, 'scenes', 'empty.ttt')
 narrow_blimp_path = os.path.join(DIR, 'ros_ctrl_models', 'blimp_narrow.ttm')
 COPPELIA_WAKEUP = '/home/rajbhandari/Downloads/CoppeliaSim_Edu_V4_3_0_rev12_Ubuntu20_04/coppeliaSim.sh'
@@ -453,7 +454,7 @@ class BlimpExperiment(Experiment):
         gets neighbors of an agent, general implementation
 
         @param agent_id: agent id
-        @param is_neigh: agent_id1 x agent_id2 -> bool; returns if agent 2 is a neighbor of agent 1
+        @param is_neigh: agent_id0 x agent_id1 -> bool; returns if agent 1 is a neighbor of agent 0
         @param spin: whether to update all agents before checking neighbors
         @return: list of agent ids; neighbors of agent
         """
@@ -471,7 +472,7 @@ class BlimpExperiment(Experiment):
         @param spin: whether to update all agents before checking neighbors
         @return: list of agent ids; neighbors of agent
         """
-        return self._gen_get_neighbors(agent_id, lambda id1, id2: self.within_range(id1, id2, rng, spin=False), spin)
+        return self._gen_get_neighbors(agent_id, lambda id0, id1: self.within_range(id0, id1, rng, spin=False), spin)
 
     def get_neighbors_3d_l_k_ant(self, agent_id, is_neigh, l=2, k=8, spin=True):
         """
@@ -480,7 +481,7 @@ class BlimpExperiment(Experiment):
             l=2 k=4 is equivalent to octants of a sphere
 
         @param agent_id: agent id
-        @param is_neigh: agent_id1 x agent_id2 -> bool; returns if agent 2 is a neighbor of agent 1
+        @param is_neigh: agent_id0 x agent_id1 -> bool; returns if agent 1 is a neighbor of agent 0
         @param l: divisions of phi to consider when using spherical coordinates
         @param k: divisions of theta to consider when using spherical coordinates
         @param spin: whether to update all agents before checking neighbors
@@ -503,7 +504,7 @@ class BlimpExperiment(Experiment):
             i.e. k=4 is equivalent to quadrants of the xy plane
 
         @param agent_id: agent id
-        @param is_neigh: agent_id1 x agent_id2 -> bool; returns if agent 2 is a neighbor of agent 1
+        @param is_neigh: agent_id0 x agent_id1 -> bool; returns if agent 1 is a neighbor of agent 0
         @param k: divisions of theta to consider when using spherical coordinates
         @param spin: whether to update all agents before checking neighbors
         @rtype: N^k array
@@ -520,18 +521,18 @@ class BlimpExperiment(Experiment):
     ####################################################################################################################
     # utility functions
     ####################################################################################################################
-    def within_range(self, id1, id2, rng, spin=False):
+    def within_range(self, id0, id1, rng, spin=False):
         """
-        checks whether id1 agent is within 'range' of id2 agent
+        checks whether id0 agent is within 'range' of id1 agent
 
+        @param id0: agent 0 id
         @param id1: agent 1 id
-        @param id2: agent 2 id
         @param rng: R, range to check
         @param spin: whether to update each object before getting position
         @return: boolean, whether the two agents are close enough
         """
-        pos1 = self.get_position(id1, use_ultra=False, spin=spin)
-        pos2 = self.get_position(id2, use_ultra=False, spin=spin)
+        pos1 = self.get_position(id0, use_ultra=False, spin=spin)
+        pos2 = self.get_position(id1, use_ultra=False, spin=spin)
         return np.linalg.norm(pos1 - pos2) <= rng
 
     def _get_l_k_tant(self, vec, l, k):

@@ -11,7 +11,7 @@ parser.add_argument("--height", type=int, required=False, default=5,
                     help="height of maze")
 parser.add_argument("--width", type=int, required=False, default=5,
                     help="width of maze")
-parser.add_argument("--range", type=int, required=False, default=5,
+parser.add_argument("--range", type=float, required=False, default=5.,
                     help="range to detect neighbors")
 parser.add_argument("--num_sims", type=int, required=False, default=8,
                     help="number of simulators to use for training")
@@ -31,7 +31,6 @@ RANGE=args.range
 END = 60
 H = args.height
 W = args.width
-print(args.show)
 DIFF = True
 ALWAYS_DOWN=False
 
@@ -106,7 +105,7 @@ def expe_make(net, sim=None, port=23000, wakeup=None):
                            )
 
 
-save_name = str(AGENTS) + '_blimp_' + str(H) + 'x' + str(W) + 'maze_max_goal_range_'+str(RANGE)
+save_name = str(AGENTS) + '_blimp_' + str(H) + 'x' + str(W) + 'maze_max_goal_range_'+str(RANGE).replace('.','_')
 print("SAVING TO:", save_name)
 ee = EvolutionExperiment(name=save_name,
                          exp_maker=expe_make,
