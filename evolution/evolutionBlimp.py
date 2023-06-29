@@ -122,8 +122,8 @@ class EvolutionExperiment:
                    TRIALS,
                    dict_to_unlock,
                    key,
-                   sim,
-                   print_genum):
+                   sim
+                   ):
         """
         function to evaluate a single genome
 
@@ -134,7 +134,6 @@ class EvolutionExperiment:
         @param dict_to_unlock: dictionary to unlock, to indicate that we are done with simulator
         @param key: key in dictionary to unlock
         @param sim: simulator to use
-        @param print_genum: prints number if positive, nothing if negative
         """
         genome.fitness = .0
         net = neat.nn.FeedForwardNetwork.create(genome, config)
@@ -144,8 +143,6 @@ class EvolutionExperiment:
         genome.fitness += sum(goals)/TRIALS
         dict_to_unlock[key] = False
         del exp
-        if print_genum >= 0:
-            print('finished genome:', print_genum, '/', config.pop_size, end='\r')
 
     def eval_genomes(self,
                      genomes,
@@ -215,7 +212,7 @@ class EvolutionExperiment:
                     values[k]=np.random.normal(min_val,default_std)
             num_simulators=min([k for k in values],key=lambda k:values[k])
             print('using '+str(num_simulators)+" simulators")
-
+        print('opening coppelia instances')
         processes = dict()
         # open coppeliasim instances on different ports
         for k in range(num_simulators):
@@ -223,13 +220,13 @@ class EvolutionExperiment:
 
             if open_coppelia:
                 processes[zmqport] = dict()
-                cmd = COPPELIA_WAKEUP + (' -h' if headless else '') + \
+                cmd = COPPELIA_WAKEUP + (' -h' if headless and not k==0 else '') + \
                       ' -GwsRemoteApi.port=' + str(websocket_def_port + port_step * k) + \
                       ' -GzmqRemoteApi.rpcPort=' + str(zmqport)
                 p = subprocess.Popen(cmd, stdout=subprocess.PIPE, shell=True)
                 processes[zmqport]['subproc'] = p
                 processes[zmqport]['pid'] = p.pid
-
+        print('connecting to zmq')
         # connect zmq to the different coppeliasim instances
         for zmqport in processes:
             # must be done when simulator is running
@@ -239,11 +236,12 @@ class EvolutionExperiment:
             processes[zmqport]['sim'] = client.getObject('sim')
             processes[zmqport]['locked'] = False  # if the simulator is being used for something
         start_time = time.time()
-
+        print('starting evaluation')
         # evaluate the genomes
         j = 0
         for genome_id, genome in genomes:
             j += 1
+            print('evaluating genome '+str(j)+'/'+str(config.pop_size),end='\r')
             if self.just_restored:
                 # if we just restored, we can skip evaluating this generation
                 continue
@@ -264,9 +262,7 @@ class EvolutionExperiment:
                                                                              port=zmqport,
                                                                              dict_to_unlock=processes[zmqport],
                                                                              key='locked',
-                                                                             sim=processes[zmqport]['sim'],
-                                                                             print_genum=(
-                                                                                 j if zmqport == zmq_def_port else -1)
+                                                                             sim=processes[zmqport]['sim']
                                                                              ),
                                               )
                         th.start()
@@ -298,10 +294,11 @@ class EvolutionExperiment:
         time.sleep(resttime)
         if bandits_range and not self.just_restored:
             self.bandits[num_simulators].append(dt)
-        print('running mean, std:')
-        for k in self.bandits:
-            if self.bandits[k]:
-                print(str(k)+':',np.mean(self.bandits[k]),np.std(self.bandits[k]))
+        if bandits_range:
+            print('running mean, std:')
+            for k in self.bandits:
+                if self.bandits[k]:
+                    print(str(k)+':',np.mean(self.bandits[k]),np.std(self.bandits[k]))
         self.just_restored = False
         return dt
 
@@ -406,17 +403,6 @@ if __name__ == "__main__":
                              wakeup=wakeup,
                              sleeptime=.01
                              )
-        return l_k_tant_clump_blimp(num_agents=5,
-                                    start_zone=START_ZONE,
-                                    scenePath=empty_path,
-                                    blimpPath=narrow_blimp_path,
-                                    networkfn=net.activate,
-                                    sim=sim,
-                                    simId=port,
-                                    sleeptime=.01,
-                                    l=L,
-                                    k=K,
-                                    wakeup=wakeup)
 
 
     ee = EvolutionExperiment('xy_zero_test', expe_make)
