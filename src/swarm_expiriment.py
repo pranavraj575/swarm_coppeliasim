@@ -157,6 +157,9 @@ class Experiment:
                 reset=True,
                 stop_after=False
             )
+            if data is None:
+                print("ERROR")
+                return None
             results.append(data)
         return results
 
@@ -173,7 +176,7 @@ class Experiment:
         """
         data to return at the end of each experiment trial
 
-        @return: can be anything
+        @return: can be anything, None signals error
         """
         raise NotImplementedError()
 
@@ -594,6 +597,10 @@ class blimpTest(BlimpExperiment):
         for agent_id in self.agentData:
             pos = self.get_position(agent_id, use_ultra=False)
             s.append(pos[2])
+            bug = self.get_state(agent_id)["DEBUG"]
+            if bug == 0.:
+                print("ERROR DEBUG")
+                return None
         return s
 
 

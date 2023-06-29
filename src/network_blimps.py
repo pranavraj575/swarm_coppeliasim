@@ -257,7 +257,8 @@ class xy_zero_Blimp(xyBlimp):
             s.append(-np.linalg.norm(pos))
             bug = self.get_state(agent_id)["DEBUG"]
             if bug == 0.:
-                raise Exception("ERROR DEBUG")
+                print("ERROR DEBUG")
+                return None
         return np.mean(s)
 
     def end_test(self):
@@ -361,7 +362,8 @@ class xy_wall_climb_blimp(xyBlimp):
             best = min(best, x)
             bug = self.get_state(agent_id)["DEBUG"]
             if bug == 0.:
-                raise Exception("ERROR DEBUG")
+                print("ERROR DEBUG")
+                return None
         return float(over) if over > 0 else -best
 
     def end_test(self):
@@ -507,7 +509,8 @@ class xyz_zero_Blimp(xyzBlimp):
             s.append(-np.linalg.norm(pos))
             bug = self.get_state(agent_id)["DEBUG"]
             if bug == 0.:
-                raise Exception("ERROR DEBUG")
+                print("ERROR DEBUG")
+                return None
         return np.mean(s)
 
     def end_test(self):
@@ -616,6 +619,10 @@ class l_k_tant_clump_blimp(blimpNet):
                 pos2 = self.get_position(id2, use_ultra=False)
                 s.append(-np.linalg.norm(pos1 - pos2))
                 # negative, we want to minimize distance between
+            bug = self.get_state(id1)["DEBUG"]
+            if bug == 0.:
+                print("ERROR DEBUG")
+                return None
         return np.mean(s)
 
     def end_test(self):

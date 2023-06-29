@@ -584,7 +584,8 @@ class amazingBlimp(aMazeBlimp):
             s.append(-manhattan)
             bug = self.get_state(agent_id)["DEBUG"]
             if bug == 0.:
-                raise Exception("ERROR DEBUG")
+                print("ERROR DEBUG")
+                return None
         return np.mean(s)
 
 
@@ -696,7 +697,8 @@ class maxAmazingBlimp(amazingBlimp):
             furthest = max(furthest, -manhattan)
             bug = self.get_state(agent_id)["DEBUG"]
             if bug == 0.:
-                raise Exception("ERROR DEBUG")
+                print("ERROR DEBUG")
+                return None
         return completed + furthest  # completed is positive iff furthest is 0
 
 

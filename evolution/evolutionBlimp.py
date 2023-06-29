@@ -140,7 +140,11 @@ class EvolutionExperiment:
 
         exp: blimpNet = self.exp_maker(net=net, sim=sim, port=port, wakeup=None)
         goals = exp.experiments(trials=TRIALS)
-        genome.fitness += sum(goals)/TRIALS
+        if goals is None:
+            # process failed
+            genome.fitness=None
+        else:
+            genome.fitness += sum(goals)/TRIALS
         dict_to_unlock[key] = False
         del exp
 
@@ -238,49 +242,61 @@ class EvolutionExperiment:
         start_time = time.time()
         print('starting evaluation')
         # evaluate the genomes
-        j = 0
-        for genome_id, genome in genomes:
-            j += 1
-            print('evaluating genome '+str(j)+'/'+str(config.pop_size),end='\r')
-            if self.just_restored:
-                # if we just restored, we can skip evaluating this generation
-                continue
-            if (not evaluate_each_gen) and (genome.fitness is not None):
-                # we can skip if we are not evaluating pre-evaluated genomes, and this genome is pre-evaluated
-                continue
-            # for each genome, assign a port, and create a thread
-            # the ports should unlock as soon as an earlier thread is done with them
-            port_assigned = None
-            while port_assigned is None:
+        failed=True
+        tries=1
+        while failed:
+            j = 0
+            failed=False
+            for genome_id, genome in genomes:
+                j += 1
+                print('evaluating genome '+str(j)+'/'+str(config.pop_size),end='\r')
+                if self.just_restored:
+                    # if we just restored, we can skip evaluating this generation
+                    continue
+                if (not evaluate_each_gen) and (genome.fitness is not None):
+                    # we can skip if we are not evaluating pre-evaluated genomes, and this genome is pre-evaluated
+                    continue
+                # for each genome, assign a port, and create a thread
+                # the ports should unlock as soon as an earlier thread is done with them
+                port_assigned = None
+                while port_assigned is None:
+                    for zmqport in processes:
+                        if not processes[zmqport]['locked'] and ('thread' not in processes[zmqport] or
+                                                                 not processes[zmqport]['thread'].is_alive()):
+                            processes[zmqport]['locked'] = True
+                            th = threading.Thread(target=lambda: self.eval_genom(genome=genome,
+                                                                                 config=config,
+                                                                                 TRIALS=TRIALS,
+                                                                                 port=zmqport,
+                                                                                 dict_to_unlock=processes[zmqport],
+                                                                                 key='locked',
+                                                                                 sim=processes[zmqport]['sim']
+                                                                                 ),
+                                                  )
+                            th.start()
+                            time.sleep(sleeptime)
+                            port_assigned = zmqport
+                            processes[zmqport]['thread'] = th
+                            break
+            # now make sure all threads are done
+            done = False
+            while not done:
+                done = True
                 for zmqport in processes:
-                    if not processes[zmqport]['locked'] and ('thread' not in processes[zmqport] or
-                                                             not processes[zmqport]['thread'].is_alive()):
-                        processes[zmqport]['locked'] = True
-                        th = threading.Thread(target=lambda: self.eval_genom(genome=genome,
-                                                                             config=config,
-                                                                             TRIALS=TRIALS,
-                                                                             port=zmqport,
-                                                                             dict_to_unlock=processes[zmqport],
-                                                                             key='locked',
-                                                                             sim=processes[zmqport]['sim']
-                                                                             ),
-                                              )
-                        th.start()
-                        time.sleep(sleeptime)
-                        port_assigned = zmqport
-                        processes[zmqport]['thread'] = th
-                        break
-        print()
-        # now make sure all threads are done
-        done = False
-        while not done:
-            done = True
-            for zmqport in processes:
-                if 'thread' in processes[zmqport] and processes[zmqport]['thread'].is_alive():
-                    done = False
-            time.sleep(sleeptime)
-        # maybe close the coppelia processes
+                    if 'thread' in processes[zmqport] and processes[zmqport]['thread'].is_alive():
+                        done = False
+                time.sleep(sleeptime)
+
+            for genome_id, genome in genomes:
+                if genome.fitness is None:
+                    failed=True
+            if failed:
+                tries+=1
+                print()
+                print("FAILED SOME GENOME, TRYING AGAIN, time number "+str(tries))
         dt = time.time() - start_time
+        print()
+        # maybe close the coppelia processes
         if close_after:
             for zmqport in processes:
                 self.kill(processes[zmqport]['pid'])

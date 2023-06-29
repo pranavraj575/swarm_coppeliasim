@@ -201,9 +201,9 @@ class travelingSalesBlimp(BlimpExperiment):
         """
         data to return at the end of each experiment trial
 
-        @return: nothing, this is not important here
+        @return: 0, this is not important here
         """
-        return None
+        return 0
 
     ####################################################################################################################
     # entropy functions
