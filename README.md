@@ -61,6 +61,7 @@ Used for making swarm experiments for blimps in Coppeliasim. experiments using t
       ```bash
       cd ros2_ws/src
       git clone https://github.com/CoppeliaRobotics/simExtROS2
+      sudo apt update
       sudo apt-get install xsltproc
       python3 -m pip install xmlschema
       ```
