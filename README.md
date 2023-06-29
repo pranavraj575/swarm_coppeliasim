@@ -9,7 +9,15 @@ Used for making swarm experiments for blimps in Coppeliasim. experiments using t
     Tested with [version 4.3.0 rev 12](https://www.coppeliarobotics.com/files/CoppeliaSim_Edu_V4_3_0_rev12_Ubuntu20_04.tar.xz) on Ubuntu 20.04
     
     We left the extracted folder in the ```~/Downloads``` folder.
-    If you need to change this, you should update line 16 in ```/src/swarm_experiments.py``` 
+    If you need to change this, you should update line 16 in ```/src/swarm_experiments.py```
+
+    Example setup:
+   ```bash
+   cd ~/Downloads
+   wget https://www.coppeliarobotics.com/files/CoppeliaSim_Edu_V4_3_0_rev12_Ubuntu20_04.tar.xz
+   tar -xvf CoppeliaSim_Edu_V4_3_0_rev12_Ubuntu20_04.tar.xz
+   rm CoppeliaSim_Edu_V4_3_0_rev12_Ubuntu20_04.tar.xz
+   ```
     
     Update your ```.bashrc``` with the following (the alias is not required, it just makes it easier to run Coppeliasim)
     
@@ -20,7 +28,7 @@ Used for making swarm experiments for blimps in Coppeliasim. experiments using t
     ```
 
 
-2. Install [ROS2](https://docs.ros.org/)
+3. Install [ROS2](https://docs.ros.org/)
 
     Tested with [ROS2 Foxy](https://docs.ros.org/en/foxy/Installation/Ubuntu-Install-Debians.html) on Ubuntu 20.04
      
@@ -30,7 +38,7 @@ Used for making swarm experiments for blimps in Coppeliasim. experiments using t
     source /opt/ros/<distro>/setup.bash
     ```
 
-3. Set up  the [ZMQ package](https://www.coppeliarobotics.com/helpFiles/en/zmqRemoteApiOverview.htm) into Coppeliasim
+4. Set up  the [ZMQ package](https://www.coppeliarobotics.com/helpFiles/en/zmqRemoteApiOverview.htm) into Coppeliasim
     ```bash
     /path/to/python -m pip3 install pyzmq
     /path/to/python -m pip3 install cbor
@@ -40,7 +48,7 @@ Used for making swarm experiments for blimps in Coppeliasim. experiments using t
     export PYTHONPATH=/<path to zmqRemoteApi>/clients/python
     ```
 
-4. Install the ROS2 Coppelia package according to the [tutorial](https://www.coppeliarobotics.com/helpFiles/en/ros2Tutorial.htm)
+5. Install the ROS2 Coppelia package according to the [tutorial](https://www.coppeliarobotics.com/helpFiles/en/ros2Tutorial.htm)
 
     However, the tutorial sucks, so following the directions below will work
     
@@ -58,7 +66,7 @@ Used for making swarm experiments for blimps in Coppeliasim. experiments using t
       ```
     * build the ROS2 package with ```colcon build --symlink-install```
 
-5. Clone this directory, copy all the ```.lua``` files into the correct place (replace ```<path to coppelia>``` with the path to the Coppeliasim folder). This should be run from wherever you want the repo to be.
+6. Clone this directory, copy all the ```.lua``` files into the correct place (replace ```<path to coppelia>``` with the path to the Coppeliasim folder). This should be run from wherever you want the repo to be.
 
     ```bash
     git clone https://github.com/pranavraj575/blimp_coppeliasim
