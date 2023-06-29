@@ -220,7 +220,7 @@ class EvolutionExperiment:
 
             if open_coppelia:
                 processes[zmqport] = dict()
-                cmd = COPPELIA_WAKEUP + (' -h' if headless and not k==0 else '') + \
+                cmd = COPPELIA_WAKEUP + (' -h' if headless else '') + \
                       ' -GwsRemoteApi.port=' + str(websocket_def_port + port_step * k) + \
                       ' -GzmqRemoteApi.rpcPort=' + str(zmqport)
                 p = subprocess.Popen(cmd, stdout=subprocess.PIPE, shell=True)
