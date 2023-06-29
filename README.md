@@ -21,7 +21,7 @@ Used for making swarm experiments for blimps in Coppeliasim. experiments using t
     
     Update your ```.bashrc``` with the following (the alias is not required, it just makes it easier to run Coppeliasim)
     
-    Replace ```<path to coppelia folder>``` with the path. In our case, it was ```~/Downloads/CoppeliaSim_Edu_V4_3_0_rev12_Ubuntu20_04```
+    Replace ```<path to coppelia folder>``` with the path. In our case, it was ```/home/user/<me>/Downloads/CoppeliaSim_Edu_V4_3_0_rev12_Ubuntu20_04```. Unfortunately it looks like using ```~``` does not work for later build commands, so you need to put the full directory.
     ```bash
     export COPPELIASIM_ROOT_DIR="<path to coppelia folder>"
     alias coppelia="$COPPELIASIM_ROOT_DIR/coppeliaSim.sh"
