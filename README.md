@@ -90,5 +90,6 @@ Used for making swarm experiments for blimps in Coppeliasim. experiments using t
       cd ~/ros2_ws
       colcon build --symlink-install
       ```
+      Note: this command is buggy, if it fails try looking at the compile instructions in the [github tutorial](https://github.com/CoppeliaRobotics/simROS2)
 
       
