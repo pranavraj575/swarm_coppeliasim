@@ -37,8 +37,13 @@ Used for making swarm experiments for blimps in Coppeliasim. experiments using t
     ```bash
     source /opt/ros/<distro>/setup.bash
     ```
+    Remember to source the bashrc file after:
+   
+    ```bash
+    source ~/.bashrc
+    ```
 
-4. Set up  the [ZMQ package](https://www.coppeliarobotics.com/helpFiles/en/zmqRemoteApiOverview.htm) into Coppeliasim
+5. Set up  the [ZMQ package](https://www.coppeliarobotics.com/helpFiles/en/zmqRemoteApiOverview.htm) into Coppeliasim
     ```bash
     pip3 install pyzmq cbor
     ```
@@ -46,8 +51,13 @@ Used for making swarm experiments for blimps in Coppeliasim. experiments using t
     ```bash
     export PYTHONPATH="$PYTHONPATH:$COPPELIASIM_ROOT_DIR/programming/zmqRemoteApi/clients/python"
     ```
+    Again, remember to source the bashrc file after:
+   
+    ```bash
+    source ~/.bashrc
+    ```
 
-5. Clone this directory, copy all the ```.lua``` files into the correct place (replace ```<path to coppelia>``` with the path to the Coppeliasim folder). This should be run from wherever you want the repo to be.
+6. Clone this directory, copy all the ```.lua``` files into the correct place (replace ```<path to coppelia>``` with the path to the Coppeliasim folder). This should be run from wherever you want the repo to be.
 
     ```bash
     git clone https://github.com/pranavraj575/blimp_coppeliasim
@@ -57,7 +67,7 @@ Used for making swarm experiments for blimps in Coppeliasim. experiments using t
     For some reason there is no way to tell Coppeliasim to look in different folders for ```.lua``` files.
     Not sure if this is because Coppeliasim is silly or because I am. Either way, this method works.
 
-6. Install the ROS2 Coppelia package according to the [tutorial](https://www.coppeliarobotics.com/helpFiles/en/ros2Tutorial.htm)
+7. Install the ROS2 Coppelia package according to the [tutorial](https://www.coppeliarobotics.com/helpFiles/en/ros2Tutorial.htm)
 
     However, the tutorial sucks, so following the directions below will work
     
