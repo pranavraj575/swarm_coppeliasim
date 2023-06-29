@@ -48,32 +48,7 @@ Used for making swarm experiments for blimps in Coppeliasim. experiments using t
     export PYTHONPATH="$PYTHONPATH:$COPPELIASIM_ROOT_DIR/programming/zmqRemoteApi/clients/python"
     ```
 
-5. Install the ROS2 Coppelia package according to the [tutorial](https://www.coppeliarobotics.com/helpFiles/en/ros2Tutorial.htm)
-
-    However, the tutorial sucks, so following the directions below will work
-    
-    * make a ROS2 workspace (the name can probably be different)
-      ```bash
-      cd ~
-      mkdir -p ros2_ws/src
-      ```
-    * clone the [sim_ros2_interface](https://github.com/CoppeliaRobotics/simExtROS2) directory and install dependencies
-      ```bash
-      cd ros2_ws/src
-      git clone https://github.com/CoppeliaRobotics/simExtROS2
-      cd sim_ros2_interface
-      git checkout coppeliasim-v4.3.0-rev12
-      cd ..
-      sudo apt update
-      sudo apt-get install xsltproc
-      python3 -m pip install xmlschema
-      ```
-    * build the ROS2 package with
-      ```bash
-      colcon build --symlink-install
-      ```
-
-6. Clone this directory, copy all the ```.lua``` files into the correct place (replace ```<path to coppelia>``` with the path to the Coppeliasim folder). This should be run from wherever you want the repo to be.
+5. Clone this directory, copy all the ```.lua``` files into the correct place (replace ```<path to coppelia>``` with the path to the Coppeliasim folder). This should be run from wherever you want the repo to be.
 
     ```bash
     git clone https://github.com/pranavraj575/blimp_coppeliasim
@@ -82,4 +57,38 @@ Used for making swarm experiments for blimps in Coppeliasim. experiments using t
     
     For some reason there is no way to tell Coppeliasim to look in different folders for ```.lua``` files.
     Not sure if this is because Coppeliasim is silly or because I am. Either way, this method works.
+
+6. Install the ROS2 Coppelia package according to the [tutorial](https://www.coppeliarobotics.com/helpFiles/en/ros2Tutorial.htm)
+
+    However, the tutorial sucks, so following the directions below will work
+    
+    * Install dependencies
+      ```bash
+      sudo apt update
+      sudo apt-get install xsltproc
+      python3 -m pip install xmlschema
+      ```
+    * make a ROS2 workspace (the name can probably be different)
+      ```bash
+      cd ~
+      mkdir -p ros2_ws/src
+      ```
+    * clone the [sim_ros2_interface](https://github.com/CoppeliaRobotics/simExtROS2) directory and install dependencies.
+      * The best way to do this is with the folder we made
+          ```bash
+          cp -r /<path to blimp_coppeliasim>/setup_files/sim_ros2_interface ros2_ws/src
+          ```
+      * However, you can try setting up according to the [tutorial](https://www.coppeliarobotics.com/helpFiles/en/ros2Tutorial.htm) like this
+          ```bash
+          cd ros2_ws/src
+          git clone https://github.com/CoppeliaRobotics/simExtROS2
+          cd sim_ros2_interface
+          git checkout coppeliasim-v4.3.0-rev12
+          ```
+    * build the ROS2 package (note: should be run from the workspace directory)
+      ```bash
+      cd ~/ros2_ws
+      colcon build --symlink-install
+      ```
+
       
