@@ -40,8 +40,7 @@ Used for making swarm experiments for blimps in Coppeliasim. experiments using t
 
 4. Set up  the [ZMQ package](https://www.coppeliarobotics.com/helpFiles/en/zmqRemoteApiOverview.htm) into Coppeliasim
     ```bash
-    /path/to/python -m pip3 install pyzmq
-    /path/to/python -m pip3 install cbor
+    pip3 install pyzmq cbor
     ```
     Then add the following to your ```.bashrc```. 
     ```bash
