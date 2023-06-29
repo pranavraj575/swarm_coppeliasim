@@ -39,6 +39,7 @@ class EvolutionExperiment:
             config_file)
         self.exp_maker = exp_maker
         self.just_restored = False
+        self.bandits=None
 
     ####################################################################################################################
     # evolutionary training functions
@@ -58,7 +59,7 @@ class EvolutionExperiment:
               sleeptime=.1,
               resttime=.1,
               restore=True,
-              partial_save=False):
+              bandits_range=None):
         """
         Trains the population for a number of generations
 
@@ -78,14 +79,15 @@ class EvolutionExperiment:
         @param sleeptime: time to sleep after important commands
         @param resttime: time to sleep after each generation
         @param restore: whether to restore progress
-        @param partial_save: whether to save calculated fitness scores while training a generation
+        @param bandits_range: range to test 'num sims' parameters, None if just use given
         @return: best genome
         """
+        if bandits_range:
+            self.bandits={k:[] for k in range(bandits_range[0],bandits_range[1])}
         if restore and self.MOST_RECENT(self.checkpt_dir) is not None:
             print('RESTORING')
             p = self.restore_checkpoint(os.path.join(self.checkpt_dir, self.MOST_RECENT(self.checkpt_dir)))
             self.just_restored = True
-
         else:
             p = better_Population(self.config)
         p.add_reporter(neat.StdOutReporter(True))
@@ -108,7 +110,7 @@ class EvolutionExperiment:
                                                                  close_after=close_after,
                                                                  sleeptime=sleeptime,
                                                                  resttime=resttime,
-                                                                 partial_save=partial_save
+                                                                 bandits_range=bandits_range
                                                                  ),
                        generations)
         return winner
@@ -159,7 +161,7 @@ class EvolutionExperiment:
                      close_after,
                      sleeptime,
                      resttime,
-                     partial_save,
+                     bandits_range
                      ):
         """
         evaluates all genomes, requirements specified in the NEAT document
@@ -181,7 +183,8 @@ class EvolutionExperiment:
         @param close_after: whether to close coppela after done
         @param sleeptime: amount to sleep after important commands
         @param resttime: amount to rest after done
-        @param partial_save: whether to save calculated fitness scores while training a generation
+        @param bandits_range: range to test 'num sims' parameters, None if just use given
+        @return: elapsed time
         """
         while True:
             try:
@@ -190,16 +193,38 @@ class EvolutionExperiment:
                 break
             except:
                 time.sleep(sleeptime)
+        if bandits_range:
+            min_val=None
+            for k in self.bandits:
+                arr=self.bandits[k]
+                if arr:
+                    if min_val is None:
+                        min_val=np.mean(arr)
+                    else:
+                        min_val=min(min_val,np.mean(arr))
+            if min_val is None:
+                min_val=0
+
+            default_std=1
+            values=dict()
+            for k in self.bandits:
+                arr=self.bandits[k]
+                if arr:
+                    values[k]=np.random.normal(np.mean(arr),(np.std(arr) if len(arr)>1 else default_std))
+                else:
+                    values[k]=np.random.normal(min_val,default_std)
+            num_simulators=min([k for k in values],key=lambda k:values[k])
+            print('using '+str(num_simulators)+" simulators")
 
         processes = dict()
         # open coppeliasim instances on different ports
-        for i in range(num_simulators):
-            zmqport = zmq_def_port + port_step*i
+        for k in range(num_simulators):
+            zmqport = zmq_def_port + port_step * k
 
             if open_coppelia:
                 processes[zmqport] = dict()
                 cmd = COPPELIA_WAKEUP + (' -h' if headless else '') + \
-                      ' -GwsRemoteApi.port=' + str(websocket_def_port + port_step*i) + \
+                      ' -GwsRemoteApi.port=' + str(websocket_def_port + port_step * k) + \
                       ' -GzmqRemoteApi.rpcPort=' + str(zmqport)
                 p = subprocess.Popen(cmd, stdout=subprocess.PIPE, shell=True)
                 processes[zmqport]['subproc'] = p
@@ -216,9 +241,9 @@ class EvolutionExperiment:
         start_time = time.time()
 
         # evaluate the genomes
-        i = 0
+        j = 0
         for genome_id, genome in genomes:
-            i += 1
+            j += 1
             if self.just_restored:
                 # if we just restored, we can skip evaluating this generation
                 continue
@@ -241,7 +266,7 @@ class EvolutionExperiment:
                                                                              key='locked',
                                                                              sim=processes[zmqport]['sim'],
                                                                              print_genum=(
-                                                                                 i if zmqport == zmq_def_port else -1)
+                                                                                 j if zmqport == zmq_def_port else -1)
                                                                              ),
                                               )
                         th.start()
@@ -271,7 +296,14 @@ class EvolutionExperiment:
                 except:
                     time.sleep(sleeptime)
         time.sleep(resttime)
+        if bandits_range and not self.just_restored:
+            self.bandits[num_simulators].append(dt)
+        print('running mean, std:')
+        for k in self.bandits:
+            if self.bandits[k]:
+                print(str(k)+':',np.mean(self.bandits[k]),np.std(self.bandits[k]))
         self.just_restored = False
+        return dt
 
     ####################################################################################################################
     # output functions
