@@ -356,7 +356,7 @@ class xy_wall_climb_blimp(xyBlimp):
         over=0
         best=float('inf')
         for agent_id in self.agentData:
-            x = self.get_position(agent_id, use_ultra=False)[1]
+            x = self.get_position(agent_id, use_ultra=False)[0]
             over+=int(x<0)
             best=min(best,x)
             bug = self.get_state(agent_id)["DEBUG"]
