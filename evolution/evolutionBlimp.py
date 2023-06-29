@@ -270,6 +270,7 @@ class EvolutionExperiment:
                         port_assigned = zmqport
                         processes[zmqport]['thread'] = th
                         break
+        print()
         # now make sure all threads are done
         done = False
         while not done:
