@@ -45,7 +45,7 @@ Used for making swarm experiments for blimps in Coppeliasim. experiments using t
     ```
     Then add the following to your ```.bashrc```. 
     ```bash
-    export PYTHONPATH=$COPPELIASIM_ROOT_DIR/programming/zmqRemoteApi/clients/python
+    export PYTHONPATH="$COPPELIASIM_ROOT_DIR/programming/zmqRemoteApi/clients/python"
     ```
 
 5. Install the ROS2 Coppelia package according to the [tutorial](https://www.coppeliarobotics.com/helpFiles/en/ros2Tutorial.htm)
