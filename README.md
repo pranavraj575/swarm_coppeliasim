@@ -65,7 +65,10 @@ Used for making swarm experiments for blimps in Coppeliasim. experiments using t
       sudo apt-get install xsltproc
       python3 -m pip install xmlschema
       ```
-    * build the ROS2 package with ```colcon build --symlink-install```
+    * build the ROS2 package with
+      ```bash
+      colcon build --symlink-install
+      ```
 
 6. Clone this directory, copy all the ```.lua``` files into the correct place (replace ```<path to coppelia>``` with the path to the Coppeliasim folder). This should be run from wherever you want the repo to be.
 
