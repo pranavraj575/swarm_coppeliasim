@@ -65,7 +65,7 @@ Used for making swarm experiments for blimps in Coppeliasim. experiments using t
       ```bash
       sudo apt update
       sudo apt-get install xsltproc
-      python3 -m pip install xmlschema
+      pip3 install xmlschema
       ```
     * make a ROS2 workspace (the name can probably be different)
       ```bash
