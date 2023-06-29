@@ -42,7 +42,7 @@ Used for making swarm experiments for blimps in Coppeliasim. experiments using t
     ```bash
     pip3 install pyzmq cbor
     ```
-    Then add the following to your ```.bashrc```. 
+    Then add the following to your ```.bashrc```. Note: since this references COPPELIASIM_ROOT_DIR, it must be on a line after the definition made in step 1
     ```bash
     export PYTHONPATH="$PYTHONPATH:$COPPELIASIM_ROOT_DIR/programming/zmqRemoteApi/clients/python"
     ```
