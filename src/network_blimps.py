@@ -325,7 +325,7 @@ class xy_wall_climb_blimp(xyBlimp):
             sleeptime=sleeptime,
             spawn_tries=spawn_tries)
         self.end_time = end_time
-        self.rng=rng
+        self.rng = rng
 
     ####################################################################################################################
     # network functions
@@ -339,7 +339,7 @@ class xy_wall_climb_blimp(xyBlimp):
         """
 
         k_tant = self.get_neighbors_2d_k_ant(agent_id,
-                                             is_neigh=lambda id0,id1:self.within_range(id0,id1,rng=self.rng),
+                                             is_neigh=lambda id0, id1: self.within_range(id0, id1, rng=self.rng),
                                              k=8,
                                              spin=True)
         return k_tant.reshape((-1, 1))
@@ -353,16 +353,16 @@ class xy_wall_climb_blimp(xyBlimp):
 
         @return: number of blimps over wall (negative average proximity to wall if none made it over)
         """
-        over=0
-        best=float('inf')
+        over = 0
+        best = float('inf')
         for agent_id in self.agentData:
             x = self.get_position(agent_id, use_ultra=False)[0]
-            over+=int(x<0)
-            best=min(best,x)
+            over += int(x < 0)
+            best = min(best, x)
             bug = self.get_state(agent_id)["DEBUG"]
             if bug == 0.:
                 raise Exception("ERROR DEBUG")
-        return over if over>0 else -best
+        return float(over) if over > 0 else -best
 
     def end_test(self):
         """

@@ -20,12 +20,12 @@ parser.add_argument("--range", type=float, required=False, default=5.,
 
 parser.add_argument("--xmin", type=float, required=False, default=.5,
                     help="x spawning lower bound (should be > 0 so they do not spawn on other side of wall)")
-parser.add_argument("--xmax", type=float, required=False, default=5.,
+parser.add_argument("--xmax", type=float, required=False, default=8.,
                     help="x spawning upper bound")
 
-parser.add_argument("--ymin", type=float, required=False, default=-2.,
+parser.add_argument("--ymin", type=float, required=False, default=-4.,
                     help="y spawning upper bound")
-parser.add_argument("--ymax", type=float, required=False, default=2.,
+parser.add_argument("--ymax", type=float, required=False, default=4.,
                     help="y spawning upper bound")
 
 parser.add_argument("--zmin", type=float, required=False, default=.8,
