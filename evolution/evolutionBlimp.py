@@ -284,8 +284,8 @@ class EvolutionExperiment:
                                                                                      self.exp_maker,
                                                                                      genome,
                                                                                      config,
+                                                                                     zmqport,
                                                                                      TRIALS,
-                                                                                     zmqport
                                                                                  ]
                                                                                  )
                             port_assigned = zmqport
