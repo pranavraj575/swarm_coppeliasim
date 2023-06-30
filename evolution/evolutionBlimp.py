@@ -122,6 +122,9 @@ class EvolutionExperiment:
         if num_sim_range:
             self.bandits = {k: [] for k in range(num_sim_range[0], num_sim_range[1])}
             self.failure = {k: False for k in self.bandits}
+        else:
+            self.bandits = {num_simulators: 0}
+            self.failure = {num_simulators: False}
         self.current_num_sims = num_simulators
         if restore and self.MOST_RECENT(self.checkpt_dir) is not None:
             print('RESTORING')
@@ -236,16 +239,6 @@ class EvolutionExperiment:
             processes[zmqport]['genome'] = None
             processes[zmqport]['pool_worker'] = None
 
-        #print('connecting to zmq')
-        # connect zmq to the different coppeliasim instances
-        #for zmqport in processes:
-        #    # must be done when simulator is running
-        #    from zmqRemoteApi import RemoteAPIClient
-        #    client = RemoteAPIClient(port=zmqport)
-        #    processes[zmqport]['client'] = client
-        #    processes[zmqport]['sim'] = client.getObject('sim')
-        #    processes[zmqport]['genome'] = None
-        #    processes[zmqport]['pool_worker'] = None
         start_time = time.time()
         print('starting evaluation')
         # evaluate the genomes
@@ -256,12 +249,21 @@ class EvolutionExperiment:
             failed = False
             for genome_id, genome in genomes:
                 j += 1
-                print('evaluating genome ' + str(j) + '/' + str(config.pop_size), end='\r')
+                skip=False
                 if self.just_restored:
                     # if we just restored, we can skip evaluating this generation
-                    continue
-                if (not evaluate_each_gen) and (genome.fitness is not None):
-                    # we can skip if we are not evaluating pre-evaluated genomes, and this genome is pre-evaluated
+                    skip=True
+                if tries == 1:
+                    # IF we only are on first try:
+                    if (not evaluate_each_gen) and (genome.fitness is not None):
+                        # we can skip if we are not evaluating pre-evaluated genomes, and this genome is pre-evaluated
+                        skip=True
+                else:
+                    # otherwise, we already did this
+                    if genome.fitness is not None:
+                        skip=True
+                print(('skipping' if skip else 'evaluating')+' genome ' + str(j) + '/' + str(config.pop_size), end='\n')
+                if skip:
                     continue
                 # for each genome, assign a port, and create a process
                 # the processes will finish after running the experiment
@@ -274,10 +276,15 @@ class EvolutionExperiment:
                             processes[zmqport]['genome'].fitness = fitness
                             processes[zmqport]['genome'] = None
                             processes[zmqport]['pool_worker'] = None
+                            if fitness is None:
+                                print('failed genome:', processes[zmqport]['genome order'])
+                            else:
+                                print('got genome:', processes[zmqport]['genome order'])
                     # loop to start new processes
                     for zmqport in processes:
                         if processes[zmqport]['genome'] is None:
                             processes[zmqport]['genome'] = genome
+                            processes[zmqport]['genome order'] = j
                             processes[zmqport]['pool_worker'] = pool.apply_async(eval_genom,
                                                                                  args=
                                                                                  [
@@ -303,6 +310,12 @@ class EvolutionExperiment:
                             processes[zmqport]['genome'].fitness = fitness
                             processes[zmqport]['genome'] = None
                             processes[zmqport]['pool_worker'] = None
+                            if fitness is None:
+                                print()
+                                print('failed genome:', processes[zmqport]['genome order'])
+                            else:
+                                print()
+                                print('got genome:', processes[zmqport]['genome order'])
                 time.sleep(sleeptime)
 
             for genome_id, genome in genomes:

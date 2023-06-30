@@ -259,7 +259,6 @@ class chainSiphon(BlimpExperiment):
 
             bug = self.get_state(agent_id)["DEBUG"]
             if bug == 0.:
-                print("ERROR DEBUG")
                 return None
         return succ
 

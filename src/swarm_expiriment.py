@@ -163,7 +163,6 @@ class Experiment:
                 stop_after=False
             )
             if data is None:
-                print("ERROR")
                 return None
             results.append(data)
         return results
