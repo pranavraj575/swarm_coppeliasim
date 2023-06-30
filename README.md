@@ -155,3 +155,15 @@ Used for making swarm experiments for blimps in Coppeliasim. experiments using t
   This should open two instances of coppelia sim. A blimp will spawn in each scene, and a command of slight positive z velocity is given to one, and a slight negative z velocity to the other.
   
   Switch between the two windows and verify that there is no interference between the two blimps. One should fly straight up and the other straight down.
+  
+* ### Experiment/maze blimp test
+  tests the module setup and is pretty cool i think
+
+  Run the following file from the ```blimp_coppeliasim``` directory
+  ```bash
+  python3 src/maze_blimps.py
+  ```
+
+  This should open an instance of coppeliasim. A maze will be generated using pymaze, and the walls will be spawned into the simulation. 5 blimps will be spawned into the environment "start cell", and the simulation will start. Each blimp will start heading down towards the exit cell, probably not making it since the command is just 'go south'
+
+  This experiment will be run twice, and the 'goal data' will be printed for each experiment at the end of the script. The output is defined in ```src/maze_blimps``` under ```AmazingBlimp.goal_data```
