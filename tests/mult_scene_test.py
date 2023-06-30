@@ -42,13 +42,13 @@ def param2(num=23050, step=0):
 def param(num=23000, step=0):
     return ' -GzmqRemoteApi.rpcPort=' + str(num + step)
 
-
-cmd = '/home/rajbhandari/Downloads/CoppeliaSim_Edu_V4_3_0_rev12_Ubuntu20_04/coppeliaSim.sh'
+from src.swarm_expiriment import *
+import threading
+cmd = COPPELIA_WAKEUP
 STEP = 2
 p = subprocess.Popen(cmd + param() + param2(), stdout=subprocess.PIPE, shell=True)
 q = subprocess.Popen(cmd + param(step=STEP) + param2(step=STEP), stdout=subprocess.PIPE, shell=True)
-from src.swarm_expiriment import *
-import threading
+
 
 bb = blimpTest(10, lambda i: ((-5, 5), (-5, 5), (1, 5)), command=(0, 0, .1), simId=23000)
 bb2 = blimpTest(10, lambda i: ((-5, 5), (-5, 5), (1, 5)), command=(0, 0, -.1), simId=23000 + STEP)
