@@ -52,8 +52,8 @@ q = subprocess.Popen(cmd + param(step=STEP) + param2(step=STEP), stdout=subproce
 
 bb = blimpTest(10, lambda i: ((-5, 5), (-5, 5), (1, 5)), command=(0, 0, .1), simId=23000)
 bb2 = blimpTest(10, lambda i: ((-5, 5), (-5, 5), (1, 5)), command=(0, 0, -.1), simId=23000 + STEP)
-tt = threading.Thread(target=lambda: bb.run_exp(end_time=lambda t: False))
-tt2 = threading.Thread(target=lambda: bb2.run_exp(end_time=lambda t: False))
+tt = threading.Thread(target=lambda: bb.run_exp())
+tt2 = threading.Thread(target=lambda: bb2.run_exp())
 tt.start()
 time.sleep(1)  # vaguely important?
 tt2.start()
