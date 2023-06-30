@@ -20,7 +20,7 @@ state = {
     'w': 0
 }
 
-RECCY = True
+RECCY = False
 POS = []
 
 
@@ -77,9 +77,11 @@ def main(args=None):
 
     DT = 50/1000
     sim.startSimulation()
-    test = np.array([.0, .0, .0, np.pi])
+    test = np.array([.0, .0, .05, np.pi])
     f = 1.
-    while True:
+    i=0
+    while (not RECCY) or (i<500): # either permanently run, or record a few positions
+        i+=1
         rclpy.spin_once(NODE, timeout_sec=0.01)
 
         msgTwist = Twist()
@@ -107,8 +109,8 @@ def main(args=None):
     for i in range(len(VEL) - 1):
         ACC.append((VEL[i + 1] - VEL[i])/DT)
     # ACC=ACC[-50:]
-    CONTROL = VEL
-    fun = lambda v: v[-1]
+    CONTROL = VEL # we are looking at velocity controls
+    fun = lambda v: v[2] # we are looking at the z direction
     fun = None
 
     if fun is None:
