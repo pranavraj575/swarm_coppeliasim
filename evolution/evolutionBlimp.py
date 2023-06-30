@@ -1,6 +1,6 @@
 from src.network_blimps import *
 import os
-import threading
+from multiprocessing import Pool
 import neat
 from evolution.better_pop import better_Population
 import gzip, random, pickle
@@ -8,6 +8,41 @@ import gzip, random, pickle
 DIR = os.path.dirname(os.path.join(os.getcwd(), os.path.dirname(sys.argv[0])))
 CHECKPT_DIR = os.path.join(DIR, 'checkpoints')
 CONFIG_DIR = os.path.join(DIR, 'config')
+
+
+def eval_genom(exp_maker,
+               genome,
+               config,
+               port,
+               TRIALS,
+               ):
+    """
+    function to evaluate a single genome
+
+    @param exp_maker: exp_maker: (net,sim,port,wakeup) -> src.network_blimps.blimpNet
+            creates an Experiment to run given the NEAT network, simulator, port, and wakeup script
+
+    @param genome: genome to evaluate
+    @param config: config to use
+    @param port: coppeliasim port to connect to
+    @param TRIALS: number of trials per genome
+    @return: fitness of the genome, None if process failed
+
+    @note: this is defined at top level so that pool processing works,
+        this will always be called inside EvolutionExperiment in practice
+    """
+    net = neat.nn.FeedForwardNetwork.create(genome, config)
+
+    exp: blimpNet = exp_maker(net=net, sim=None, port=port, wakeup=None)
+    goals = exp.experiments(trials=TRIALS)
+    if goals is None:
+        # process failed
+        fitness = None
+    else:
+        fitness = sum(goals)/TRIALS
+    exp.close_zmq()
+    del exp
+    return fitness
 
 
 class EvolutionExperiment:
@@ -39,9 +74,9 @@ class EvolutionExperiment:
             config_file)
         self.exp_maker = exp_maker
         self.just_restored = False
-        self.bandits=None
-        self.failure=None
-        self.current_num_sims=None
+        self.bandits = None
+        self.failure = None
+        self.current_num_sims = None
 
     ####################################################################################################################
     # evolutionary training functions
@@ -85,9 +120,9 @@ class EvolutionExperiment:
         @return: best genome
         """
         if num_sim_range:
-            self.bandits={k:[] for k in range(num_sim_range[0], num_sim_range[1])}
-            self.failure={k:False for k in self.bandits}
-        self.current_num_sims=num_simulators
+            self.bandits = {k: [] for k in range(num_sim_range[0], num_sim_range[1])}
+            self.failure = {k: False for k in self.bandits}
+        self.current_num_sims = num_simulators
         if restore and self.MOST_RECENT(self.checkpt_dir) is not None:
             print('RESTORING')
             p = self.restore_checkpoint(os.path.join(self.checkpt_dir, self.MOST_RECENT(self.checkpt_dir)))
@@ -117,39 +152,6 @@ class EvolutionExperiment:
                                                                  ),
                        generations)
         return winner
-
-    def eval_genom(self,
-                   genome,
-                   config,
-                   port,
-                   TRIALS,
-                   dict_to_unlock,
-                   key,
-                   sim
-                   ):
-        """
-        function to evaluate a single genome
-
-        @param genome: genome to evaluate
-        @param config: config to use
-        @param port: coppeliasim port to connect to
-        @param TRIALS: number of trials per genome
-        @param dict_to_unlock: dictionary to unlock, to indicate that we are done with simulator
-        @param key: key in dictionary to unlock
-        @param sim: simulator to use
-        """
-        genome.fitness = .0
-        net = neat.nn.FeedForwardNetwork.create(genome, config)
-
-        exp: blimpNet = self.exp_maker(net=net, sim=sim, port=port, wakeup=None)
-        goals = exp.experiments(trials=TRIALS)
-        if goals is None:
-            # process failed
-            genome.fitness=None
-        else:
-            genome.fitness += sum(goals)/TRIALS
-        dict_to_unlock[key] = False
-        del exp
 
     def eval_genomes(self,
                      genomes,
@@ -197,101 +199,119 @@ class EvolutionExperiment:
                 time.sleep(sleeptime)
         if num_sim_range:
             if self.bandits[self.current_num_sims]:
-                mean=np.mean(self.bandits[self.current_num_sims])
+                mean = np.mean(self.bandits[self.current_num_sims])
                 # if we actually have test data, continue, otherwise just use self.current_num_sims
-                temp_nsims=self.current_num_sims
-                for s_temp in (self.current_num_sims-1,self.current_num_sims+1):
+                temp_nsims = self.current_num_sims
+                for s_temp in (self.current_num_sims - 1, self.current_num_sims + 1):
                     # if the data is unsampled, choose this
                     if s_temp in self.bandits:
                         if not self.bandits[s_temp]:
-                            temp_nsims=s_temp
+                            temp_nsims = s_temp
 
-                for s_temp in (self.current_num_sims-1,self.current_num_sims+1):
+                for s_temp in (self.current_num_sims - 1, self.current_num_sims + 1):
                     # if we can decrease our time, choose this instead
                     if s_temp in self.bandits:
-                        if self.bandits[s_temp] and np.mean(self.bandits[s_temp])<mean:
-                            temp_nsims=s_temp
-                self.current_num_sims=temp_nsims
+                        if self.bandits[s_temp] and np.mean(self.bandits[s_temp]) < mean:
+                            temp_nsims = s_temp
+                self.current_num_sims = temp_nsims
 
-            print('using '+str(self.current_num_sims)+" simulators")
+            print('using ' + str(self.current_num_sims) + " simulators")
         print('opening coppelia instances')
         processes = dict()
         # open coppeliasim instances on different ports
+        pool = Pool(processes=self.current_num_sims)
         for k in range(self.current_num_sims):
-            zmqport = zmq_def_port + port_step * k
+            zmqport = zmq_def_port + port_step*k
 
             if open_coppelia:
                 processes[zmqport] = dict()
                 cmd = COPPELIA_WAKEUP + (' -h' if headless else '') + \
-                      ' -GwsRemoteApi.port=' + str(websocket_def_port + port_step * k) + \
+                      ' -GwsRemoteApi.port=' + str(websocket_def_port + port_step*k) + \
                       ' -GzmqRemoteApi.rpcPort=' + str(zmqport)
                 p = subprocess.Popen(cmd, stdout=subprocess.PIPE, shell=True)
                 processes[zmqport]['subproc'] = p
                 processes[zmqport]['pid'] = p.pid
-        print('connecting to zmq')
-        # connect zmq to the different coppeliasim instances
+
         for zmqport in processes:
-            # must be done when simulator is running
-            from zmqRemoteApi import RemoteAPIClient
-            client = RemoteAPIClient(port=zmqport)
-            processes[zmqport]['client'] = client
-            processes[zmqport]['sim'] = client.getObject('sim')
-            processes[zmqport]['locked'] = False  # if the simulator is being used for something
+            processes[zmqport]['genome'] = None
+            processes[zmqport]['pool_worker'] = None
+
+        #print('connecting to zmq')
+        # connect zmq to the different coppeliasim instances
+        #for zmqport in processes:
+        #    # must be done when simulator is running
+        #    from zmqRemoteApi import RemoteAPIClient
+        #    client = RemoteAPIClient(port=zmqport)
+        #    processes[zmqport]['client'] = client
+        #    processes[zmqport]['sim'] = client.getObject('sim')
+        #    processes[zmqport]['genome'] = None
+        #    processes[zmqport]['pool_worker'] = None
         start_time = time.time()
         print('starting evaluation')
         # evaluate the genomes
-        failed=True
-        tries=1
+        failed = True
+        tries = 1
         while failed:
             j = 0
-            failed=False
+            failed = False
             for genome_id, genome in genomes:
                 j += 1
-                print('evaluating genome '+str(j)+'/'+str(config.pop_size),end='\r')
+                print('evaluating genome ' + str(j) + '/' + str(config.pop_size), end='\r')
                 if self.just_restored:
                     # if we just restored, we can skip evaluating this generation
                     continue
                 if (not evaluate_each_gen) and (genome.fitness is not None):
                     # we can skip if we are not evaluating pre-evaluated genomes, and this genome is pre-evaluated
                     continue
-                # for each genome, assign a port, and create a thread
-                # the ports should unlock as soon as an earlier thread is done with them
+                # for each genome, assign a port, and create a process
+                # the processes will finish after running the experiment
                 port_assigned = None
                 while port_assigned is None:
+                    # loop to collect results
                     for zmqport in processes:
-                        if not processes[zmqport]['locked'] and ('thread' not in processes[zmqport] or
-                                                                 not processes[zmqport]['thread'].is_alive()):
-                            processes[zmqport]['locked'] = True
-                            th = threading.Thread(target=lambda: self.eval_genom(genome=genome,
-                                                                                 config=config,
-                                                                                 TRIALS=TRIALS,
-                                                                                 port=zmqport,
-                                                                                 dict_to_unlock=processes[zmqport],
-                                                                                 key='locked',
-                                                                                 sim=processes[zmqport]['sim']
-                                                                                 ),
-                                                  )
-                            th.start()
-                            time.sleep(sleeptime)
+                        if processes[zmqport]['pool_worker'] is not None and processes[zmqport]['pool_worker'].ready():
+                            fitness = processes[zmqport]['pool_worker'].get()
+                            processes[zmqport]['genome'].fitness = fitness
+                            processes[zmqport]['genome'] = None
+                            processes[zmqport]['pool_worker'] = None
+                    # loop to start new processes
+                    for zmqport in processes:
+                        if processes[zmqport]['genome'] is None:
+                            processes[zmqport]['genome'] = genome
+                            processes[zmqport]['pool_worker'] = pool.apply_async(eval_genom,
+                                                                                 args=
+                                                                                 [
+                                                                                     self.exp_maker,
+                                                                                     genome,
+                                                                                     config,
+                                                                                     TRIALS,
+                                                                                     zmqport
+                                                                                 ]
+                                                                                 )
                             port_assigned = zmqport
-                            processes[zmqport]['thread'] = th
                             break
-            # now make sure all threads are done
+                    time.sleep(sleeptime)
+            # now make sure all processes are done
             done = False
             while not done:
                 done = True
                 for zmqport in processes:
-                    if 'thread' in processes[zmqport] and processes[zmqport]['thread'].is_alive():
+                    if processes[zmqport]['pool_worker'] is not None:
                         done = False
+                        if processes[zmqport]['pool_worker'].ready():
+                            fitness = processes[zmqport]['pool_worker'].get()
+                            processes[zmqport]['genome'].fitness = fitness
+                            processes[zmqport]['genome'] = None
+                            processes[zmqport]['pool_worker'] = None
                 time.sleep(sleeptime)
 
             for genome_id, genome in genomes:
                 if genome.fitness is None:
-                    failed=True
+                    failed = True
             if failed:
-                tries+=1
+                tries += 1
                 print()
-                print("FAILED SOME GENOME, TRYING AGAIN, time number "+str(tries))
+                print("FAILED SOME GENOME, TRYING AGAIN, time number " + str(tries))
         dt = time.time() - start_time
         print()
         # maybe close the coppelia processes
@@ -308,17 +328,18 @@ class EvolutionExperiment:
                     time.sleep(sleeptime)
         time.sleep(resttime)
         if num_sim_range and not self.just_restored and \
-                (tries==1 or self.failure[self.current_num_sims]):
+                (tries == 1 or self.failure[self.current_num_sims]):
             # update if perfect run or if we have already failed at this number
             self.bandits[self.current_num_sims].append(dt)
-        if tries>1:
-            self.failure[self.current_num_sims]=True
+        if tries > 1:
+            self.failure[self.current_num_sims] = True
         if num_sim_range:
             print('running mean, std:')
             for k in self.bandits:
                 if self.bandits[k]:
-                    print(str(k)+':',np.mean(self.bandits[k]),np.std(self.bandits[k]))
+                    print(str(k) + ':', np.mean(self.bandits[k]), np.std(self.bandits[k]))
         self.just_restored = False
+        pool.close()
         return dt
 
     ####################################################################################################################
