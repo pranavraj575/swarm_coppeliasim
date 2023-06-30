@@ -63,6 +63,8 @@ Used for making swarm experiments for blimps in Coppeliasim. experiments using t
     ```bash
     git clone https://github.com/pranavraj575/blimp_coppeliasim
     cp blimp_coppeliasim/lua/* /<path to coppelia>/lua/
+    cd blimp_coppeliasim
+    pip3 install -e .
     ```
     
     For some reason there is no way to tell Coppeliasim to look in different folders for ```.lua``` files.
