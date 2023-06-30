@@ -33,7 +33,7 @@ args = parser.parse_args()
 AGENTS = args.agents
 gens = args.generations
 RANGE = args.range
-if args.sims_low < 1:
+if args.sims_low >= 1:
     if not args.sims_low<=args.num_sims or not args.num_sims<args.sims_high:
         raise Exception("bruh")
 END = 60
