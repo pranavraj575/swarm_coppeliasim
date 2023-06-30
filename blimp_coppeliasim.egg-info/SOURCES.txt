@@ -1,0 +1,6 @@
+README.md
+setup.py
+blimp_coppeliasim.egg-info/PKG-INFO
+blimp_coppeliasim.egg-info/SOURCES.txt
+blimp_coppeliasim.egg-info/dependency_links.txt
+blimp_coppeliasim.egg-info/top_level.txt
