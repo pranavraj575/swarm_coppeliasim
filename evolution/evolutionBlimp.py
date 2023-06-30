@@ -40,6 +40,8 @@ class EvolutionExperiment:
         self.exp_maker = exp_maker
         self.just_restored = False
         self.bandits=None
+        self.failure=None
+        self.current_num_sims=None
 
     ####################################################################################################################
     # evolutionary training functions
@@ -59,7 +61,7 @@ class EvolutionExperiment:
               sleeptime=.1,
               resttime=.1,
               restore=True,
-              bandits_range=None):
+              num_sim_range=None):
         """
         Trains the population for a number of generations
 
@@ -79,11 +81,13 @@ class EvolutionExperiment:
         @param sleeptime: time to sleep after important commands
         @param resttime: time to sleep after each generation
         @param restore: whether to restore progress
-        @param bandits_range: range to test 'num sims' parameters, None if just use given
+        @param num_sim_range: range to test 'num sims' parameters, None if just use given
         @return: best genome
         """
-        if bandits_range:
-            self.bandits={k:[] for k in range(bandits_range[0],bandits_range[1])}
+        if num_sim_range:
+            self.bandits={k:[] for k in range(num_sim_range[0], num_sim_range[1])}
+            self.failure={k:False for k in self.bandits}
+        self.current_num_sims=num_simulators
         if restore and self.MOST_RECENT(self.checkpt_dir) is not None:
             print('RESTORING')
             p = self.restore_checkpoint(os.path.join(self.checkpt_dir, self.MOST_RECENT(self.checkpt_dir)))
@@ -101,7 +105,6 @@ class EvolutionExperiment:
                                                                  config=config,
                                                                  TRIALS=TRIALS,
                                                                  evaluate_each_gen=evaluate_each_gen,
-                                                                 num_simulators=num_simulators,
                                                                  open_coppelia=open_coppelia,
                                                                  headless=headless,
                                                                  port_step=port_step,
@@ -110,7 +113,7 @@ class EvolutionExperiment:
                                                                  close_after=close_after,
                                                                  sleeptime=sleeptime,
                                                                  resttime=resttime,
-                                                                 bandits_range=bandits_range
+                                                                 num_sim_range=num_sim_range
                                                                  ),
                        generations)
         return winner
@@ -153,7 +156,6 @@ class EvolutionExperiment:
                      config,
                      TRIALS,
                      evaluate_each_gen,
-                     num_simulators,
                      open_coppelia,
                      headless,
                      port_step,
@@ -162,7 +164,7 @@ class EvolutionExperiment:
                      close_after,
                      sleeptime,
                      resttime,
-                     bandits_range
+                     num_sim_range
                      ):
         """
         evaluates all genomes, requirements specified in the NEAT document
@@ -175,7 +177,6 @@ class EvolutionExperiment:
         @param evaluate_each_gen: whether to evaluate each genome each generation
             if False, keeps the fitness score of a genome evaluated in the previous generation
             This parameter will not affect the restored checkpoint generation
-        @param num_simulators: number of simulators to use
         @param open_coppelia: whether to open coppelia at the start
         @param headless: whether to run coppelia in headless mode
         @param port_step: amount to increment ports for different coppelia instances
@@ -184,7 +185,7 @@ class EvolutionExperiment:
         @param close_after: whether to close coppela after done
         @param sleeptime: amount to sleep after important commands
         @param resttime: amount to rest after done
-        @param bandits_range: range to test 'num sims' parameters, None if just use given
+        @param num_sim_range: range to test 'num sims' parameters, None if just use given
         @return: elapsed time
         """
         while True:
@@ -194,32 +195,29 @@ class EvolutionExperiment:
                 break
             except:
                 time.sleep(sleeptime)
-        if bandits_range:
-            min_val=None
-            for k in self.bandits:
-                arr=self.bandits[k]
-                if arr:
-                    if min_val is None:
-                        min_val=np.mean(arr)
-                    else:
-                        min_val=min(min_val,np.mean(arr))
-            if min_val is None:
-                min_val=0
+        if num_sim_range:
+            if self.bandits[self.current_num_sims]:
+                mean=np.mean(self.bandits[self.current_num_sims])
+                # if we actually have test data, continue, otherwise just use self.current_num_sims
+                temp_nsims=self.current_num_sims
+                for s_temp in (self.current_num_sims-1,self.current_num_sims+1):
+                    # if the data is unsampled, choose this
+                    if s_temp in self.bandits:
+                        if not self.bandits[s_temp]:
+                            temp_nsims=s_temp
 
-            default_std=1
-            values=dict()
-            for k in self.bandits:
-                arr=self.bandits[k]
-                if arr:
-                    values[k]=np.random.normal(np.mean(arr),(np.std(arr) if len(arr)>1 else default_std))
-                else:
-                    values[k]=np.random.normal(min_val,default_std)
-            num_simulators=min([k for k in values],key=lambda k:values[k])
-            print('using '+str(num_simulators)+" simulators")
+                for s_temp in (self.current_num_sims-1,self.current_num_sims+1):
+                    # if we can decrease our time, choose this instead
+                    if s_temp in self.bandits:
+                        if self.bandits[s_temp] and np.mean(self.bandits[s_temp])<mean:
+                            temp_nsims=s_temp
+                self.current_num_sims=temp_nsims
+
+            print('using '+str(self.current_num_sims)+" simulators")
         print('opening coppelia instances')
         processes = dict()
         # open coppeliasim instances on different ports
-        for k in range(num_simulators):
+        for k in range(self.current_num_sims):
             zmqport = zmq_def_port + port_step * k
 
             if open_coppelia:
@@ -309,9 +307,13 @@ class EvolutionExperiment:
                 except:
                     time.sleep(sleeptime)
         time.sleep(resttime)
-        if bandits_range and not self.just_restored:
-            self.bandits[num_simulators].append(dt)
-        if bandits_range:
+        if num_sim_range and not self.just_restored and \
+                (tries==1 or self.failure[self.current_num_sims]):
+            # update if perfect run or if we have already failed at this number
+            self.bandits[self.current_num_sims].append(dt)
+        if tries>1:
+            self.failure[self.current_num_sims]=True
+        if num_sim_range:
             print('running mean, std:')
             for k in self.bandits:
                 if self.bandits[k]:

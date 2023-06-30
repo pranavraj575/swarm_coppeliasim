@@ -35,9 +35,9 @@ parser.add_argument("--zmax", type=float, required=False, default=1.2,
 
 parser.add_argument("--num_sims", type=int, required=False, default=8,
                     help="number of simulators to use for training")
-parser.add_argument("--bandits_low", type=int, required=False, default=-1,
+parser.add_argument("--sims_low", type=int, required=False, default=-1,
                     help="low bound of num_sims to try")
-parser.add_argument("--bandits_high", type=int, required=False, default=-1,
+parser.add_argument("--sims_high", type=int, required=False, default=-1,
                     help="high bound of num_sims to try")
 parser.add_argument("--offset", type=int, required=False, default=0,
                     help="offset port number (should be number of simulators already in use)")
@@ -51,7 +51,9 @@ args = parser.parse_args()
 AGENTS = args.agents
 gens = args.generations
 RANGE = args.range
-
+if args.sims_low < 1:
+    if not args.sims_low<=args.num_sims or not args.num_sims<args.sims_high:
+        raise Exception("bruh")
 END = 60
 h_low = args.height_lower
 h_upp = args.height_upper
@@ -106,7 +108,7 @@ if gens:
              zmq_def_port=zmq_def_port,
              websocket_def_port=websocket_def_port,
              port_step=port_step,
-             bandits_range=None if args.bandits_low <1 else (args.bandits_low,args.bandits_high)
+             num_sim_range=None if args.sims_low < 1 else (args.sims_low, args.sims_high)
              )
 if args.show:
     print(ee.result_of_experiment(search_all_gens=False))
