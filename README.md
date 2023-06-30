@@ -142,7 +142,7 @@ Used for making swarm experiments for blimps in Coppeliasim. experiments using t
   ```
   This test will load an empty scene, spawn a blimp, then move the blimp up, printing the state aquired repeatedly. 
   
-  Mess with the file (the RECCY variable) to output graphs of the state, and mess with the test variable to mess with the command given
+  Mess with the file (the RECCY variable) to output graphs of the state, and mess with the test variable to change the command given
 
 * ### Parallelism test
   Tests if parallel instances of Coppeliasim can run 
