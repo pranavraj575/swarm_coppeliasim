@@ -10,6 +10,6 @@ setup(
                       'zmq',
                       'cbor',
                       'neat-python==0.92',
-                     ]
+                     ],
     license='Liscence to Krill',
 )
