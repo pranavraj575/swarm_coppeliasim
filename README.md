@@ -95,10 +95,17 @@ Used for making swarm experiments for blimps in Coppeliasim. experiments using t
           git checkout coppeliasim-v4.3.0-rev12
           ```
     * build the ROS2 package (note: should be run from the workspace directory)
-      ```bash
-      cd ~/ros2_ws
-      colcon build --symlink-install
-      ```
-      Note: this command is buggy, if it fails try looking at the compile instructions in the [github tutorial](https://github.com/CoppeliaRobotics/simROS2)
+      * Note: this command is buggy, if it fails try looking at the compile instructions in the [github tutorial](https://github.com/CoppeliaRobotics/simROS2)
+        ```bash
+        cd ~/ros2_ws
+        colcon build --symlink-install
+        ```
+      * The following altarnate build command works better in cases where there are a lot of compiled interfaces for some reason
+        ```
+        bash
+        sudo apt install clang
+        export CXX=clang++
+        colcon build --symlink-install
+        ```
 
       
