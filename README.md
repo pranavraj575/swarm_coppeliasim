@@ -4,7 +4,7 @@ Used for making swarm experiments for blimps in Coppeliasim. experiments using t
 
 ## Installation
 
-1. Install [Coppeliasim](https://www.coppeliarobotics.com/)
+1. ### Install [Coppeliasim](https://www.coppeliarobotics.com/)
 
     Tested with [version 4.3.0 rev 12](https://www.coppeliarobotics.com/files/CoppeliaSim_Edu_V4_3_0_rev12_Ubuntu20_04.tar.xz) on Ubuntu 20.04
     
@@ -12,12 +12,12 @@ Used for making swarm experiments for blimps in Coppeliasim. experiments using t
     If you need to change this, you should update line 16 in ```/src/swarm_experiments.py```
 
     Example setup:
-   ```bash
-   cd ~/Downloads
-   wget https://www.coppeliarobotics.com/files/CoppeliaSim_Edu_V4_3_0_rev12_Ubuntu20_04.tar.xz
-   tar -xvf CoppeliaSim_Edu_V4_3_0_rev12_Ubuntu20_04.tar.xz
-   rm CoppeliaSim_Edu_V4_3_0_rev12_Ubuntu20_04.tar.xz
-   ```
+    ```bash
+    cd ~/Downloads
+    wget https://www.coppeliarobotics.com/files/CoppeliaSim_Edu_V4_3_0_rev12_Ubuntu20_04.tar.xz
+    tar -xvf CoppeliaSim_Edu_V4_3_0_rev12_Ubuntu20_04.tar.xz
+    rm CoppeliaSim_Edu_V4_3_0_rev12_Ubuntu20_04.tar.xz
+    ```
     
     Update your ```.bashrc``` with the following (the alias is not required, it just makes it easier to run Coppeliasim)
     
@@ -28,7 +28,7 @@ Used for making swarm experiments for blimps in Coppeliasim. experiments using t
     ```
 
 
-3. Install [ROS2](https://docs.ros.org/)
+2. ### Install [ROS2](https://docs.ros.org/)
 
     Tested with [ROS2 Foxy](https://docs.ros.org/en/foxy/Installation/Ubuntu-Install-Debians.html) on Ubuntu 20.04
      
@@ -43,7 +43,7 @@ Used for making swarm experiments for blimps in Coppeliasim. experiments using t
     source ~/.bashrc
     ```
 
-5. Set up  the [ZMQ package](https://www.coppeliarobotics.com/helpFiles/en/zmqRemoteApiOverview.htm) into Coppeliasim
+3. ### Set up the [ZMQ package](https://www.coppeliarobotics.com/helpFiles/en/zmqRemoteApiOverview.htm) into Coppeliasim
     ```bash
     pip3 install pyzmq cbor
     ```
@@ -57,7 +57,8 @@ Used for making swarm experiments for blimps in Coppeliasim. experiments using t
     source ~/.bashrc
     ```
 
-6. Clone this directory, copy all the ```.lua``` files into the correct place (replace ```<path to coppelia>``` with the path to the Coppeliasim folder). This should be run from wherever you want the repo to be.
+4. ### Set up this project
+   Clone this directory, copy all the ```.lua``` files into the correct place (replace ```<path to coppelia>``` with the path to the Coppeliasim folder). This should be run from wherever you want the repo to be.
 
     ```bash
     git clone https://github.com/pranavraj575/blimp_coppeliasim
@@ -67,7 +68,7 @@ Used for making swarm experiments for blimps in Coppeliasim. experiments using t
     For some reason there is no way to tell Coppeliasim to look in different folders for ```.lua``` files.
     Not sure if this is because Coppeliasim is silly or because I am. Either way, this method works.
 
-7. Install the ROS2 Coppelia package according to the [tutorial](https://www.coppeliarobotics.com/helpFiles/en/ros2Tutorial.htm)
+5. ### Install the ROS2 Coppelia package "according to the [tutorial](https://www.coppeliarobotics.com/helpFiles/en/ros2Tutorial.htm)"
 
     However, the tutorial sucks, so following the directions below will work
     
@@ -94,7 +95,7 @@ Used for making swarm experiments for blimps in Coppeliasim. experiments using t
           cd sim_ros2_interface
           git checkout coppeliasim-v4.3.0-rev12
           ```
-    * build the ROS2 package (note: should be run from the workspace directory)
+    * Build the ROS2 package (note: should be run from the workspace directory)
       * Note: this command is buggy, if it fails try looking at the compile instructions in the [github tutorial](https://github.com/CoppeliaRobotics/simROS2)
         ```bash
         cd ~/ros2_ws
@@ -107,4 +108,47 @@ Used for making swarm experiments for blimps in Coppeliasim. experiments using t
         colcon build --symlink-install
         ```
 
-      
+## Tests
+* ### Coppelia installation test
+  The obvious test to see if Coppeliasim is actually installed:
+  ```bash
+  coppelia
+  ```
+  This will open the coppelia simulator. Use the ```-h``` argument to test headless mode.
+
+  Note: if you did not alias in installation step 1, you need to type in the path to the ```coppeliaSim.sh``` file
+* ### ZMQ test
+  Tests if the python coppelia interface works
+
+  First open any coppelia scene with the ```coppelia``` command. Though not necessary, it might be useful to [spawn some objects](https://www.coppeliarobotics.com/helpFiles/index.html) to see the physics work.
+
+  Then run the following file from the ```blimp_coppeliasim``` directory
+  ```bash
+  python3 tests/testZeroMQRemoteAPI.py
+  ```
+  This will just play the scene, wait a bit, then pause.
+
+* ### ROS blimp control test
+  Tests if coppelia ROS package is set up properly
+
+  First open coppelia with the ```coppelia``` command
+
+  Then run the following file from the ```blimp_coppeliasim``` directory
+  ```bash
+  python3 tests/ros_ctrl_test.py
+  ```
+  This test will load an empty scene, spawn a blimp, then move the blimp up, printing the state aquired repeatedly. 
+  
+  Mess with the file (the RECCY variable) to output graphs of the state, and mess with the test variable to mess with the command given
+
+* ### Parallelism test
+  Tests if parallel instances of Coppeliasim can run 
+
+  Run the following file from the ```blimp_coppeliasim``` directory
+  ```bash
+  python3 tests/mult_scene_test.py
+  ```
+
+  This should open two instances of coppelia sim. A blimp will spawn in each scene, and a command of slight positive z velocity is given to one, and a slight negative z velocity to the other.
+  
+  Switch between the two windows and verify that there is no interference between the two blimps. One should fly straight up and the other straight down.
