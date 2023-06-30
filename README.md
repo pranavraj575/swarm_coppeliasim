@@ -105,6 +105,7 @@ Used for making swarm experiments for blimps in Coppeliasim. experiments using t
         ```
       * The following altarnate build command works better in cases where there are a lot of compiled interfaces for some reason
         ```bash
+        cd ~/ros2_ws
         sudo apt install clang
         export CXX=clang++
         colcon build --symlink-install
