@@ -159,7 +159,7 @@ class travelingSalesBlimp(BlimpExperiment):
             self.sim.pauseSimulation()
             self.goal_list = self.make_goal_list()
             self.create_times()
-            self.sim.playSimulation()
+            self.sim.startSimulation()
         done = True
         for agent_id in self.agentData:
             pos = self.get_position(agent_id=agent_id, use_ultra=False, spin=True)

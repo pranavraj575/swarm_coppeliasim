@@ -22,7 +22,7 @@ infos = [{'pos': array([-4.13007858, 2.21171989, 1.]), 'tau': 1.0},
          {'pos': array([0.4479817, -4.1943272, 1.]), 'tau': 1.0},
          {'pos': array([-5.59681296, 0.53872593, 7.12257391]), 'tau': 1.0}]
 
-bb = localSearchBlimp(num_agents=2,
+bb = travelingSalesBlimp(num_agents=2,
                       start_zone=lambda i: depot + np.random.normal((0, 0, 0), (1, 1, 0)),
                       num_points=pounts,
                       spawn_pt_info=lambda i: infos[i],
@@ -31,7 +31,7 @@ bb = localSearchBlimp(num_agents=2,
                       converge_tol=None,
                       depot=depot,
                       depot_tol=.5,
-                      debug=True,
+                      #debug=True,
                       wakeup=[COPPELIA_WAKEUP])
 # print(bb.experiments(1, lambda t: bb.is_done()))
 bb.init_exp(True)
