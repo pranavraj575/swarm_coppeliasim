@@ -2,8 +2,9 @@ from src.swarm_expiriment import *
 from collections import defaultdict
 import torch, copy, lkh
 from sklearn.cluster import KMeans
+from pathlib import Path
 
-SOLVER_PATH = '~/LKH-3.0.6/LKH'
+SOLVER_PATH = str(Path('~/LKH-3.0.6/LKH').expanduser())
 
 
 class travelingSalesBlimp(BlimpExperiment):
