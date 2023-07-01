@@ -3,7 +3,7 @@ from collections import defaultdict
 import torch, copy, lkh
 from sklearn.cluster import KMeans
 
-SOLVER_PATH = '/home/rajbhandari/LKH-3.0.6/LKH'
+SOLVER_PATH = '~/LKH-3.0.6/LKH'
 
 
 class travelingSalesBlimp(BlimpExperiment):
@@ -26,7 +26,7 @@ class travelingSalesBlimp(BlimpExperiment):
                  spawn_tries=100,
                  scenePath=empty_path,
                  blimpPath=narrow_blimp_path,
-                 goalPath="/home/rajbhandari/projects/blimp_coppeliasim/models/goal.ttm",
+                 goalPath=os.path.join(DIR,"models","goal.ttm"),
                  speed=.5,
                  blimp_tol=.2,
                  depot_tol=1.,
@@ -433,7 +433,7 @@ class localSearchBlimp(travelingSalesBlimp):
                  partition_functions=None,
                  scenePath=empty_path,
                  blimpPath=narrow_blimp_path,
-                 goalPath="/home/rajbhandari/projects/blimp_coppeliasim/models/goal.ttm",
+                 goalPath=os.path.join(DIR,"models","goal.ttm"),
                  speed=.5,
                  blimp_tol=.2,
                  depot_tol=.1,
@@ -610,7 +610,7 @@ class singleBlimp(travelingSalesBlimp):
                  depot_tol=.1,
                  scenePath=empty_path,
                  blimpPath=narrow_blimp_path,
-                 goalPath="/home/rajbhandari/projects/blimp_coppeliasim/models/goal.ttm",
+                 goalPath=os.path.join(DIR,"models","goal.ttm"),
                  speed=.5,
                  blimp_tol=.2,
                  lr=.001,
@@ -661,7 +661,7 @@ class doubleBlimp(travelingSalesBlimp):
                  depot_tol=.1,
                  scenePath=empty_path,
                  blimpPath=narrow_blimp_path,
-                 goalPath="/home/rajbhandari/projects/blimp_coppeliasim/models/goal.ttm",
+                 goalPath=os.path.join(DIR,"models","goal.ttm"),
                  speed=.5,
                  blimp_tol=.2,
                  lr=.001,
