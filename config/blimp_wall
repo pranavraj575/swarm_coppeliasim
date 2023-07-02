@@ -1,12 +1,12 @@
 [NEAT]
-fitness_criterion       = max
+fitness_criterion       = mean
 fitness_threshold       = 0
 pop_size                = 300
 reset_on_extinction     = False
 no_fitness_termination  = True
 
 [DefaultStagnation]
-species_fitness_func = max
+species_fitness_func = mean
 max_stagnation       = 20
 species_elitism      = 2
 

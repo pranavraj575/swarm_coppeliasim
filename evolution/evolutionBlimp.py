@@ -96,7 +96,9 @@ class EvolutionExperiment:
               sleeptime=.1,
               resttime=.1,
               restore=True,
-              num_sim_range=None):
+              num_sim_range=None,
+              debug=False
+              ):
         """
         Trains the population for a number of generations
 
@@ -117,6 +119,7 @@ class EvolutionExperiment:
         @param resttime: time to sleep after each generation
         @param restore: whether to restore progress
         @param num_sim_range: range to test 'num sims' parameters, None if just use given
+        @param debug: whether to print excessive debug messages
         @return: best genome
         """
         if num_sim_range:
@@ -151,7 +154,8 @@ class EvolutionExperiment:
                                                                  close_after=close_after,
                                                                  sleeptime=sleeptime,
                                                                  resttime=resttime,
-                                                                 num_sim_range=num_sim_range
+                                                                 num_sim_range=num_sim_range,
+                                                                 debug=debug
                                                                  ),
                        generations)
         return winner
@@ -169,7 +173,8 @@ class EvolutionExperiment:
                      close_after,
                      sleeptime,
                      resttime,
-                     num_sim_range
+                     num_sim_range,
+                     debug,
                      ):
         """
         evaluates all genomes, requirements specified in the NEAT document
@@ -191,6 +196,7 @@ class EvolutionExperiment:
         @param sleeptime: amount to sleep after important commands
         @param resttime: amount to rest after done
         @param num_sim_range: range to test 'num sims' parameters, None if just use given
+        @param debug: whether to print excessive debug messages
         @return: elapsed time
         """
         while True:
@@ -249,20 +255,21 @@ class EvolutionExperiment:
             failed = False
             for genome_id, genome in genomes:
                 j += 1
-                skip=False
+                skip = False
                 if self.just_restored:
                     # if we just restored, we can skip evaluating this generation
-                    skip=True
+                    skip = True
                 if tries == 1:
                     # IF we only are on first try:
                     if (not evaluate_each_gen) and (genome.fitness is not None):
                         # we can skip if we are not evaluating pre-evaluated genomes, and this genome is pre-evaluated
-                        skip=True
+                        skip = True
                 else:
                     # otherwise, we already did this
                     if genome.fitness is not None:
-                        skip=True
-                print(('skipping' if skip else 'evaluating')+' genome ' + str(j) + '/' + str(config.pop_size), end='\n')
+                        skip = True
+                print(('skipping' if skip else 'evaluating') + ' genome ' + str(j) + '/' + str(config.pop_size),
+                      end=('\n' if debug else '\r'))
                 if skip:
                     continue
                 # for each genome, assign a port, and create a process
@@ -276,10 +283,11 @@ class EvolutionExperiment:
                             processes[zmqport]['genome'].fitness = fitness
                             processes[zmqport]['genome'] = None
                             processes[zmqport]['pool_worker'] = None
-                            if fitness is None:
-                                print('failed genome:', processes[zmqport]['genome order'])
-                            else:
-                                print('got genome:', processes[zmqport]['genome order'])
+                            if debug:
+                                if fitness is None:
+                                    print('failed genome:', processes[zmqport]['genome order'])
+                                else:
+                                    print('got genome:', processes[zmqport]['genome order'])
                     # loop to start new processes
                     for zmqport in processes:
                         if processes[zmqport]['genome'] is None:
