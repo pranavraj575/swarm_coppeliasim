@@ -142,4 +142,4 @@ if gens:
              num_sim_range=None if args.sims_low < 1 else (args.sims_low, args.sims_high)
              )
 if args.show:
-    print(ee.result_of_experiment(search_all_gens=False))
+    print(ee.result_of_experiment())

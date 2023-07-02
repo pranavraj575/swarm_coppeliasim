@@ -131,7 +131,7 @@ class EvolutionExperiment:
         self.current_num_sims = num_simulators
         if restore and self.MOST_RECENT(self.checkpt_dir) is not None:
             print('RESTORING')
-            p = self.restore_checkpoint(os.path.join(self.checkpt_dir, self.MOST_RECENT(self.checkpt_dir)))
+            p = self.restore_checkpoint(os.path.join(self.checkpt_dir, self.MOST_RECENT(self.checkpt_dir)[-1]))
             self.just_restored = True
         else:
             p = better_Population(self.config)
@@ -366,12 +366,12 @@ class EvolutionExperiment:
     ####################################################################################################################
     # output functions
     ####################################################################################################################
-    def result_of_experiment(self, trials=1, search_all_gens=False, display=True, start_coppelia=True):
+    def result_of_experiment(self, trials=1, gen_indices=(-1,), display=True, start_coppelia=True):
         """
         runs an experiment with best genome found, returns results
 
         @param trials: number of trials to run
-        @param search_all_gens: whether to search all checkpoints or just the most recent one
+        @param gen_indices: which generations to show, defaults to just last one
         @param display: whether to open coppelia GUI
         @param start_coppelia: whether to start coppelia at the beginning
         @return: result of src.Experiment.experiments
@@ -382,16 +382,16 @@ class EvolutionExperiment:
             wakeup = [COPPELIA_WAKEUP + ('' if display else ' -h')]
         else:
             wakeup = []
-        winner = None
-        for name in (os.listdir(self.checkpt_dir) if search_all_gens else [self.MOST_RECENT(self.checkpt_dir)]):
-            p = self.restore_checkpoint(os.path.join(self.checkpt_dir, name))
-            gen_winner = max([p.population[g] for g in p.population], key=lambda genome: genome.fitness)
-            winner = gen_winner if winner is None else max([winner, gen_winner], key=lambda genome: genome.fitness)
-        winner_net = neat.nn.FeedForwardNetwork.create(winner, self.config)
-        exp: blimpNet = self.exp_maker(net=winner_net, wakeup=wakeup)
-        goals = exp.experiments(trials=trials)
-        exp.kill()
-        return goals
+        all_goals=[]
+        for index in gen_indices:
+            p = self.restore_checkpoint(os.path.join(self.checkpt_dir, self.MOST_RECENT(self.checkpt_dir)[index]))
+            winner = max([p.population[g] for g in p.population], key=lambda genome: genome.fitness)
+            winner_net = neat.nn.FeedForwardNetwork.create(winner, self.config)
+            exp: blimpNet = self.exp_maker(net=winner_net, wakeup=wakeup)
+            goals = exp.experiments(trials=trials)
+            exp.kill()
+            all_goals.append(goals)
+        return all_goals
 
     ####################################################################################################################
     # utility functions
@@ -406,11 +406,10 @@ class EvolutionExperiment:
         """
         out = None
         if os.path.exists(dir):
-            for fil in os.listdir(dir):
-                if out is None:
-                    out = fil
-                else:
-                    out = max(fil, out, key=lambda f: int(f[f.rindex('-') + 1:]))
+            out=os.listdir(dir)
+            if not out:
+                return None
+            out.sort(key=lambda f: int(f[f.rindex('-') + 1:]))
         return out
 
     @staticmethod
