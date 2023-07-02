@@ -21,8 +21,18 @@ infos = [{'pos': array([-4.13007858, 2.21171989, 1.]), 'tau': 1.0},
          {'pos': array([2.49765138, 7.08216976, 2.52365775]), 'tau': 1.0},
          {'pos': array([0.4479817, -4.1943272, 1.]), 'tau': 1.0},
          {'pos': array([-5.59681296, 0.53872593, 7.12257391]), 'tau': 1.0}]
-
-bb = travelingSalesBlimp(num_agents=2,
+pounts=5
+infos = []
+for i in range(pounts):
+    pos=np.random.normal((0, 0, 2), (.5, .5, 0)).clip([-10, -10, 1])
+    infos.append({'pos': pos,
+          'tau': 1E0})
+R=3
+for i in range(pounts):
+    infos.append({'pos': np.array((R*np.cos(2*np.pi*i/pounts),R*np.sin(2*np.pi*i/pounts),2)),
+        'tau': 1E0})
+pounts=2*pounts
+bb = spectralBlimp(num_agents=2,
                       start_zone=lambda i: depot + np.random.normal((0, 0, 0), (1, 1, 0)),
                       num_points=pounts,
                       spawn_pt_info=lambda i: infos[i],
@@ -33,7 +43,21 @@ bb = travelingSalesBlimp(num_agents=2,
                       depot_tol=.5,
                       #debug=True,
                       wakeup=[COPPELIA_WAKEUP])
-# print(bb.experiments(1, lambda t: bb.is_done()))
+
+print(bb.experiments(1))
+bb.kill()
+quit()
+bb = localSearchBlimp(num_agents=2,
+                      start_zone=lambda i: depot + np.random.normal((0, 0, 0), (1, 1, 0)),
+                      num_points=pounts,
+                      spawn_pt_info=lambda i: infos[i],
+                      alpha=1E-2,
+                      grads_per_epoch=1000,
+                      converge_tol=None,
+                      depot=depot,
+                      depot_tol=.5,
+                      debug=True,
+                      wakeup=[COPPELIA_WAKEUP])
 bb.init_exp(True)
 handles = bb.pointData.keys()
 H = [h for h in handles if not bb.pointData[h]['is depot']]
