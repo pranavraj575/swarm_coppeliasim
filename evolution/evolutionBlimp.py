@@ -207,8 +207,12 @@ class EvolutionExperiment:
             except:
                 time.sleep(sleeptime)
         if num_sim_range:
+            def_stdev = 100
             if self.bandits[self.current_num_sims]:
-                mean = np.mean(self.bandits[self.current_num_sims])
+                arr = self.bandits[self.current_num_sims]
+                mean = np.mean(arr)
+                stdev = np.std(arr) if len(arr) > 1 else def_stdev
+                sample = np.random.normal(mean, stdev)
                 # if we actually have test data, continue, otherwise just use self.current_num_sims
                 temp_nsims = self.current_num_sims
                 for s_temp in (self.current_num_sims - 1, self.current_num_sims + 1):
@@ -220,7 +224,9 @@ class EvolutionExperiment:
                 for s_temp in (self.current_num_sims - 1, self.current_num_sims + 1):
                     # if we can decrease our time, choose this instead
                     if s_temp in self.bandits:
-                        if self.bandits[s_temp] and np.mean(self.bandits[s_temp]) < mean:
+                        yarr = self.bandits[s_temp]
+                        stdev2 = np.std(yarr) if len(yarr) > 1 else def_stdev
+                        if yarr and np.random.normal(np.mean(yarr), stdev2) < sample:
                             temp_nsims = s_temp
                 self.current_num_sims = temp_nsims
 
@@ -381,7 +387,7 @@ class EvolutionExperiment:
             wakeup = [COPPELIA_WAKEUP + ('' if display else ' -h')]
         else:
             wakeup = []
-        all_goals=[]
+        all_goals = []
         for index in gen_indices:
             p = self.restore_checkpoint(os.path.join(self.checkpt_dir, self.MOST_RECENT(self.checkpt_dir)[index]))
             winner = max([p.population[g] for g in p.population], key=lambda genome: genome.fitness)
@@ -405,7 +411,7 @@ class EvolutionExperiment:
         """
         out = None
         if os.path.exists(dir):
-            out=os.listdir(dir)
+            out = os.listdir(dir)
             if not out:
                 return None
             out.sort(key=lambda f: int(f[f.rindex('-') + 1:]))
