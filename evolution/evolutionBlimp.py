@@ -318,12 +318,11 @@ class EvolutionExperiment:
                             processes[zmqport]['genome'].fitness = fitness
                             processes[zmqport]['genome'] = None
                             processes[zmqport]['pool_worker'] = None
-                            if fitness is None:
-                                print()
-                                print('failed genome:', processes[zmqport]['genome order'])
-                            else:
-                                print()
-                                print('got genome:', processes[zmqport]['genome order'])
+                            if debug:
+                                if fitness is None:
+                                    print('failed genome:', processes[zmqport]['genome order'])
+                                else:
+                                    print('got genome:', processes[zmqport]['genome order'])
                 time.sleep(sleeptime)
 
             for genome_id, genome in genomes:
