@@ -348,6 +348,7 @@ class travelingSalesBlimp(BlimpExperiment):
         if len(handles) < 3:
             return handles
         fn = 'temp' + str(time.time()).replace('.', '_') + '.txt'
+        fn=os.path.join(DIR,fn)
         f = open(fn, 'w')
         f.write('TYPE : TSP\n')
         f.write('DIMENSION : ' + str(len(handles)) + '\n')
