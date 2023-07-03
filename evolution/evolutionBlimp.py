@@ -120,6 +120,62 @@ class GeneralEvolutionaryExperiment:
         self.current_num_sims = None
 
     ####################################################################################################################
+    # number of simulators update functions
+    ####################################################################################################################
+    def decide_num_sims(self, def_stdev=100):
+        """
+        sets self.current_num_sims to best neighbor, based on sample of times using the mean and stdev found
+
+        @param def_stdev: stdev to use if only one sample
+        """
+        if self.bandits[self.current_num_sims]:
+            arr = self.bandits[self.current_num_sims]
+            n = len(arr)
+            mean = np.mean(arr)
+
+            # sample standard deviation of mean
+            stdev = np.std(arr)/np.sqrt(n - 1) if n > 1 else def_stdev
+            sample = np.random.normal(mean, stdev)
+            # if we actually have test data, continue, otherwise just use self.current_num_sims
+            temp_nsims = self.current_num_sims
+            for s_temp in (self.current_num_sims - 1, self.current_num_sims + 1):
+                # if the data is unsampled, choose this
+                if s_temp in self.bandits:
+                    if not self.bandits[s_temp]:
+                        temp_nsims = s_temp
+
+            for s_temp in (self.current_num_sims - 1, self.current_num_sims + 1):
+                # if we can decrease our time, choose this instead
+                if s_temp in self.bandits:
+                    yarr = self.bandits[s_temp]
+                    m = len(yarr)
+                    stdev2 = np.std(yarr)/np.sqrt(m - 1) if m > 1 else def_stdev
+                    if yarr and np.random.normal(np.mean(yarr), stdev2) < sample:
+                        temp_nsims = s_temp
+            self.current_num_sims = temp_nsims
+        print('using ' + str(self.current_num_sims) + " simulators")
+
+    def update_bandits(self, dt, tries):
+        """
+        updates the record of times for each num_sims in self.bandits
+            assumes dt corresponds to self.current_num_sims
+
+        @param dt: time elapsed
+        @param tries: tries that it took to finish generation with no errors
+        """
+        if (self.bandits is not None) and not self.just_restored and \
+                (tries == 1 or self.failure[self.current_num_sims]):
+            # update if perfect run or if we have already failed at this number
+            self.bandits[self.current_num_sims].append(dt)
+        if tries > 1:
+            self.failure[self.current_num_sims] = True
+        if self.bandits is not None:
+            print('running mean, std:')
+            for k in self.bandits:
+                if self.bandits[k]:
+                    print(str(k) + ':', np.mean(self.bandits[k]), np.std(self.bandits[k]))
+
+    ####################################################################################################################
     # evolutionary training functions
     ####################################################################################################################
     def train(self,
@@ -200,86 +256,6 @@ class GeneralEvolutionaryExperiment:
                        generations)
         return winner
 
-    def decide_num_sims(self, def_stdev=100):
-        """
-        sets self.current_num_sims to best neighbor, based on sample of times using the mean and stdev found
-
-        @param def_stdev: stdev to use if only one sample
-        """
-        if self.bandits[self.current_num_sims]:
-            arr = self.bandits[self.current_num_sims]
-            n = len(arr)
-            mean = np.mean(arr)
-
-            # sample standard deviation of mean
-            stdev = np.std(arr)/np.sqrt(n - 1) if n > 1 else def_stdev
-            sample = np.random.normal(mean, stdev)
-            # if we actually have test data, continue, otherwise just use self.current_num_sims
-            temp_nsims = self.current_num_sims
-            for s_temp in (self.current_num_sims - 1, self.current_num_sims + 1):
-                # if the data is unsampled, choose this
-                if s_temp in self.bandits:
-                    if not self.bandits[s_temp]:
-                        temp_nsims = s_temp
-
-            for s_temp in (self.current_num_sims - 1, self.current_num_sims + 1):
-                # if we can decrease our time, choose this instead
-                if s_temp in self.bandits:
-                    yarr = self.bandits[s_temp]
-                    m = len(yarr)
-                    stdev2 = np.std(yarr)/np.sqrt(m - 1) if m > 1 else def_stdev
-                    if yarr and np.random.normal(np.mean(yarr), stdev2) < sample:
-                        temp_nsims = s_temp
-            self.current_num_sims = temp_nsims
-        print('using ' + str(self.current_num_sims) + " simulators")
-
-    def update_bandits(self, dt, tries):
-        """
-        updates the record of times for each num_sims in self.bandits
-            assumes dt corresponds to self.current_num_sims
-
-        @param dt: time elapsed
-        @param tries: tries that it took to finish generation with no errors
-        """
-        if (self.bandits is not None) and not self.just_restored and \
-                (tries == 1 or self.failure[self.current_num_sims]):
-            # update if perfect run or if we have already failed at this number
-            self.bandits[self.current_num_sims].append(dt)
-        if tries > 1:
-            self.failure[self.current_num_sims] = True
-        if self.bandits is not None:
-            print('running mean, std:')
-            for k in self.bandits:
-                if self.bandits[k]:
-                    print(str(k) + ':', np.mean(self.bandits[k]), np.std(self.bandits[k]))
-
-    def collect_genome_fitnesses(self, debug):
-        """
-        loops through processes and saves the fitnesses of genomes if they are done
-
-        @param debug: whether to print excessive debug messages
-        @return: whether the processes are all done
-        """
-        raise NotImplementedError()
-
-    def inner_loop(self, genomes, config, TRIALS, evaluate_each_gen, sleeptime, debug):
-        """
-        looops through genomes, creates an experiment with that network, and sets the genome fitness
-
-        @param genomes: genomes to evaluate
-        @param config: config to use
-        @param TRIALS: trials to evaluate each genome
-        @param sleeptime:
-        @param evaluate_each_gen: whether to evaluate each genome each generation
-            if False, keeps the fitness score of a genome evaluated in the previous generation
-            This parameter will not affect the restored checkpoint generation
-        @param sleeptime: amount to sleep after important commands
-        @param debug: whether to print excessive debug messages
-        @return: number of tries it took to finish all genomes
-            if more than 1, some error probably happened
-        """
-        raise NotImplementedError()
-
     def eval_genomes(self,
                      genomes,
                      config,
@@ -326,6 +302,7 @@ class GeneralEvolutionaryExperiment:
                 time.sleep(sleeptime)
         if self.bandits is not None:
             self.decide_num_sims(100)
+        start_time = time.time()
         print('opening coppelia instances')
         self.processes = dict()
         # open coppeliasim instances on different ports
@@ -345,7 +322,6 @@ class GeneralEvolutionaryExperiment:
             self.processes[zmqport]['genome'] = None
             self.processes[zmqport]['pool_worker'] = None
 
-        start_time = time.time()
         print('starting evaluation')
         # evaluate the genomes
         tries = self.inner_loop(genomes=genomes,
@@ -372,6 +348,33 @@ class GeneralEvolutionaryExperiment:
         self.just_restored = False
 
         return dt
+
+    def collect_genome_fitnesses(self, debug):
+        """
+        loops through processes and saves the fitnesses of genomes if they are done
+
+        @param debug: whether to print excessive debug messages
+        @return: whether the processes are all done
+        """
+        raise NotImplementedError()
+
+    def inner_loop(self, genomes, config, TRIALS, evaluate_each_gen, sleeptime, debug):
+        """
+        looops through genomes, creates an experiment with that network, and sets the genome fitness
+
+        @param genomes: genomes to evaluate
+        @param config: config to use
+        @param TRIALS: trials to evaluate each genome
+        @param sleeptime:
+        @param evaluate_each_gen: whether to evaluate each genome each generation
+            if False, keeps the fitness score of a genome evaluated in the previous generation
+            This parameter will not affect the restored checkpoint generation
+        @param sleeptime: amount to sleep after important commands
+        @param debug: whether to print excessive debug messages
+        @return: number of tries it took to finish all genomes
+            if more than 1, some error probably happened
+        """
+        raise NotImplementedError()
 
     ####################################################################################################################
     # output functions
@@ -450,6 +453,165 @@ class EvolutionExperiment(GeneralEvolutionaryExperiment):
         """
         super().__init__(checkpt_dir=checkpt_dir, exp_maker=exp_maker, config_name=config_name)
 
+    ####################################################################################################################
+    # evolutionary training functions
+    ####################################################################################################################
+    def collect_genome_fitnesses(self, debug):
+        """
+        loops through processes and saves the fitnesses of genomes if they are done
+
+        @param debug: whether to print excessive debug messages
+        @return: whether the processes are all done
+        """
+        done = True
+        for zmqport in self.processes:
+            if self.processes[zmqport]['pool_worker'] is not None:
+                done = False
+                if self.processes[zmqport]['pool_worker'].ready():
+                    fitness = self.processes[zmqport]['pool_worker'].get()
+                    self.processes[zmqport]['genome'].fitness = fitness
+                    self.processes[zmqport]['genome'] = None
+                    self.processes[zmqport]['pool_worker'] = None
+                    if debug:
+                        if fitness is None:
+                            print('failed genome:', self.processes[zmqport]['genome order'])
+                        else:
+                            print('got genome:', self.processes[zmqport]['genome order'])
+        return done
+
+    def inner_loop(self, genomes, config, TRIALS, evaluate_each_gen, sleeptime, debug):
+        """
+        looops through genomes, creates an experiment with that network, and sets the genome fitness
+
+        @param genomes: genomes to evaluate
+        @param config: config to use
+        @param TRIALS: trials to evaluate each genome
+        @param sleeptime:
+        @param evaluate_each_gen: whether to evaluate each genome each generation
+            if False, keeps the fitness score of a genome evaluated in the previous generation
+            This parameter will not affect the restored checkpoint generation
+        @param sleeptime: amount to sleep after important commands
+        @param debug: whether to print excessive debug messages
+        @return: number of tries it took to finish all genomes
+            if more than 1, some error probably happened
+        """
+        pool = Pool(processes=self.current_num_sims)
+        failed = True
+        tries = 1
+        while failed:
+            j = 0
+            failed = False
+            for genome_id, genome in genomes:
+                j += 1
+                skip = False
+                if self.just_restored:
+                    # if we just restored, we can skip evaluating this generation
+                    skip = True
+                if tries == 1:
+                    # IF we only are on first try:
+                    if (not evaluate_each_gen) and (genome.fitness is not None):
+                        # we can skip if we are not evaluating pre-evaluated genomes, and this genome is pre-evaluated
+                        skip = True
+                else:
+                    # otherwise, we already did this
+                    if genome.fitness is not None:
+                        skip = True
+                print(('skipping' if skip else 'evaluating') + ' genome ' + str(j) + '/' + str(config.pop_size),
+                      end=('\n' if debug else '\r'))
+                if skip:
+                    continue
+                # for each genome, assign a port, and create a process
+                # the processes will finish after running the experiment
+                port_assigned = None
+                while port_assigned is None:
+                    # loop to collect results
+                    self.collect_genome_fitnesses(debug=debug)
+
+                    # loop to start new self.processes
+                    for zmqport in self.processes:
+                        if self.processes[zmqport]['genome'] is None:
+                            self.processes[zmqport]['genome'] = genome
+                            self.processes[zmqport]['genome order'] = j
+                            self.processes[zmqport]['pool_worker'] = pool.apply_async(eval_genom,
+                                                                                      args=
+                                                                                      [
+                                                                                          self.exp_maker,
+                                                                                          genome,
+                                                                                          config,
+                                                                                          zmqport,
+                                                                                          TRIALS,
+                                                                                      ]
+                                                                                      )
+                            port_assigned = zmqport
+                            break
+                    time.sleep(sleeptime)
+            # now make sure all processes are done
+            while not self.collect_genome_fitnesses(debug=debug):
+                # will run until all processes are done
+                # i.e. when collect_genome_fitnesses returns True
+                time.sleep(sleeptime)
+
+            for genome_id, genome in genomes:
+                if genome.fitness is None:
+                    failed = True
+            if failed:
+                tries += 1
+                print()
+                print("FAILED SOME GENOME, TRYING AGAIN, time number " + str(tries))
+        print()
+        pool.close()
+        return tries
+
+    ####################################################################################################################
+    # output functions
+    ####################################################################################################################
+    def result_of_experiment(self, trials=1, gen_indices=(-1,), display=True, start_coppelia=True):
+        """
+        runs an experiment with best genome found, returns results
+
+        @param trials: number of trials to run
+        @param gen_indices: which generations to show, defaults to just last one
+        @param display: whether to open coppelia GUI
+        @param start_coppelia: whether to start coppelia at the beginning
+        @return: result of src.Experiment.experiments
+        """
+        if self.MOST_RECENT(self.checkpt_dir) is None:
+            raise Exception("DIRECTORY EMPTY: " + self.checkpt_dir)
+        if start_coppelia:
+            wakeup = [COPPELIA_WAKEUP + ('' if display else ' -h')]
+        else:
+            wakeup = []
+        all_goals = []
+        for index in gen_indices:
+            p = self.restore_checkpoint(os.path.join(self.checkpt_dir, self.MOST_RECENT(self.checkpt_dir)[index]))
+            winner = max([p.population[g] for g in p.population], key=lambda genome: genome.fitness)
+            winner_net = neat.nn.FeedForwardNetwork.create(winner, self.config)
+            exp: blimpNet = self.exp_maker(net=winner_net, wakeup=wakeup)
+            goals = exp.experiments(trials=trials)
+            exp.kill()
+            all_goals.append(goals)
+        return all_goals
+
+
+class EcosystemEvolutionExperiment(GeneralEvolutionaryExperiment):
+    def __init__(self, checkpt_dir, exp_maker, config_name=None):
+        """
+
+        experiment to use NEAT evolutionary algorithm on a Experiment class (specifically a ecosystemBlimpNet)
+
+        @param checkpt_dir: folder name of experiment, used for checkpoint directories and maybe for config file
+        @param ecosystem_exp_maker: exp_maker: (nets,sim,port,wakeup) -> src.network_blimps.ecosystemBlimpNet
+            creates an Experiment to run given the NEAT network, simulator, port, and wakeup script
+            nets is of type (agentid -> network function)
+        @param config_name: file name of config file, defaults to the 'name' param
+
+        @note: the output of an experiment must be a real number type, since it is used as fitness
+        """
+        super().__init__(checkpt_dir=checkpt_dir, exp_maker=exp_maker, config_name=config_name)
+
+    ####################################################################################################################
+    # evolutionary training functions
+    ####################################################################################################################
     def collect_genome_fitnesses(self, debug):
         """
         loops through processes and saves the fitnesses of genomes if they are done
