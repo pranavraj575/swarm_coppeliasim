@@ -4,6 +4,7 @@ from multiprocessing import Pool
 import neat
 from evolution.better_pop import better_Population
 import gzip, random, pickle
+from collections import defaultdict
 
 DIR = os.path.dirname(os.path.join(os.getcwd(), os.path.dirname(sys.argv[0])))
 CHECKPT_DIR = os.path.join(DIR, 'checkpoints')
@@ -58,7 +59,7 @@ def ecosystem_eval_genoms(ecosystem_exp_maker,
             creates an Experiment to run given the NEAT network, simulator, port, and wakeup script
             nets is of type (agentid -> network function)
 
-    @param genomes: (agent id -> genome), population of genomes to use
+    @param genomes: (agent id -> genome) or list of genomes, population of genomes to use
     @param config: config to use
     @param port: coppeliasim port to connect to
     @param TRIALS: number of trials per genome
@@ -304,23 +305,18 @@ class GeneralEvolutionaryExperiment:
             self.decide_num_sims(100)
         start_time = time.time()
         print('opening coppelia instances')
-        self.processes = dict()
+        self.processes = defaultdict(lambda: defaultdict(lambda: None))
         # open coppeliasim instances on different ports
         for k in range(self.current_num_sims):
             zmqport = zmq_def_port + port_step*k
 
             if open_coppelia:
-                self.processes[zmqport] = dict()
                 cmd = COPPELIA_WAKEUP + (' -h' if headless else '') + \
                       ' -GwsRemoteApi.port=' + str(websocket_def_port + port_step*k) + \
                       ' -GzmqRemoteApi.rpcPort=' + str(zmqport)
                 p = subprocess.Popen(cmd, stdout=subprocess.PIPE, shell=True)
                 self.processes[zmqport]['subproc'] = p
                 self.processes[zmqport]['pid'] = p.pid
-
-        for zmqport in self.processes:
-            self.processes[zmqport]['genome'] = None
-            self.processes[zmqport]['pool_worker'] = None
 
         print('starting evaluation')
         # evaluate the genomes
@@ -594,20 +590,23 @@ class EvolutionExperiment(GeneralEvolutionaryExperiment):
 
 
 class EcosystemEvolutionExperiment(GeneralEvolutionaryExperiment):
-    def __init__(self, checkpt_dir, exp_maker, config_name=None):
+    def __init__(self, checkpt_dir, ecosystem_exp_maker, num_agents, config_name=None):
         """
 
         experiment to use NEAT evolutionary algorithm on a Experiment class (specifically a ecosystemBlimpNet)
 
         @param checkpt_dir: folder name of experiment, used for checkpoint directories and maybe for config file
-        @param ecosystem_exp_maker: exp_maker: (nets,sim,port,wakeup) -> src.network_blimps.ecosystemBlimpNet
+        @param ecosystem_exp_maker: (nets,sim,port,wakeup) -> src.network_blimps.ecosystemBlimpNet
             creates an Experiment to run given the NEAT network, simulator, port, and wakeup script
             nets is of type (agentid -> network function)
+        @param num_agents: number of agents to use in an environment
         @param config_name: file name of config file, defaults to the 'name' param
 
-        @note: the output of an experiment must be a real number type, since it is used as fitness
+        @note: the output of an experiment must be a list of real numbers, in order of each agent in the environment
         """
-        super().__init__(checkpt_dir=checkpt_dir, exp_maker=exp_maker, config_name=config_name)
+        super().__init__(checkpt_dir=checkpt_dir, exp_maker=ecosystem_exp_maker, config_name=config_name)
+        self.num_agents = num_agents
+        self.failed_genomes = None
 
     ####################################################################################################################
     # evolutionary training functions
@@ -624,12 +623,19 @@ class EcosystemEvolutionExperiment(GeneralEvolutionaryExperiment):
             if self.processes[zmqport]['pool_worker'] is not None:
                 done = False
                 if self.processes[zmqport]['pool_worker'].ready():
-                    fitness = self.processes[zmqport]['pool_worker'].get()
-                    self.processes[zmqport]['genome'].fitness = fitness
-                    self.processes[zmqport]['genome'] = None
+                    fitnesses = self.processes[zmqport]['pool_worker'].get()
+                    if fitnesses is None:
+                        self.failed_genomes.append(self.processes[zmqport]['genomes'][0])
+                    else:
+                        for i, fitness in enumerate(fitnesses):
+                            if type(self.processes[zmqport]['genomes'][i].fitness) is not list:
+                                self.processes[zmqport]['genomes'][i].fitness = []
+                            self.processes[zmqport]['genomes'][i].fitness.append(fitness)
+                            # keep as list for now
+                    self.processes[zmqport]['genomes'] = None
                     self.processes[zmqport]['pool_worker'] = None
                     if debug:
-                        if fitness is None:
+                        if fitnesses is None:
                             print('failed genome:', self.processes[zmqport]['genome order'])
                         else:
                             print('got genome:', self.processes[zmqport]['genome order'])
@@ -642,40 +648,42 @@ class EcosystemEvolutionExperiment(GeneralEvolutionaryExperiment):
         @param genomes: genomes to evaluate
         @param config: config to use
         @param TRIALS: trials to evaluate each genome
-        @param sleeptime:
-        @param evaluate_each_gen: whether to evaluate each genome each generation
-            if False, keeps the fitness score of a genome evaluated in the previous generation
-            This parameter will not affect the restored checkpoint generation
+        @param evaluate_each_gen: irrelevant for this class
         @param sleeptime: amount to sleep after important commands
         @param debug: whether to print excessive debug messages
         @return: number of tries it took to finish all genomes
             if more than 1, some error probably happened
         """
         pool = Pool(processes=self.current_num_sims)
-        failed = True
+        self.failed_genomes = []
         tries = 1
-        while failed:
+        global_polulation = []
+        for genome_id, genome in genomes:
+            global_polulation.append(genome)
+        while tries == 1 or self.failed_genomes:
             j = 0
-            failed = False
-            for genome_id, genome in genomes:
+            if tries == 1:
+                todo = global_polulation
+            else:
+                todo = tuple(self.failed_genomes)
+                self.failed_genomes = []
+            for genome in todo:
                 j += 1
                 skip = False
                 if self.just_restored:
                     # if we just restored, we can skip evaluating this generation
                     skip = True
-                if tries == 1:
-                    # IF we only are on first try:
-                    if (not evaluate_each_gen) and (genome.fitness is not None):
-                        # we can skip if we are not evaluating pre-evaluated genomes, and this genome is pre-evaluated
-                        skip = True
-                else:
-                    # otherwise, we already did this
-                    if genome.fitness is not None:
-                        skip = True
+
                 print(('skipping' if skip else 'evaluating') + ' genome ' + str(j) + '/' + str(config.pop_size),
                       end=('\n' if debug else '\r'))
                 if skip:
                     continue
+
+                # create an ecosystem
+                eco = [genome]
+                while len(eco) < self.num_agents:
+                    eco.append(global_polulation[np.random.randint(0, len(global_polulation))])
+
                 # for each genome, assign a port, and create a process
                 # the processes will finish after running the experiment
                 port_assigned = None
@@ -685,14 +693,14 @@ class EcosystemEvolutionExperiment(GeneralEvolutionaryExperiment):
 
                     # loop to start new self.processes
                     for zmqport in self.processes:
-                        if self.processes[zmqport]['genome'] is None:
-                            self.processes[zmqport]['genome'] = genome
+                        if self.processes[zmqport]['genomes'] is None:
+                            self.processes[zmqport]['genomes'] = eco
                             self.processes[zmqport]['genome order'] = j
-                            self.processes[zmqport]['pool_worker'] = pool.apply_async(eval_genom,
+                            self.processes[zmqport]['pool_worker'] = pool.apply_async(ecosystem_eval_genoms,
                                                                                       args=
                                                                                       [
                                                                                           self.exp_maker,
-                                                                                          genome,
+                                                                                          genomes,
                                                                                           config,
                                                                                           zmqport,
                                                                                           TRIALS,
@@ -707,13 +715,12 @@ class EcosystemEvolutionExperiment(GeneralEvolutionaryExperiment):
                 # i.e. when collect_genome_fitnesses returns True
                 time.sleep(sleeptime)
 
-            for genome_id, genome in genomes:
-                if genome.fitness is None:
-                    failed = True
-            if failed:
+            if self.failed_genomes:
                 tries += 1
                 print()
                 print("FAILED SOME GENOME, TRYING AGAIN, time number " + str(tries))
+        for genome_id, genome in genomes:
+            genome.fitness = np.mean(genome.fitness)
         print()
         pool.close()
         return tries
@@ -740,12 +747,17 @@ class EcosystemEvolutionExperiment(GeneralEvolutionaryExperiment):
         all_goals = []
         for index in gen_indices:
             p = self.restore_checkpoint(os.path.join(self.checkpt_dir, self.MOST_RECENT(self.checkpt_dir)[index]))
-            winner = max([p.population[g] for g in p.population], key=lambda genome: genome.fitness)
-            winner_net = neat.nn.FeedForwardNetwork.create(winner, self.config)
-            exp: blimpNet = self.exp_maker(net=winner_net, wakeup=wakeup)
-            goals = exp.experiments(trials=trials)
-            exp.kill()
-            all_goals.append(goals)
+            global_population = []
+            for genome_id in p.population:
+                global_population.append(p.population[genome_id])
+            for t in range(trials):
+                eco = []
+                for i in range(self.num_agents):
+                    eco.append(global_population[np.random.randint(0, len(global_population))])
+                exp: blimpNet = self.exp_maker(nets=lambda i: eco[i], wakeup=wakeup)
+                goals = exp.experiments(trials=1)
+                exp.kill()
+                all_goals.append(goals)
         return all_goals
 
 
