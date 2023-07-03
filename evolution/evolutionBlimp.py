@@ -208,8 +208,8 @@ class EvolutionExperiment:
                 time.sleep(sleeptime)
         if num_sim_range:
             def_stdev = 100
-            if self.bandits[self.current_num_sims]:
-                arr = self.bandits[self.current_num_sims]
+            arr = self.bandits[self.current_num_sims]
+            if arr:
                 mean = np.mean(arr)
                 stdev = np.std(arr) if len(arr) > 1 else def_stdev
                 sample = np.random.normal(mean, stdev)
