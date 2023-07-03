@@ -46,13 +46,15 @@ parser.add_argument("--port_step", type=int, required=False, default=2,
 parser.add_argument("--overwrite", action="store_true", required=False,
                     help="whether to overwrite start instead of starting at recent checkpoint")
 parser.add_argument("--show", action="store_true", required=False,
+                    help="whether to show stats of all gens")
+parser.add_argument("--show_result", action="store_true", required=False,
                     help="whether to show result at end")
 args = parser.parse_args()
 AGENTS = args.agents
 gens = args.generations
 RANGE = args.range
 if args.sims_low >= 1:
-    if not args.sims_low<=args.num_sims or not args.num_sims<args.sims_high:
+    if not args.sims_low <= args.num_sims or not args.num_sims < args.sims_high:
         raise Exception("bruh")
 END = 60
 h_low = args.height_lower
@@ -111,4 +113,6 @@ if gens:
              num_sim_range=None if args.sims_low < 1 else (args.sims_low, args.sims_high)
              )
 if args.show:
-    print(ee.result_of_experiment(gen_indices=[0,1,2,3]))
+    ee.show_stats()
+if args.show_result:
+    print(ee.result_of_experiment(gen_indices=[0, 1, 2, 3]))

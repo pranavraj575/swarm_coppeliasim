@@ -387,6 +387,36 @@ class GeneralEvolutionaryExperiment:
         """
         raise NotImplementedError()
 
+    def show_stats(self):
+
+        if self.MOST_RECENT(self.checkpt_dir) is None:
+            raise Exception("DIRECTORY EMPTY: " + self.checkpt_dir)
+        else:
+            wakeup = []
+        all_goals = []
+        for direct in self.MOST_RECENT(self.checkpt_dir):
+            print(direct)
+            p = self.restore_checkpoint(os.path.join(self.checkpt_dir, direct))
+            fitnesses = [p.population[g].fitness for g in p.population]
+            print('best fitness:', max(fitnesses))
+            print('mean fitness:', np.mean(fitnesses))
+            print('stdev fitness:', np.std(fitnesses))
+            print('species:')
+            specy=p.species.species
+            for specid in specy:
+                print('\tid:',specid)
+                print('\t\tfitness:',specy[specid].fitness)
+                print('\t\tadjusted fitness:',specy[specid].adjusted_fitness)
+                #print('\tfitness history:',specy[specid].fitness_history)
+                print('\t\tlast improved:',specy[specid].last_improved)
+                print('\t\tmembers:',len(specy[specid].members))
+                print('\t\tcreated:',specy[specid].created)
+
+            winner = max([p.population[g] for g in p.population], key=lambda genome: genome.fitness)
+            winner_net = neat.nn.FeedForwardNetwork.create(winner, self.config)
+            print()
+        return all_goals
+
     ####################################################################################################################
     # utility functions
     ####################################################################################################################
