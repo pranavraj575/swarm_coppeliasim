@@ -68,6 +68,8 @@ class ecosystem_xy_wall_climb(xy_wall_climb_blimp):
 
     def goal_data(self):
         val = super().goal_data()
+        if val is None:
+            return None
         return [val for _ in range(self.num_agents)]
 
 parser = argparse.ArgumentParser(description="for creating and running wall climbing evolutionary experiments")
