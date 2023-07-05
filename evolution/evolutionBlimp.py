@@ -68,7 +68,7 @@ def ecosystem_eval_genoms(ecosystem_exp_maker,
     @note: this is defined at top level so that pool processing works,
         this will always be called inside EvolutionExperiment in practice
     """
-    networks = [neat.nn.FeedForwardNetwork.create(genome, config) for genomeid, genome in genomes]
+    networks = [neat.nn.FeedForwardNetwork.create(genome, config) for genome in genomes]
     exp: blimpNet = ecosystem_exp_maker(nets=lambda i: networks[i], sim=None, port=port, wakeup=None)
     goals = exp.experiments(trials=TRIALS)
     if goals is None:
@@ -223,7 +223,7 @@ class GeneralEvolutionaryExperiment:
             self.bandits = {k: [] for k in range(num_sim_range[0], num_sim_range[1])}
             self.failure = {k: False for k in self.bandits}
         else:
-            self.bandits = {num_simulators: 0}
+            self.bandits = {num_simulators: []}
             self.failure = {num_simulators: False}
         self.current_num_sims = num_simulators
         if restore and self.MOST_RECENT(self.checkpt_dir) is not None:
@@ -502,7 +502,7 @@ class EvolutionExperiment(GeneralEvolutionaryExperiment):
                         print('failed genome:', self.processes[zmqport]['genome order'])
                         print()
                     if debug and fitness is not None:
-                            print('got genome:', self.processes[zmqport]['genome order'])
+                        print('got genome:', self.processes[zmqport]['genome order'])
         return done
 
     def inner_loop(self, genomes, config, TRIALS, evaluate_each_gen, sleeptime, debug):
@@ -523,8 +523,9 @@ class EvolutionExperiment(GeneralEvolutionaryExperiment):
         """
         pool = Pool(processes=self.current_num_sims)
         failed = True
-        tries = 1
+        tries = 0
         while failed:
+            tries += 1
             j = 0
             failed = False
             for genome_id, genome in genomes:
@@ -686,11 +687,15 @@ class EcosystemEvolutionExperiment(GeneralEvolutionaryExperiment):
         """
         pool = Pool(processes=self.current_num_sims)
         self.failed_genomes = []
-        tries = 1
+        tries = 0
         global_polulation = []
         for genome_id, genome in genomes:
             global_polulation.append(genome)
-        while tries == 1 or self.failed_genomes:
+            if not self.just_restored:
+                genome.fitness = None
+                # needs to be set manually because sometimes it carries over
+        while tries == 0 or self.failed_genomes:
+            tries += 1
             j = 0
             if tries == 1:
                 todo = global_polulation
@@ -704,7 +709,7 @@ class EcosystemEvolutionExperiment(GeneralEvolutionaryExperiment):
                     # if we just restored, we can skip evaluating this generation
                     skip = True
 
-                print(('skipping' if skip else 'evaluating') + ' genome ' + str(j) + '/' + str(config.pop_size),
+                print(('skipping' if skip else 'evaluating') + ' genome ' + str(j) + '/' + str(len(todo)),
                       end=('\n' if debug else '\r'))
                 if skip:
                     continue
@@ -730,7 +735,7 @@ class EcosystemEvolutionExperiment(GeneralEvolutionaryExperiment):
                                                                                       args=
                                                                                       [
                                                                                           self.exp_maker,
-                                                                                          genomes,
+                                                                                          eco,
                                                                                           config,
                                                                                           zmqport,
                                                                                           TRIALS,

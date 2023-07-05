@@ -124,7 +124,7 @@ RANGE = args.range
 if args.sims_low >= 1:
     if not args.sims_low <= args.num_sims or not args.num_sims < args.sims_high:
         raise Exception("bruh")
-END = 15
+END = 1
 h_low = args.height_lower
 h_upp = args.height_upper
 
@@ -138,7 +138,7 @@ def eco_expe_make(nets, sim=None, port=23000, wakeup=None):
                                           start_zone=SPAWN_ZONE,
                                           scenePath=caged_wall_climb_path,
                                           blimpPath=narrow_blimp_path,
-                                          networkfns=lambda i:nets[i].activate,
+                                          networkfns=lambda i:nets(i).activate,
                                           end_time=END,
                                           rng=RANGE,
                                           height_range=(h_low, h_upp),
@@ -164,7 +164,7 @@ if not os.path.exists(checkpt_dir):
 ee = EcosystemEvolutionExperiment(checkpt_dir=checkpt_dir,
                                   ecosystem_exp_maker=eco_expe_make,
                                   num_agents=AGENTS,
-                                  config_name='blimp_wall')
+                                  config_name='blimp_wall_test')
 if gens:
     port_step = args.port_step
     zmq_def_port = 23000 + port_step*args.offset
@@ -179,7 +179,8 @@ if gens:
              zmq_def_port=zmq_def_port,
              websocket_def_port=websocket_def_port,
              port_step=port_step,
-             num_sim_range=None if args.sims_low < 1 else (args.sims_low, args.sims_high)
+             num_sim_range=None if args.sims_low < 1 else (args.sims_low, args.sims_high),
+             debug=True
              )
 if args.show:
     ee.show_stats()
