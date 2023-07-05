@@ -98,37 +98,6 @@ class blimpNet(BlimpExperiment):
         """
         raise NotImplementedError()
 
-T=TypeVar('T')
-class Ecosystem(Generic[T]):
-    def __init__(self,**kwargs):
-        super().__init__(**kwargs)
-        self.networks = self.network
-
-    ####################################################################################################################
-    # Expiriment functions
-    ####################################################################################################################
-    def step(self):
-        """
-        step to take continuously during an experiment
-        (should probably include a pause, since this will be running continuously)
-
-        @return: boolean, whether or not experiment is done
-        """
-        self.spin()
-        for agent_id in self.agentData:
-            network = self.networks(agent_id)
-            z = network(self.get_network_input(agent_id))
-            vec = self.get_vec_from_net_ouput(z, agent_id)
-            self.move_agent(agent_id, vec)
-        t = self.sim.getSimulationTime()
-        # print('cycle time:',t-self.last_time,end='\r')
-        self.last_time = t
-        return self.end_test()
-
-    def goal_data(self):
-        val = super().goal_data()
-        return [val for _ in range(self.num_agents)]
-
 class ecosystemBlimpNet(BlimpExperiment):
     def __init__(self,
                  num_agents,

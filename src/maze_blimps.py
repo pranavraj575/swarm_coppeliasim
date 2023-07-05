@@ -1,5 +1,4 @@
 from src.network_blimps import *
-# from pymaze.src.maze_manager import MazeManager
 from pymaze.src.maze import Maze
 
 maze_view_path = os.path.join(DIR, 'scenes', 'maze_view.ttt')

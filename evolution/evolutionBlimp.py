@@ -68,16 +68,15 @@ def ecosystem_eval_genoms(ecosystem_exp_maker,
     @note: this is defined at top level so that pool processing works,
         this will always be called inside EvolutionExperiment in practice
     """
-    nets = [neat.nn.FeedForwardNetwork.create(genome, config) for genome in genomes]
-
-    exp: blimpNet = ecosystem_exp_maker(net=lambda i: nets[i], sim=None, port=port, wakeup=None)
+    networks = [neat.nn.FeedForwardNetwork.create(genome, config) for genomeid, genome in genomes]
+    exp: blimpNet = ecosystem_exp_maker(nets=lambda i: networks[i], sim=None, port=port, wakeup=None)
     goals = exp.experiments(trials=TRIALS)
     if goals is None:
         # process failed
         fitness = None
     else:
         fitness = []
-        for i in range(len(nets)):
+        for i in range(len(networks)):
             fitness.append(sum(goal[i] for goal in goals)/TRIALS)
     exp.close_zmq()
     del exp
@@ -402,15 +401,15 @@ class GeneralEvolutionaryExperiment:
             print('mean fitness:', np.mean(fitnesses))
             print('stdev fitness:', np.std(fitnesses))
             print('species:')
-            specy=p.species.species
+            specy = p.species.species
             for specid in specy:
-                print('\tid:',specid)
-                print('\t\tfitness:',specy[specid].fitness)
-                print('\t\tadjusted fitness:',specy[specid].adjusted_fitness)
-                #print('\tfitness history:',specy[specid].fitness_history)
-                print('\t\tlast improved:',specy[specid].last_improved)
-                print('\t\tmembers:',len(specy[specid].members))
-                print('\t\tcreated:',specy[specid].created)
+                print('\tid:', specid)
+                print('\t\tfitness:', specy[specid].fitness)
+                print('\t\tadjusted fitness:', specy[specid].adjusted_fitness)
+                # print('\tfitness history:',specy[specid].fitness_history)
+                print('\t\tlast improved:', specy[specid].last_improved)
+                print('\t\tmembers:', len(specy[specid].members))
+                print('\t\tcreated:', specy[specid].created)
 
             winner = max([p.population[g] for g in p.population], key=lambda genome: genome.fitness)
             winner_net = neat.nn.FeedForwardNetwork.create(winner, self.config)
@@ -498,10 +497,11 @@ class EvolutionExperiment(GeneralEvolutionaryExperiment):
                     self.processes[zmqport]['genome'].fitness = fitness
                     self.processes[zmqport]['genome'] = None
                     self.processes[zmqport]['pool_worker'] = None
-                    if debug:
-                        if fitness is None:
-                            print('failed genome:', self.processes[zmqport]['genome order'])
-                        else:
+                    if fitness is None:
+                        print()
+                        print('failed genome:', self.processes[zmqport]['genome order'])
+                        print()
+                    if debug and fitness is not None:
                             print('got genome:', self.processes[zmqport]['genome order'])
         return done
 
