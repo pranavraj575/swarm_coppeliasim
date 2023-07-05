@@ -494,15 +494,16 @@ class EvolutionExperiment(GeneralEvolutionaryExperiment):
                 done = False
                 if self.processes[zmqport]['pool_worker'].ready():
                     fitness = self.processes[zmqport]['pool_worker'].get()
+                    if fitness is None:
+                        self.failed_genomes.append(self.processes[zmqport]['genome'])
                     self.processes[zmqport]['genome'].fitness = fitness
                     self.processes[zmqport]['genome'] = None
                     self.processes[zmqport]['pool_worker'] = None
-                    if fitness is None:
-                        print()
-                        print('failed genome:', self.processes[zmqport]['genome order'])
-                        print()
-                    if debug and fitness is not None:
-                        print('got genome:', self.processes[zmqport]['genome order'])
+                    if debug:
+                        if fitness is None:
+                            print('failed genome:', self.processes[zmqport]['genome order'])
+                        if fitness is not None:
+                            print('got genome:', self.processes[zmqport]['genome order'])
         return done
 
     def inner_loop(self, genomes, config, TRIALS, evaluate_each_gen, sleeptime, debug):
@@ -522,13 +523,21 @@ class EvolutionExperiment(GeneralEvolutionaryExperiment):
             if more than 1, some error probably happened
         """
         pool = Pool(processes=self.current_num_sims)
-        failed = True
+        self.failed_genomes = []
         tries = 0
-        while failed:
+        global_polulation = []
+        for genome_id, genome in genomes:
+            global_polulation.append(genome)
+        while tries == 0 or self.failed_genomes:
             tries += 1
             j = 0
-            failed = False
-            for genome_id, genome in genomes:
+            if tries == 1:
+                todo = global_polulation
+            else:
+                todo = tuple(self.failed_genomes)
+                self.failed_genomes = []
+
+            for genome in todo:
                 j += 1
                 skip = False
                 if self.just_restored:
@@ -543,7 +552,7 @@ class EvolutionExperiment(GeneralEvolutionaryExperiment):
                     # otherwise, we already did this
                     if genome.fitness is not None:
                         skip = True
-                print(('skipping' if skip else 'evaluating') + ' genome ' + str(j) + '/' + str(config.pop_size),
+                print(('skipping' if skip else 'evaluating') + ' genome ' + str(j) + '/' + str(len(todo)),
                       end=('\n' if debug else '\r'))
                 if skip:
                     continue
@@ -581,7 +590,7 @@ class EvolutionExperiment(GeneralEvolutionaryExperiment):
             for genome_id, genome in genomes:
                 if genome.fitness is None:
                     failed = True
-            if failed:
+            if self.failed_genomes:
                 tries += 1
                 print()
                 print("FAILED SOME GENOME, TRYING AGAIN, time number " + str(tries))
