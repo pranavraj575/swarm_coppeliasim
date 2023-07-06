@@ -519,6 +519,7 @@ class travelingSalesBlimp(BlimpExperiment):
     def local_search_partitions(self, init_parts, checked=None):
         """
         local searches starting from init_parts as seeds
+            keeps track of len(init_parts) local optima at each iteration
 
         @param init_parts: initial partitions to check
         @param checked: already ruled out partitions, defaults to nothing
@@ -526,27 +527,34 @@ class travelingSalesBlimp(BlimpExperiment):
                 elements are handles of POIs for each agent to visit
         """
 
-        part = None
-        obj = -float('inf')
+        parts = init_parts
+        objs = [self.get_disc_entropy_from_part(part) for part in parts]
+        dones = [False for _ in range(len(init_parts))]
         if checked is None:
-            checked = set()
-        while True:
+            checked = {self.string_from_part(part) for part in parts}
+        while not all(dones):
             if self.debug:
-                print('best partition found:', part)
-                print('info gain:', obj)
-            best = None, None
-            for neighbor in (init_parts if part is None else self.get_neighbors(part)):
-                string = self.string_from_part(neighbor)
-                if string in checked: continue
-                checked.add(string)
-                ob = self.get_disc_entropy_from_part(neighbor)
-                if ob > obj and (best[1] is None or ob > best[1]):
-                    best = (neighbor, ob)
-            if best[0] is None:
-                break
-            part = best[0]
-            obj = best[1]
-        return part
+                print('best partitions found:', parts)
+                print('info gain:', objs)
+                print('local optima:', dones)
+            for i, part in enumerate(parts):
+                if dones[i]:
+                    continue
+                best = None, None
+                obj = objs[i]
+                for neighbor in self.get_neighbors(part):
+                    string = self.string_from_part(neighbor)
+                    if string in checked: continue
+                    checked.add(string)
+                    ob = self.get_disc_entropy_from_part(neighbor)
+                    if ob > obj and (best[1] is None or ob > best[1]):
+                        best = (neighbor, ob)
+                if best[0] is None:
+                    dones[i] = True
+                else:
+                    parts[i], objs[i] = best
+        best_part = parts[max(range(len(parts)), key=lambda i: objs[i])]
+        return best_part
 
     def make_local_search_partition(self):
         """
