@@ -587,9 +587,6 @@ class EvolutionExperiment(GeneralEvolutionaryExperiment):
                 # i.e. when collect_genome_fitnesses returns True
                 time.sleep(sleeptime)
 
-            for genome_id, genome in genomes:
-                if genome.fitness is None:
-                    failed = True
             if self.failed_genomes:
                 tries += 1
                 print()
