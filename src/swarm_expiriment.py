@@ -50,7 +50,6 @@ class Experiment:
             client = RemoteAPIClient(port=simId)
             self.sim = client.getObject('sim')
 
-
     ####################################################################################################################
     # init/shutdown functions (needs implementation in subclass)
     ####################################################################################################################
@@ -76,11 +75,13 @@ class Experiment:
                 proc.kill()
             process.kill()
         self.procs = []
+
     def close_zmq(self):
         """
         closes the zmq socket
         """
         del self.sim
+
     ####################################################################################################################
     # utility functions
     ####################################################################################################################
@@ -525,6 +526,56 @@ class BlimpExperiment(Experiment):
                                              l=1,
                                              k=k,
                                              spin=spin)[0]
+
+    def get_inv_dist_3d_l_k_ant(self, agent_id, is_neigh, l=2, k=8, min_dist=.01, spin=True):
+        """
+        gets inverse distance from nearest neighbor in each l,k-ant (0 if no neighbor)
+            i.e. l=2, k=1 is equivalent to 'north hemisphere, south hemisphere'
+            l=2 k=4 is equivalent to octants of a sphere
+
+        @param agent_id: agent id
+        @param is_neigh: agent_id0 x agent_id1 -> bool; returns if agent 1 is a neighbor of agent 0
+        @param l: divisions of phi to consider when using spherical coordinates
+        @param k: divisions of theta to consider when using spherical coordinates
+        @param min_dist: lowest distance to sense, to avoid division by 0
+        @param spin: whether to update all agents before checking neighbors
+        @rtype: N^(l x k) array
+        @return: return[i][j] specifies number of neighbors in the range phi=pi*[i,i+1)/l and theta=2*pi*[j,j+1)/k
+        """
+        neighbors = self._gen_get_neighbors(agent_id=agent_id, is_neigh=is_neigh, spin=spin)
+        output = [[0 for _ in range(k)] for _ in range(l)]
+        pos = self.get_position(agent_id, use_ultra=False, spin=False)
+        for neigh_id in neighbors:
+            neigh_pos = self.get_position(neigh_id, use_ultra=False, spin=False)
+            vec = neigh_pos - pos
+            d = np.linalg.norm(vec)
+            if d < min_dist:
+                d = min_dist
+            l_tant, k_tant = self._get_l_k_tant(vec=vec, l=l, k=k)
+            output[l_tant][k_tant] = max(output[l_tant][k_tant], 1/d)
+        return np.array(output)
+
+    def get_inv_dist_2d_k_ant(self, agent_id, is_neigh, k=8, min_dist=.01, spin=True):
+        """
+        gets count of neighbors in each k-ant
+            i.e. k=4 is equivalent to quadrants of the xy plane
+
+        @param agent_id: agent id
+        @param is_neigh: agent_id0 x agent_id1 -> bool; returns if agent 1 is a neighbor of agent 0
+        @param k: divisions of theta to consider when using spherical coordinates
+        @param min_dist: lowest distance to sense, to avoid division by 0
+        @param spin: whether to update all agents before checking neighbors
+        @rtype: N^k array
+        @return: return[i] specifies number of neighbors in the approximate direction ()
+
+        @note: when getting neighbors with range, z direction is considered,
+        """
+        return self.get_inv_dist_3d_l_k_ant(agent_id=agent_id,
+                                            is_neigh=is_neigh,
+                                            l=1,
+                                            k=k,
+                                            min_dist=min_dist,
+                                            spin=spin)[0]
 
     ####################################################################################################################
     # utility functions
