@@ -27,10 +27,11 @@ class travelingSalesBlimp(BlimpExperiment):
                  spawn_tries=100,
                  scenePath=empty_path,
                  blimpPath=narrow_blimp_path,
-                 goalPath=os.path.join(DIR,"models","goal.ttm"),
+                 goalPath=os.path.join(DIR, "models", "goal.ttm"),
                  speed=.5,
                  blimp_tol=.2,
                  depot_tol=1.,
+                 debug=False,
                  ):
         """
         Class to run a TSP problem with blimps. The 'experiment' will just run a predetermined path for each blimp
@@ -61,6 +62,7 @@ class travelingSalesBlimp(BlimpExperiment):
         @param speed: max speed to move the blimps at
         @param blimp_tol: space around target that blimps are registered as 'touching' target
         @param depot_tol: space around depot that blimps are registered as at depot
+        @param debug: boolean, whether to print debug stuff
         """
         if not converge_tol and grads_per_epoch == float('inf'):
             raise Exception('this cant happen')
@@ -94,6 +96,7 @@ class travelingSalesBlimp(BlimpExperiment):
         self.dwell_solution = dict()
         self.non_depot_handles = None
         self.times_created = False
+        self.debug = debug
 
     ####################################################################################################################
     # init/shutdown functions (needs implementation in subclass)
@@ -205,6 +208,50 @@ class travelingSalesBlimp(BlimpExperiment):
         @return: 0, this is not important here
         """
         return 0
+
+    ####################################################################################################################
+    # Cost functions
+    ####################################################################################################################
+    def cost_fn(self, h1, h2):
+        """
+        returns cost (euclidean distance) between two POIs
+
+        @param h1: handle 1
+        @param h2: handle 2
+        @return: euclidean distance
+        """
+        return np.linalg.norm(self.pointData[h1]['pos'] - self.pointData[h2]['pos'])
+
+    def get_cost(self, h1, h2, use_dict=True):
+        """
+        returns cost (defined in cost_fn) between two POIs
+
+        @param h1: handle 1
+        @param h2: handle 2
+        @param use_dict: whether to calculate every time or use lookup table
+        @return: cost
+        """
+        if use_dict:
+            if h2 not in self.pointData[h1]['edge_cost']:
+                cost = self.cost_fn(h1, h2)
+                self.pointData[h1]['edge_cost'][h2] = cost
+            return self.pointData[h1]['edge_cost'][h2]
+        else:
+            return self.cost_fn(h1, h2)
+
+    def get_path_cost(self, path):
+        """
+        returns total path cost of a path around POIS
+
+        @param path: list of POI handles
+        @return: path cost (using costs defined in cost_fn)
+        """
+        S = 0
+        for i in range(len(path) - 1):
+            h1 = path[i]
+            h2 = path[i + 1]
+            S += self.get_cost(h1, h2)
+        return S
 
     ####################################################################################################################
     # entropy functions
@@ -348,7 +395,7 @@ class travelingSalesBlimp(BlimpExperiment):
         if len(handles) < 3:
             return handles
         fn = 'temp' + str(time.time()).replace('.', '_') + '.txt'
-        fn=os.path.join(DIR,fn)
+        fn = os.path.join(DIR, fn)
         f = open(fn, 'w')
         f.write('TYPE : TSP\n')
         f.write('DIMENSION : ' + str(len(handles)) + '\n')
@@ -367,6 +414,12 @@ class travelingSalesBlimp(BlimpExperiment):
         return [node_to_key[i] for i in lis[0]]
 
     def make_goal_partition(self):
+        return self.make_kmeans_partition()
+
+    ####################################################################################################################
+    # K-means partitioning
+    ####################################################################################################################
+    def make_kmeans_partition(self):
         """
         default partition solver, currently used KMeans
             partitions the goals into a list for each blimp (order does not matter)
@@ -380,135 +433,10 @@ class travelingSalesBlimp(BlimpExperiment):
 
         for i, lab in enumerate(kmeans.labels_):
             output[lab].append(H[i])
-        return (output)
-
-    def cost_fn(self, h1, h2):
-        """
-        returns cost (euclidean distance) between two POIs
-
-        @param h1: handle 1
-        @param h2: handle 2
-        @return: euclidean distance
-        """
-        return np.linalg.norm(self.pointData[h1]['pos'] - self.pointData[h2]['pos'])
-
-    def get_cost(self, h1, h2, use_dict=True):
-        """
-        returns cost (defined in cost_fn) between two POIs
-
-        @param h1: handle 1
-        @param h2: handle 2
-        @param use_dict: whether to calculate every time or use lookup table
-        @return: cost
-        """
-        if use_dict:
-            if h2 not in self.pointData[h1]['edge_cost']:
-                cost = self.cost_fn(h1, h2)
-                self.pointData[h1]['edge_cost'][h2] = cost
-            return self.pointData[h1]['edge_cost'][h2]
-        else:
-            return self.cost_fn(h1, h2)
-
-    def get_path_cost(self, path):
-        """
-        returns total path cost of a path around POIS
-
-        @param path: list of POI handles
-        @return: path cost (using costs defined in cost_fn)
-        """
-        S = 0
-        for i in range(len(path) - 1):
-            h1 = path[i]
-            h2 = path[i + 1]
-            S += self.get_cost(h1, h2)
-        return S
-
-
-
-class spectralBlimp(travelingSalesBlimp):
-    def __init__(self,
-                 num_agents,
-                 start_zone,
-                 num_points,
-                 spawn_pt_info,
-                 alpha,
-                 depot,
-                 scenePath=empty_path,
-                 blimpPath=narrow_blimp_path,
-                 goalPath=os.path.join(DIR,"models","goal.ttm"),
-                 speed=.5,
-                 blimp_tol=.2,
-                 depot_tol=.1,
-                 lr=.001,
-                 epochs=10,
-                 grads_per_epoch=float('inf'),
-                 converge_tol=1E-12,
-                 sim=None,
-                 simId=23000,
-                 msg_queue=10,
-                 wakeup=None,
-                 sleeptime=1,
-                 spawn_tries=100,
-                 debug=False,
-                 ):
-        """
-        Uses spectral clustering to partition the POIs
-            https://chrisyeh96.github.io/2021/03/06/k-way-spectral-clustering.html#k-way-clustering
-
-        @param num_agents: number of blimps in this swarm expiriment
-        @param start_zone: int -> (RxR U R)^3 goes from the blimp number to the spawn area
-                (each dimension could be (value) or (low, high), chosen uniformly at random)
-        @param num_points: number of points to spawn
-        @param spawn_pt_info: N -> dict; given point index i, spawns dictionary with ith point's position and tau
-                required keys: ['pos', 'tau']
-        @param alpha: alpha parameter for time discounting entropy
-        @param depot: unique POI that blimps must start at and return to
-        @param scenePath: path to coppeliasim scene
-        @param blimpPath: path to blimp for spawning
-        @param goalPath: path to object to indicate POI
-        @param speed: max speed to move the blimps at
-        @param blimp_tol: space around target that blimps are registered as 'touching' target
-        @param depot_tol: space around depot that blimps are registered as at depot
-        @param lr: learning rate for ADAM gradient descent
-        @param epochs: number of epochs to run grad descent
-        @param grads_per_epoch: number of trials per epoch, float('inf') if just use converge_tol
-        @param converge_tol: tolerance to converge grad descent, None if just use grads_per_epoch
-        @param sim: simulator, if already defined
-        @param simId: simulator id, used to pass messages to correct topics
-        @param msg_queue: queue length of ROS messages
-        @param wakeup: code to run in command line before starting experiment
-        @param sleeptime: time to wait before big commands (i.e. stop simulation, start simulation, pause simulation)
-        @param spawn_tries: number of tries to spawn without collisions before giving up
-                if 1, then sets position, does not change if collision detected
-        @param debug: boolean, whether to print debug stuff
-        """
-        super().__init__(num_agents=num_agents,
-                         start_zone=start_zone,
-                         num_points=num_points,
-                         spawn_pt_info=spawn_pt_info,
-                         alpha=alpha,
-                         depot=depot,
-                         depot_tol=depot_tol,
-                         scenePath=scenePath,
-                         blimpPath=blimpPath,
-                         goalPath=goalPath,
-                         speed=speed,
-                         blimp_tol=blimp_tol,
-                         lr=lr,
-                         epochs=epochs,
-                         grads_per_epoch=grads_per_epoch,
-                         converge_tol=converge_tol,
-                         sim=sim,
-                         simId=simId,
-                         msg_queue=msg_queue,
-                         wakeup=wakeup,
-                         sleeptime=sleeptime,
-                         spawn_tries=spawn_tries
-                         )
-        self.debug = debug
+        return output
 
     ####################################################################################################################
-    # TSP/partition functions
+    # Spectral partitioning
     ####################################################################################################################
     def make_laplacian(self):
         """
@@ -517,148 +445,77 @@ class spectralBlimp(travelingSalesBlimp):
         edge weights are negative distance (plus some constant to make all of them positive)
             This is negated since higher connectivity should be correlated with smaller distance
         """
-        H=self.non_depot_handles
-        n=len(H)
-        A=np.zeros((n,n))
-        max_dist=0
+        H = self.non_depot_handles
+        n = len(H)
+        A = np.zeros((n, n))
+        max_dist = 0
         for i in range(n):
-            for j in range(i+1, n):
-                c=self.get_cost(H[i],H[j])
-                c=np.exp(-c)
+            for j in range(i + 1, n):
+                c = self.get_cost(H[i], H[j])
+                c = np.exp(-c)
                 # since we are minimizing the sum of costs, larger connectivity should be correlated with less cost
-                A[i][j]=c
-                A[j][i]=c
-                max_dist=max(c,max_dist)
-        #A=max_dist-A        
+                A[i][j] = c
+                A[j][i] = c
+                max_dist = max(c, max_dist)
+        # A=max_dist-A
         # since we are minimizing the sum of costs, larger connectivity should be correlated with less cost
-        row_sums=np.sum(A,axis=1)
-        D=np.zeros((n,n))
+        row_sums = np.sum(A, axis=1)
+        D = np.zeros((n, n))
         for i in range(n):
-            D[i][i]=row_sums[i]
-        return D-A
+            D[i][i] = row_sums[i]
+        return D - A
 
-
-
-    def make_goal_partition(self):
+    def make_spectral_partition(self):
         """
         @return: list of lists, length num_agents, total number of elements must be num_points (ignores depot)
                 elements are handles of POIs for each agent to visit
-        
+
         https://chrisyeh96.github.io/2021/03/06/k-way-spectral-clustering.html#k-way-clustering
         https://dl.acm.org/doi/10.5555/2980539.2980649
         """
-        k=self.num_agents
-        H=self.non_depot_handles
-        if k>len(H):
+        k = self.num_agents
+        H = self.non_depot_handles
+        if k > len(H):
             # if we outnumber the number of POIs, just send one blimp to each POI
-            return [[h] for h in H]+[[] for _ in range(k-len(H))]
-        L=self.make_laplacian()
+            return [[h] for h in H] + [[] for _ in range(k - len(H))]
+        L = self.make_laplacian()
         print(L)
-        eigenvalues,eigenvectors=np.linalg.eig(L)
-        F=eigenvectors[:,0:k] # the k smallest eigenvectors
+        eigenvalues, eigenvectors = np.linalg.eig(L)
+        F = eigenvectors[:, 0:k]  # the k smallest eigenvectors
         # now F[i,:] is the 'feature vector' of the ith POI
         for i in range(len(F)):
-            F[i,:]=F[i,:]/np.linalg.norm(F[i,:])
+            F[i, :] = F[i, :]/np.linalg.norm(F[i, :])
             # the norm will never be 0 since the first eigenvector should be all 1s
-        
+
         # now we will cluster the feature vector according to k-means
-        kmeans = KMeans(n_clusters=self.num_agents, n_init=10).fit(np.array([F[i,:] for i in range(len(H))]))
+        kmeans = KMeans(n_clusters=self.num_agents, n_init=10).fit(np.array([F[i, :] for i in range(len(H))]))
         output = [[] for _ in range(self.num_agents)]
         for i, lab in enumerate(kmeans.labels_):
             output[lab].append(H[i])
-
         return output
 
-class localSearchBlimp(travelingSalesBlimp):
-    def __init__(self,
-                 num_agents,
-                 start_zone,
-                 num_points,
-                 spawn_pt_info,
-                 alpha,
-                 depot,
-                 partition_functions=None,
-                 scenePath=empty_path,
-                 blimpPath=narrow_blimp_path,
-                 goalPath=os.path.join(DIR,"models","goal.ttm"),
-                 speed=.5,
-                 blimp_tol=.2,
-                 depot_tol=.1,
-                 lr=.001,
-                 epochs=10,
-                 grads_per_epoch=float('inf'),
-                 converge_tol=1E-12,
-                 sim=None,
-                 simId=23000,
-                 msg_queue=10,
-                 wakeup=None,
-                 sleeptime=1,
-                 spawn_tries=100,
-                 debug=False,
-                 ):
-        """
-        uses local search on top of partitioning methods specified
-
-        @param num_agents: number of blimps in this swarm expiriment
-        @param start_zone: int -> (RxR U R)^3 goes from the blimp number to the spawn area
-                (each dimension could be (value) or (low, high), chosen uniformly at random)
-        @param num_points: number of points to spawn
-        @param spawn_pt_info: N -> dict; given point index i, spawns dictionary with ith point's position and tau
-                required keys: ['pos', 'tau']
-        @param alpha: alpha parameter for time discounting entropy
-        @param depot: unique POI that blimps must start at and return to
-        @param partition_functions: list of functions (localSearchBlimp -> partition), will be given self as an argument
-                if None, just uses the default KMeans
-        @param scenePath: path to coppeliasim scene
-        @param blimpPath: path to blimp for spawning
-        @param goalPath: path to object to indicate POI
-        @param speed: max speed to move the blimps at
-        @param blimp_tol: space around target that blimps are registered as 'touching' target
-        @param depot_tol: space around depot that blimps are registered as at depot
-        @param lr: learning rate for ADAM gradient descent
-        @param epochs: number of epochs to run grad descent
-        @param grads_per_epoch: number of trials per epoch, float('inf') if just use converge_tol
-        @param converge_tol: tolerance to converge grad descent, None if just use grads_per_epoch
-        @param sim: simulator, if already defined
-        @param simId: simulator id, used to pass messages to correct topics
-        @param msg_queue: queue length of ROS messages
-        @param wakeup: code to run in command line before starting experiment
-        @param sleeptime: time to wait before big commands (i.e. stop simulation, start simulation, pause simulation)
-        @param spawn_tries: number of tries to spawn without collisions before giving up
-                if 1, then sets position, does not change if collision detected
-        @param debug: boolean, whether to print debug stuff
-        """
-        super().__init__(num_agents=num_agents,
-                         start_zone=start_zone,
-                         num_points=num_points,
-                         spawn_pt_info=spawn_pt_info,
-                         alpha=alpha,
-                         depot=depot,
-                         depot_tol=depot_tol,
-                         scenePath=scenePath,
-                         blimpPath=blimpPath,
-                         goalPath=goalPath,
-                         speed=speed,
-                         blimp_tol=blimp_tol,
-                         lr=lr,
-                         epochs=epochs,
-                         grads_per_epoch=grads_per_epoch,
-                         converge_tol=converge_tol,
-                         sim=sim,
-                         simId=simId,
-                         msg_queue=msg_queue,
-                         wakeup=wakeup,
-                         sleeptime=sleeptime,
-                         spawn_tries=spawn_tries
-                         )
-        self.debug = debug
-        if partition_functions is None:
-            partition_functions = [lambda x: super().make_goal_partition()]
-        self.partition_functions = partition_functions
-
     ####################################################################################################################
-    # TSP/partition functions
+    # local search partitioning
     ####################################################################################################################
+
+    def get_neighbors(self, partition):
+        """
+        returns all neighbors of partition attained by switching one element
+
+        @param partition: partition of non-depot POI handles, list of lists
+        """
+        for i in range(len(partition)):
+            for j in range(len(partition[i])):
+                # flip element partition[i][j]
+                ele = partition[i][j]
+                pp = copy.deepcopy(partition)
+                pp[i] = pp[i][:j] + pp[i][j + 1:]
+                for k in range(len(partition)):
+                    if k != i:
+                        temp = copy.deepcopy(pp)
+                        temp[k].append(ele)
+                        yield temp
+
     def local_search_partitions(self, init_parts, checked=None):
         """
         local searches starting from init_parts as seeds
@@ -691,13 +548,16 @@ class localSearchBlimp(travelingSalesBlimp):
             obj = best[1]
         return part
 
-    def make_goal_partition(self):
+    def make_local_search_partition(self):
         """
         @return: list of lists, length num_agents, total number of elements must be num_points (ignores depot)
                 elements are handles of POIs for each agent to visit
         """
-        return self.local_search_partitions([fun(self) for fun in self.partition_functions])
+        return self.local_search_partitions([self.make_kmeans_partition()])
 
+    ####################################################################################################################
+    # utility functions
+    ####################################################################################################################
     def string_from_part(self, part):
         """
         returns string representing partition (ith index is the partition that the ith handle is assigned to)
@@ -728,24 +588,6 @@ class localSearchBlimp(travelingSalesBlimp):
             part[int(string[i])].append(h)
         return part
 
-    def get_neighbors(self, partition):
-        """
-        returns all neighbors of partition attained by switching one element
-
-        @param partition: partition of non-depot POI handles, list of lists
-        """
-        for i in range(len(partition)):
-            for j in range(len(partition[i])):
-                # flip element partition[i][j]
-                ele = partition[i][j]
-                pp = copy.deepcopy(partition)
-                pp[i] = pp[i][:j] + pp[i][j + 1:]
-                for k in range(len(partition)):
-                    if k != i:
-                        temp = copy.deepcopy(pp)
-                        temp[k].append(ele)
-                        yield temp
-
 
 class singleBlimp(travelingSalesBlimp):
     def __init__(self,
@@ -757,7 +599,7 @@ class singleBlimp(travelingSalesBlimp):
                  depot_tol=.1,
                  scenePath=empty_path,
                  blimpPath=narrow_blimp_path,
-                 goalPath=os.path.join(DIR,"models","goal.ttm"),
+                 goalPath=os.path.join(DIR, "models", "goal.ttm"),
                  speed=.5,
                  blimp_tol=.2,
                  lr=.001,
@@ -808,7 +650,7 @@ class doubleBlimp(travelingSalesBlimp):
                  depot_tol=.1,
                  scenePath=empty_path,
                  blimpPath=narrow_blimp_path,
-                 goalPath=os.path.join(DIR,"models","goal.ttm"),
+                 goalPath=os.path.join(DIR, "models", "goal.ttm"),
                  speed=.5,
                  blimp_tol=.2,
                  lr=.001,

@@ -32,7 +32,7 @@ for i in range(pounts):
     infos.append({'pos': np.array((R*np.cos(2*np.pi*i/pounts),R*np.sin(2*np.pi*i/pounts),2)),
         'tau': 1E0})
 pounts=2*pounts
-bb = spectralBlimp(num_agents=2,
+bb = travelingSalesBlimp(num_agents=2,
                       start_zone=lambda i: depot + np.random.normal((0, 0, 0), (1, 1, 0)),
                       num_points=pounts,
                       spawn_pt_info=lambda i: infos[i],
