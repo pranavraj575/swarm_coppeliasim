@@ -500,7 +500,6 @@ class dist_sense_xy_wall_climb_blimp(xy_wall_climb_blimp):
         @param height_range: R^2, height range to keep blimps at
         @param use_ultra: whether to use ultrasound to set height (and as network input)
         @param end_time: time it takes for experiment to end
-        @param rng: range to detect neighbors
         @param height_factor: factor to multiply height adjust by
         @param sim: simulator, if already defined
         @param simId: simulator id, used to pass messages to correct topics
@@ -518,14 +517,16 @@ class dist_sense_xy_wall_climb_blimp(xy_wall_climb_blimp):
             networkfn=networkfn,
             height_range=height_range,
             use_ultra=use_ultra,
+            end_time=end_time,
+            rng=float('inf'),
             height_factor=height_factor,
             sim=sim,
             simId=simId,
             msg_queue=msg_queue,
             wakeup=wakeup,
             sleeptime=sleeptime,
-            spawn_tries=spawn_tries)
-        self.end_time = end_time
+            spawn_tries=spawn_tries,
+        )
 
     ####################################################################################################################
     # network functions
