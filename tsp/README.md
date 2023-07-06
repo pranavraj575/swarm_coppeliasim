@@ -9,3 +9,7 @@ cd LKH-3.0.6
 make
 sudo cp LKH /usr/local/bin
 ```
+
+# Setup
+
+Now to use this folder, install the dependencies with ```pip3 install -r tsp/requirements.txt```
