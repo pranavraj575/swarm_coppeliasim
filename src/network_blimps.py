@@ -471,7 +471,7 @@ class xy_wall_climb_blimp(xyBlimp):
         return self.sim.getSimulationTime() > self.end_time
 
 
-class dist_sense_xy_wall_climb_blimp(xyBlimp):
+class dist_sense_xy_wall_climb_blimp(xy_wall_climb_blimp):
     def __init__(self,
                  num_agents,
                  start_zone,

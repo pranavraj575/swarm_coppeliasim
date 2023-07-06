@@ -807,7 +807,7 @@ class ecosystemMaxAmazingBlimp(maxAmazingBlimp):
         return [val for _ in range(self.num_agents)]
 
 
-class dist_sense_max_amazing_blimp(amazingBlimp):
+class dist_sense_max_amazing_blimp(maxAmazingBlimp):
     def __init__(self,
                  num_agents,
                  scenePath,
