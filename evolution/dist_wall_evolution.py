@@ -17,12 +17,12 @@ parser.add_argument("--height_upper", type=float, required=False, default=1.2,
 
 parser.add_argument("--xmin", type=float, required=False, default=.5,
                     help="x spawning lower bound (should be > 0 so they do not spawn on other side of wall)")
-parser.add_argument("--xmax", type=float, required=False, default=8.,
+parser.add_argument("--xmax", type=float, required=False, default=11.,
                     help="x spawning upper bound")
 
-parser.add_argument("--ymin", type=float, required=False, default=-4.,
+parser.add_argument("--ymin", type=float, required=False, default=-9.,
                     help="y spawning upper bound")
-parser.add_argument("--ymax", type=float, required=False, default=4.,
+parser.add_argument("--ymax", type=float, required=False, default=9.,
                     help="y spawning upper bound")
 
 parser.add_argument("--zmin", type=float, required=False, default=.8,
