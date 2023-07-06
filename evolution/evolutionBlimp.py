@@ -500,6 +500,7 @@ class EvolutionExperiment(GeneralEvolutionaryExperiment):
                     self.processes[zmqport]['genome'] = None
                     self.processes[zmqport]['pool_worker'] = None
                     if debug:
+                        print()
                         if fitness is None:
                             print('failed genome:', self.processes[zmqport]['genome order'])
                         if fitness is not None:
@@ -672,6 +673,7 @@ class EcosystemEvolutionExperiment(GeneralEvolutionaryExperiment):
                     self.processes[zmqport]['genomes'] = None
                     self.processes[zmqport]['pool_worker'] = None
                     if debug:
+                        print()
                         if fitnesses is None:
                             print('failed genome:', self.processes[zmqport]['genome order'])
                         else:
