@@ -672,8 +672,8 @@ class k_tant_area_coverage(xyBlimp):
         points = np.random.uniform((xbound[0], ybound[0]), (xbound[1], ybound[1]), (self.sample_points, 2))
         for agent_id in self.agentData:
             xy = self.get_position(agent_id, use_ultra=False)[:2]
-            dists = np.linalg.norm(points - xy, axis=1)
-            closest = np.min((dists, closest), axis=0)
+            sq_dists = np.square(np.linalg.norm(points - xy, axis=1))
+            closest = np.min((sq_dists, closest), axis=0)
             bug = self.get_state(agent_id)["DEBUG"]
             if bug == 0.:
                 return None
@@ -876,8 +876,8 @@ class l_k_tant_area_coverage(xyzBlimp):
         points = self.sample_from_bounds(self.sample_points)
         for agent_id in self.agentData:
             xyz = self.get_position(agent_id, use_ultra=False)
-            dists = np.linalg.norm(points - xyz, axis=1)
-            closest = np.min((dists, closest), axis=0)
+            sq_dists = np.square(np.linalg.norm(points - xyz, axis=1))
+            closest = np.min((sq_dists, closest), axis=0)
             bug = self.get_state(agent_id)["DEBUG"]
             if bug == 0.:
                 return None
