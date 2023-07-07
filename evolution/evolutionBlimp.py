@@ -499,12 +499,13 @@ class EvolutionExperiment(GeneralEvolutionaryExperiment):
                     self.processes[zmqport]['genome'].fitness = fitness
                     self.processes[zmqport]['genome'] = None
                     self.processes[zmqport]['pool_worker'] = None
-                    if debug:
+                    if fitness is None: # do this anyway
                         print()
-                        if fitness is None:
-                            print('failed genome:', self.processes[zmqport]['genome order'])
-                        if fitness is not None:
-                            print('got genome:', self.processes[zmqport]['genome order'])
+                        print('failed genome:', self.processes[zmqport]['genome order'])
+                    if debug and fitness is not None:
+                        print()
+                        print('got genome:', self.processes[zmqport]['genome order'])
+
         return done
 
     def inner_loop(self, genomes, config, TRIALS, evaluate_each_gen, sleeptime, debug):
@@ -672,12 +673,12 @@ class EcosystemEvolutionExperiment(GeneralEvolutionaryExperiment):
                             # keep as list for now
                     self.processes[zmqport]['genomes'] = None
                     self.processes[zmqport]['pool_worker'] = None
-                    if debug:
+                    if fitnesses is None: # do this anyway
                         print()
-                        if fitnesses is None:
-                            print('failed genome:', self.processes[zmqport]['genome order'])
-                        else:
-                            print('got genome:', self.processes[zmqport]['genome order'])
+                        print('failed genome:', self.processes[zmqport]['genome order'])
+                    if debug and fitnesses is not None:
+                        print()
+                        print('got genome:', self.processes[zmqport]['genome order'])
         return done
 
     def inner_loop(self, genomes, config, TRIALS, evaluate_each_gen, sleeptime, debug):

@@ -615,7 +615,7 @@ class k_tant_area_coverage(xyBlimp):
             spawn_tries=spawn_tries)
         self.end_time = end_time
         self.bounds = bounds
-        self.sample_points = 10
+        self.dimension_split = int(num_agents**(1/2))
         self.obstacles = obstacles
         self.obstacle_height = obstacle_height
         self.obstacle_paths = obstacle_paths
@@ -665,20 +665,29 @@ class k_tant_area_coverage(xyBlimp):
         """
         data to return at the end of each experiment trial
 
-        @return: avg distance of closest blimp to randomly sampled points
-        TODO: deployment entropy
+        @return: deployment entropy
+            evolution/papers/Persistent Area Coverage for ...
         """
-        closest = np.array([np.inf for _ in range(self.sample_points)])
+        entropy = 0
+        boxes = np.array([[0 for _ in range(self.dimension_split)] for _ in range(self.dimension_split)])
         xbound, ybound = self.bounds
-        points = np.random.uniform((xbound[0], ybound[0]), (xbound[1], ybound[1]), (self.sample_points, 2))
         for agent_id in self.agentData:
             xy = self.get_position(agent_id, use_ultra=False)[:2]
-            sq_dists = np.square(np.linalg.norm(points - xy, axis=1))
-            closest = np.min((sq_dists, closest), axis=0)
+            x, y = xy
+            xbox = self.dimension_split*(x - xbound[0])/(xbound[1] - xbound[0])
+            ybox = self.dimension_split*(y - ybound[0])/(ybound[1] - ybound[0])
+            boxes[int(xbox)][int(ybox)] += 1
+
             bug = self.get_state(agent_id)["DEBUG"]
             if bug == 0.:
                 return None
-        return -np.mean(closest)
+
+        for x in boxes:
+            for xy in x:
+                p = xy/self.num_agents
+                if p > 0:
+                    entropy += p*np.log(1/p)
+        return entropy
 
     def end_test(self):
         """
@@ -821,7 +830,7 @@ class l_k_tant_area_coverage(xyzBlimp):
         self.end_time = end_time
         self.bounds = bounds
         self.use_ultra = use_ultra
-        self.sample_points = 10
+        self.dimension_split = int(num_agents**(1/3))
         self.l = l
         self.k = k
         self.obstacles = obstacles
@@ -871,19 +880,34 @@ class l_k_tant_area_coverage(xyzBlimp):
         """
         data to return at the end of each experiment trial
 
-        @return: avg distance of closest blimp to randomly sampled points
-        TODO: deployment entropy
+        @return: deployment entropy
+            evolution/papers/Persistent Area Coverage for ...
         """
-        closest = np.array([np.inf for _ in range(self.sample_points)])
-        points = self.sample_from_bounds(self.sample_points)
+
+        entropy = 0
+        boxes = np.array([[[0 for _ in range(self.dimension_split)]
+                           for _ in range(self.dimension_split)]
+                          for _ in range(self.dimension_split)])
+        xbound, ybound, zbound = self.bounds
         for agent_id in self.agentData:
             xyz = self.get_position(agent_id, use_ultra=False)
-            sq_dists = np.square(np.linalg.norm(points - xyz, axis=1))
-            closest = np.min((sq_dists, closest), axis=0)
+            x, y, z = xyz
+            xbox = self.dimension_split*(x - xbound[0])/(xbound[1] - xbound[0])
+            ybox = self.dimension_split*(y - ybound[0])/(ybound[1] - ybound[0])
+            zbox = self.dimension_split*(z - zbound[0])/(zbound[1] - zbound[0])
+            boxes[int(xbox)][int(ybox)][int(zbox)] += 1
+
             bug = self.get_state(agent_id)["DEBUG"]
             if bug == 0.:
                 return None
-        return -np.mean(closest)
+
+        for x in boxes:
+            for xy in x:
+                for xyz in xy:
+                    p = xyz/self.num_agents
+                    if p > 0:
+                        entropy += p*np.log(1/p)
+        return entropy
 
     def end_test(self):
         """
