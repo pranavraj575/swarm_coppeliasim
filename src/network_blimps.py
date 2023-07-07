@@ -666,6 +666,7 @@ class k_tant_area_coverage(xyBlimp):
         data to return at the end of each experiment trial
 
         @return: avg distance of closest blimp to randomly sampled points
+        TODO: deployment entropy
         """
         closest = np.array([np.inf for _ in range(self.sample_points)])
         xbound, ybound = self.bounds
@@ -871,6 +872,7 @@ class l_k_tant_area_coverage(xyzBlimp):
         data to return at the end of each experiment trial
 
         @return: avg distance of closest blimp to randomly sampled points
+        TODO: deployment entropy
         """
         closest = np.array([np.inf for _ in range(self.sample_points)])
         points = self.sample_from_bounds(self.sample_points)

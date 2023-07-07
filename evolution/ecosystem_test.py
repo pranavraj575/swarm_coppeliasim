@@ -1,6 +1,7 @@
 from src.network_blimps import *
 from evolution.evolutionBlimp import EcosystemEvolutionExperiment
-import argparse
+from evolution.arg_parser import *
+
 
 class ecosystem_xy_wall_climb(k_tant_wall_climb_blimp):
     def __init__(self,
@@ -72,61 +73,37 @@ class ecosystem_xy_wall_climb(k_tant_wall_climb_blimp):
             return None
         return [val for _ in range(self.num_agents)]
 
-parser = argparse.ArgumentParser(description="for creating and running wall climbing evolutionary experiments")
-parser.add_argument("-a", "--agents", type=int, required=False, default=20,
-                    help="Specify number of agents")
-parser.add_argument("-g", "--generations", type=int, required=False, default=0,
-                    help="generations to train for")
-parser.add_argument("--create", action="store_true", required=False,
-                    help="whether to create new directory")
+PARSER.description = "for testing the ecosystem setup on a basic wall climbing evolutionary experiment"
 
-parser.add_argument("--height_lower", type=float, required=False, default=.8,
+PARSER.add_argument("--height_lower", type=float, required=False, default=.8,
                     help="lower bound of height to hold blimps at")
-parser.add_argument("--height_upper", type=float, required=False, default=1.2,
+PARSER.add_argument("--height_upper", type=float, required=False, default=1.2,
                     help="upper bound of height to hold blimps at")
 
-parser.add_argument("--range", type=float, required=False, default=5.,
+PARSER.add_argument("--range", type=float, required=False, default=5.,
                     help="range to detect neighbors")
 
-parser.add_argument("--xmin", type=float, required=False, default=.5,
+PARSER.add_argument("--xmin", type=float, required=False, default=.5,
                     help="x spawning lower bound (should be > 0 so they do not spawn on other side of wall)")
-parser.add_argument("--xmax", type=float, required=False, default=8.,
+PARSER.add_argument("--xmax", type=float, required=False, default=8.,
                     help="x spawning upper bound")
 
-parser.add_argument("--ymin", type=float, required=False, default=-4.,
+PARSER.add_argument("--ymin", type=float, required=False, default=-4.,
                     help="y spawning upper bound")
-parser.add_argument("--ymax", type=float, required=False, default=4.,
+PARSER.add_argument("--ymax", type=float, required=False, default=4.,
                     help="y spawning upper bound")
 
-parser.add_argument("--zmin", type=float, required=False, default=.8,
+PARSER.add_argument("--zmin", type=float, required=False, default=.8,
                     help="z spawning upper bound")
-parser.add_argument("--zmax", type=float, required=False, default=1.2,
+PARSER.add_argument("--zmax", type=float, required=False, default=1.2,
                     help="z spawning upper bound")
 
-parser.add_argument("--num_sims", type=int, required=False, default=8,
-                    help="number of simulators to use for training")
-parser.add_argument("--sims_low", type=int, required=False, default=-1,
-                    help="low bound of num_sims to try")
-parser.add_argument("--sims_high", type=int, required=False, default=-1,
-                    help="high bound of num_sims to try")
-parser.add_argument("--offset", type=int, required=False, default=0,
-                    help="offset port number (should be number of simulators already in use)")
-parser.add_argument("--port_step", type=int, required=False, default=2,
-                    help="ports to skip for each new coppeliasim instance")
-parser.add_argument("--overwrite", action="store_true", required=False,
-                    help="whether to overwrite start instead of starting at recent checkpoint")
-parser.add_argument("--show", action="store_true", required=False,
-                    help="whether to show stats of all gens")
-parser.add_argument("--show_result", action="store_true", required=False,
-                    help="whether to show result at end")
-args = parser.parse_args()
+args = PARSER.parse_args()
+check_basic(args=args)
 AGENTS = args.agents
 gens = args.generations
 RANGE = args.range
-if args.sims_low >= 1:
-    if not args.sims_low <= args.num_sims or not args.num_sims < args.sims_high:
-        raise Exception("bruh")
-END = 1
+END = 60
 h_low = args.height_lower
 h_upp = args.height_upper
 
@@ -137,19 +114,19 @@ def SPAWN_ZONE(i):
 
 def eco_expe_make(nets, sim=None, port=23000, wakeup=None):
     return ecosystem_xy_wall_climb(num_agents=AGENTS,
-                                          start_zone=SPAWN_ZONE,
-                                          scenePath=caged_wall_climb_path,
-                                          blimpPath=narrow_blimp_path,
-                                          networkfns=lambda i:nets(i).activate,
-                                          end_time=END,
-                                          rng=RANGE,
-                                          height_range=(h_low, h_upp),
-                                          use_ultra=True,
-                                          height_factor=1.,
-                                          sim=sim,
-                                          simId=port,
-                                          wakeup=wakeup,
-                                          sleeptime=.01)
+                                   start_zone=SPAWN_ZONE,
+                                   scenePath=caged_wall_climb_path,
+                                   blimpPath=narrow_blimp_path,
+                                   networkfns=lambda i: nets(i).activate,
+                                   end_time=END,
+                                   rng=RANGE,
+                                   height_range=(h_low, h_upp),
+                                   use_ultra=True,
+                                   height_factor=1.,
+                                   sim=sim,
+                                   simId=port,
+                                   wakeup=wakeup,
+                                   sleeptime=.01)
 
 
 save_name = 'ECOSYSTEM' + str(AGENTS) + \
@@ -184,7 +161,8 @@ if gens:
              num_sim_range=None if args.sims_low < 1 else (args.sims_low, args.sims_high),
              debug=True
              )
-if args.show:
+
+if args.show_stats:
     ee.show_stats()
-if args.show_result:
+if args.show:
     print(ee.result_of_experiment())
