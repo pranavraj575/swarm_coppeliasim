@@ -66,21 +66,21 @@ def SPAWN_ZONE(i):
 
 
 def expe_make(net, sim=None, port=23000, wakeup=None):
-    return xy_wall_climb_blimp(num_agents=AGENTS,
-                               start_zone=SPAWN_ZONE,
-                               scenePath=caged_wall_climb_path,
-                               blimpPath=narrow_blimp_path,
-                               networkfn=net.activate,
-                               end_time=END,
-                               rng=RANGE,
-                               height_range=(h_low, h_upp),
-                               use_ultra=True,
-                               height_factor=1.,
-                               sim=sim,
-                               simId=port,
-                               wakeup=wakeup,
-                               sleeptime=.01
-                               )
+    return k_tant_wall_climb_blimp(num_agents=AGENTS,
+                                   start_zone=SPAWN_ZONE,
+                                   scenePath=caged_wall_climb_path,
+                                   blimpPath=narrow_blimp_path,
+                                   networkfn=net.activate,
+                                   end_time=END,
+                                   rng=RANGE,
+                                   height_range=(h_low, h_upp),
+                                   use_ultra=True,
+                                   height_factor=1.,
+                                   sim=sim,
+                                   simId=port,
+                                   wakeup=wakeup,
+                                   sleeptime=.01
+                                   )
 
 
 save_name = str(AGENTS) + '_blimp_height_' + str(h_low).replace('.', '_') + "_to_" + str(h_upp).replace('.', '_') + \

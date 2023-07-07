@@ -2,7 +2,7 @@ from src.network_blimps import *
 from evolution.evolutionBlimp import EcosystemEvolutionExperiment
 import argparse
 
-class ecosystem_xy_wall_climb(xy_wall_climb_blimp):
+class ecosystem_xy_wall_climb(k_tant_wall_climb_blimp):
     def __init__(self,
                  num_agents,
                  start_zone,

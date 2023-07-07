@@ -11,6 +11,7 @@ DIR = os.path.dirname(os.path.join(os.getcwd(), os.path.dirname(sys.argv[0])))
 frictionless_wall_path = os.path.join(DIR, 'scenes', 'FrictionlessWallClimb.ttt')
 wall_climb_path = os.path.join(DIR, 'scenes', 'WallClimb.ttt')
 caged_wall_climb_path = os.path.join(DIR, 'scenes', 'wall_climb_caged.ttt')
+cage_arena_path = os.path.join(DIR, 'scenes', 'cage_arena.ttt')
 empty_path = os.path.join(DIR, 'scenes', 'empty.ttt')
 narrow_blimp_path = os.path.join(DIR, 'ros_ctrl_models', 'blimp_narrow.ttm')
 COPPELIA_WAKEUP = '~/Downloads/CoppeliaSim_Edu_V4_3_0_rev12_Ubuntu20_04/coppeliaSim.sh'
@@ -49,6 +50,7 @@ class Experiment:
             # NECESSARY to make this work with multiple simulators
             client = RemoteAPIClient(port=simId)
             self.sim = client.getObject('sim')
+        self.problem_models = dict()
 
     ####################################################################################################################
     # init/shutdown functions (needs implementation in subclass)
@@ -107,6 +109,7 @@ class Experiment:
 
         @param reset: whether to rest the current scene
         """
+        self.clear_problem_modles()
         while True:
             try:
                 if not rclpy.ok():
@@ -184,6 +187,30 @@ class Experiment:
         @return: can be anything, None signals error
         """
         raise NotImplementedError()
+
+    ####################################################################################################################
+    # utility functions
+    ####################################################################################################################
+    def add_problem_model(self, handle):
+        """
+        adds model to check bounding box of more thorougly for collisions
+
+        @param handle: model handle to add
+        """
+        self.problem_models[handle] = None
+
+    def reset_problem_modles(self):
+        """
+        resets problem models
+            for use when scene has moved, keeps the handles in dictionary, just resets pre-found bounding boxes
+        """
+        self.problem_models = {h: None for h in self.problem_models}
+
+    def clear_problem_modles(self):
+        """
+        clears problem models
+        """
+        self.problem_models = dict()
 
 
 # NODE=None
@@ -391,13 +418,15 @@ class BlimpExperiment(Experiment):
     ####################################################################################################################
     # Agent functions
     ####################################################################################################################
-    def collision_check(self, agentHandle, handle2=None):
+    def collision_check(self, agentHandle, handle2=None, static=True):
         """
         returns whether agent is colliding with some object
 
         @param agentHandle: handle to check collision
         @param handle2: handle to check collision
             (if None, then checks all objects)
+        @param static: whether no models moved from last time
+            if true, speeds up bounding box check
         @return: (whether collisiion is detected, list of object handle collisions)
         """
         collidingObjectHandles = []
@@ -410,6 +439,13 @@ class BlimpExperiment(Experiment):
         else:
             collisionResult = result
         collisionResult = bool(collisionResult)
+        if self.problem_models:
+            for handle in self.problem_models:
+                box = self.problem_bounding_box(handle, static=static)
+                pt = self.get_object_pos(agentHandle)
+                if self.within_box(pt, box):
+                    collisionResult = True
+                    collidingObjectHandles.append(handle)
         return collisionResult, collidingObjectHandles
 
     def move_agent(self, agent_id, vec):
@@ -615,6 +651,71 @@ class BlimpExperiment(Experiment):
         k_tant = int(k*theta/(2*np.pi))
         # will always be in range [0,k)
         return min(l - 1, l_tant), k_tant
+
+    def get_object_pos(self, handle):
+        """
+        returns position of object
+        @param handle: handle of object
+        @return: R^3 position
+        """
+        return np.array(self.sim.getObjectPosition(handle, self.sim.handle_world))
+
+    def problem_bounding_box(self, handle, static):
+        """
+        returns bounding box of problem object
+            speedup if this has been accessed before
+        @param handle: handle of object
+        @param static: if True, object has not moved
+        @return: (R x R)^3 bounding box
+        """
+        if static:
+            if self.problem_models[handle] is not None:
+                return self.problem_models[handle]
+        box = self.bounding_box(handle)
+        self.problem_models[handle] = box
+        return box
+
+    def bounding_box(self, handle):
+        """
+        returns bounding box of object
+        @param handle: handle of object
+        @return: (R x R)^3 bounding box
+        """
+        box = np.zeros((3, 2)) + self.get_object_pos(handle).reshape((3, 1))
+        box[0][0] += self.sim.getObjectFloatParameter(handle, self.sim.objfloatparam_objbbox_min_x)[1]
+        box[0][1] += self.sim.getObjectFloatParameter(handle, self.sim.objfloatparam_objbbox_max_x)[1]
+
+        box[1][0] += self.sim.getObjectFloatParameter(handle, self.sim.objfloatparam_objbbox_min_y)[1]
+        box[1][1] += self.sim.getObjectFloatParameter(handle, self.sim.objfloatparam_objbbox_max_y)[1]
+
+        box[2][0] += self.sim.getObjectFloatParameter(handle, self.sim.objfloatparam_objbbox_min_z)[1]
+        box[2][1] += self.sim.getObjectFloatParameter(handle, self.sim.objfloatparam_objbbox_max_z)[1]
+        return box
+
+    @staticmethod
+    def box_overlap(box0, box1):
+        """
+        returns if bounding boxes overlap
+        @param box0: first box
+        @param box1: second box
+        """
+        return all(
+            any(box0[dim][0] < box1[dim][i] and box1[dim][i] < box0[dim][1] for i in range(2))
+            # overlaps if either the minimum coord of box 1 is between the bounds of box 0, or the maximum
+            for dim in range(3)  # only intersection if all dimensions overlap
+        )
+
+    @staticmethod
+    def within_box(pt, box):
+        """
+        returns if point is in box, inclusive
+        @param pt: point
+        @param box:  box
+        """
+        return all(
+            box[dim][0] <= pt[dim] and pt[dim] <= box[dim][1]
+            for dim in range(3)  # only within if all dimensions overlap
+        )
 
 
 class blimpTest(BlimpExperiment):

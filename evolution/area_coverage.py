@@ -10,19 +10,27 @@ parser.add_argument("-g", "--generations", type=int, required=False, default=0,
 parser.add_argument("--create", action="store_true", required=False,
                     help="whether to create new directory")
 
+parser.add_argument("--three_d", action="store_true", required=False,
+                    help="whether to use the 3d case")
+
+parser.add_argument("--obstacles", type=int, required=False, default=0,
+                    help="number of obstacles to generate for training")
+parser.add_argument("--obstacle_height", type=float, required=False, default=1.5,
+                    help="obstacle spawn height, default of 1.5 (only relevant for 2d)")
+
 parser.add_argument("--height_lower", type=float, required=False, default=.8,
                     help="lower bound of height to hold blimps at")
 parser.add_argument("--height_upper", type=float, required=False, default=1.2,
                     help="upper bound of height to hold blimps at")
 
-parser.add_argument("--xmin", type=float, required=False, default=.5,
+parser.add_argument("--xmin", type=float, required=False, default=-3.,
                     help="x spawning lower bound (should be > 0 so they do not spawn on other side of wall)")
-parser.add_argument("--xmax", type=float, required=False, default=11.,
+parser.add_argument("--xmax", type=float, required=False, default=3.,
                     help="x spawning upper bound")
 
-parser.add_argument("--ymin", type=float, required=False, default=-9.,
+parser.add_argument("--ymin", type=float, required=False, default=-3.,
                     help="y spawning upper bound")
-parser.add_argument("--ymax", type=float, required=False, default=9.,
+parser.add_argument("--ymax", type=float, required=False, default=3.,
                     help="y spawning upper bound")
 
 parser.add_argument("--zmin", type=float, required=False, default=.8,
@@ -47,6 +55,9 @@ parser.add_argument("--show", action="store_true", required=False,
 parser.add_argument("--show_result", action="store_true", required=False,
                     help="whether to show result at end")
 args = parser.parse_args()
+OBS_DIR = os.path.join(DIR, 'models', 'obstacles')
+OBS_PATHS = [os.path.join(OBS_DIR, d) for d in os.listdir(OBS_DIR)]
+
 AGENTS = args.agents
 gens = args.generations
 if args.sims_low >= 1:
@@ -60,26 +71,50 @@ h_upp = args.height_upper
 def SPAWN_ZONE(i):
     return (args.xmin, args.xmax), (args.ymin, args.ymax), (args.zmin, args.zmax)
 
-
 def expe_make(net, sim=None, port=23000, wakeup=None):
-    return dist_k_tant_wall_climb_blimp(num_agents=AGENTS,
-                                        start_zone=SPAWN_ZONE,
-                                        scenePath=caged_wall_climb_path,
-                                        blimpPath=narrow_blimp_path,
-                                        networkfn=net.activate,
-                                        end_time=END,
-                                        height_range=(h_low, h_upp),
-                                        use_ultra=True,
-                                        height_factor=1.,
-                                        sim=sim,
-                                        simId=port,
-                                        wakeup=wakeup,
-                                        sleeptime=.01
-                                        )
+    if args.three_d:
+        return l_k_tant_area_coverage(
+            num_agents=AGENTS,
+            start_zone=SPAWN_ZONE,
+            scenePath=cage_arena_path,
+            blimpPath=narrow_blimp_path,
+            networkfn=net.activate,
+            bounds=((-12.5, 12.5), (-12.5, 12.5), (0., 25.)),
+            obstacles=args.obstacles,
+            obstacle_paths=OBS_PATHS,
+            end_time=END,
+            use_ultra=True,
+            sim=sim,
+            simId=port,
+            wakeup=wakeup,
+            sleeptime=.01
+        )
+    else:
+        return k_tant_area_coverage(
+            num_agents=AGENTS,
+            start_zone=SPAWN_ZONE,
+            scenePath=cage_arena_path,
+            blimpPath=narrow_blimp_path,
+            networkfn=net.activate,
+            height_range=(h_low, h_upp),
+            use_ultra=False,
+            obstacles=args.obstacles,
+            obstacle_height=args.obstacle_height,
+            obstacle_paths=OBS_PATHS,
+            end_time=END,
+            bounds=((-12.5, 12.5), (-12.5, 12.5)),
+            height_factor=1.,
+            sim=sim,
+            simId=port,
+            wakeup=wakeup,
+            sleeptime=.01,
+        )
 
 
-save_name = str(AGENTS) + '_blimp_height_' + str(h_low).replace('.', '_') + "_to_" + str(h_upp).replace('.', '_') + \
-            '_wall_climb_neighbor_dist_sensing'
+dim = ('3' if args.three_d else '2')
+
+save_name = str(AGENTS) + '_blimp_' + dim + 'D_' \
+            + str(args.obstacles) + '_obstacle_area_coverage'
 checkpt_dir = os.path.join(DIR, 'checkpoints', save_name)
 print("SAVING TO:", checkpt_dir)
 
@@ -90,7 +125,7 @@ if not os.path.exists(checkpt_dir):
         raise Exception("DIRECTORY DOES NOT EXIST (try running with --create): " + checkpt_dir)
 ee = EvolutionExperiment(checkpt_dir=checkpt_dir,
                          exp_maker=expe_make,
-                         config_name='blimp_wall')
+                         config_name='blimp_' + dim + 'd_area')
 if gens:
     port_step = args.port_step
     zmq_def_port = 23000 + port_step*args.offset
@@ -110,4 +145,4 @@ if gens:
 if args.show:
     ee.show_stats()
 if args.show_result:
-    print(ee.result_of_experiment(gen_indices=[0, 1, 2, 3]))
+    print(ee.result_of_experiment())
