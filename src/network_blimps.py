@@ -631,7 +631,7 @@ class k_tant_area_coverage(xyBlimp):
         self.obs_handles = []
         for _ in range(self.obstacles):
             obs = self.obstacle_paths[np.random.randint(0, len(self.obstacle_paths))]
-            hand = self.spawnBlimp(obs,
+            hand = self.spawnModel(obs,
                                    lambda: np.concatenate(
                                        (self.sample_from_bounds(1).flatten(), [self.obstacle_height])),
                                    spawn_tries=1,
@@ -847,7 +847,7 @@ class l_k_tant_area_coverage(xyzBlimp):
         self.obs_handles = []
         for _ in range(self.obstacles):
             obs = self.obstacle_paths[np.random.randint(0, len(self.obstacle_paths))]
-            hand = self.spawnBlimp(obs,
+            hand = self.spawnModel(obs,
                                    lambda: self.sample_from_bounds(1).flatten(),
                                    spawn_tries=1,
                                    orientation=np.random.uniform((0, 0, 0), (2*np.pi, 2*np.pi, 2*np.pi)))

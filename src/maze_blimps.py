@@ -123,7 +123,7 @@ class aMazeBlimp(xyBlimp):
             print("WARNING, LENGTH IS NOT INTEGER")
 
         if length in self.len_to_wall:
-            return (self.spawnBlimp(modelPath=self.len_to_wall[length],
+            return (self.spawnModel(modelPath=self.len_to_wall[length],
                                     pos_rng=lambda: np.sum(locs, axis=0)/len(locs),
                                     orientation=orientation,
                                     spawn_tries=1),
@@ -260,7 +260,7 @@ class aMazeBlimp(xyBlimp):
 
         self.start_zone = START
 
-        self.cell_handle = self.spawnBlimp(self.cellPath, lambda: cell_loc, 1, maze_dict['entry_orientation'])
+        self.cell_handle = self.spawnModel(self.cellPath, lambda: cell_loc, 1, maze_dict['entry_orientation'])
         if 'exit_wall' in maze_dict:
             if maze_dict['exit_wall'] == 'top':
                 exit_cell_loc += v_shift
@@ -270,7 +270,7 @@ class aMazeBlimp(xyBlimp):
                 exit_cell_loc -= h_shift
             else:
                 exit_cell_loc += h_shift
-            self.exit_cell_handle = self.spawnBlimp(self.cellPath, lambda: exit_cell_loc, 1,
+            self.exit_cell_handle = self.spawnModel(self.cellPath, lambda: exit_cell_loc, 1,
                                                     maze_dict['exit_orientation'])
         if self.cover_dir is not None:
             h = self.maze.num_rows*self.grid_size
@@ -283,7 +283,7 @@ class aMazeBlimp(xyBlimp):
             if not os.path.exists(fn):
                 print("ERROR: " + fn + ' does not exist, not spawning lid')
             else:
-                self.lid_handle = self.spawnBlimp(modelPath=fn,
+                self.lid_handle = self.spawnModel(modelPath=fn,
                                                   pos_rng=lambda: (self.grid_size*self.maze.num_cols/2,
                                                                    -self.grid_size*self.maze.num_rows/2,
                                                                    self.wall_spawn_height*2

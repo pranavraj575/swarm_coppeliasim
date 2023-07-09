@@ -85,22 +85,6 @@ class Experiment:
         del self.sim
 
     ####################################################################################################################
-    # utility functions
-    ####################################################################################################################
-    def set_color(self, handle, color, type=None):
-        """
-        sets object color
-
-        @param handle: object handle
-        @param color: [0...255]^3
-        @param type: color component, self.sim.colorcomponent_ambient_diffuse is the best other option
-            https://www.coppeliarobotics.com/helpFiles/en/apiConstants.htm#colorComponents
-        """
-        if type is None:
-            type = self.sim.colorcomponent_emission
-        self.sim.setObjectColor(handle, 0, type, color)
-
-    ####################################################################################################################
     # Expiriment functions (some need implementation in subclass)
     ####################################################################################################################
     def init_exp(self, reset):
@@ -191,6 +175,144 @@ class Experiment:
     ####################################################################################################################
     # utility functions
     ####################################################################################################################
+    def spawnModel(self, modelPath, pos_rng, spawn_tries, orientation=None):
+        """
+        spawns a model in a certian area
+
+        @param modelPath: path to .ttm model to spawn
+        @param pos_rng: ()->(R U R^2)^3, range to spawn into
+            (if single value, this is the value for the respective coordinate)
+            (if tuple, than uniformly chooses from (low,high))
+        @param spawn_tries: number of tries to spawn without collisions before giving up
+                if 1, then sets position, does not change if collision detected
+        @param orientation: R^3, orientation to spawn into, None if default model orientation
+        @return: handle of model spawned
+        """
+        agentHandle = self.sim.loadModel(os.path.abspath(os.path.expanduser(modelPath)))
+        for _ in range(spawn_tries):
+            Pos = []
+            rng = pos_rng()
+            for k in range(3):
+                try:
+                    Pos.append(np.random.uniform(rng[k][0], rng[k][1]))
+                except:
+                    Pos.append(float(rng[k]))
+            self.sim.setObjectPosition(agentHandle, -1, Pos)
+            if orientation is not None:
+                self.sim.setObjectOrientation(agentHandle, -1, [float(o) for o in orientation])
+            collisionResult, collidingObjectHandles = self.collision_check(agentHandle)
+            if not collisionResult:
+                break
+        return agentHandle
+
+    def collision_check(self, agentHandle, handle2=None, static=True):
+        """
+        returns whether agent is colliding with some object
+
+        @param agentHandle: handle to check collision
+        @param handle2: handle to check collision
+            (if None, then checks all objects)
+        @param static: whether no models moved from last time
+            if true, speeds up bounding box check
+        @return: (whether collisiion is detected, list of object handle collisions)
+        """
+        collidingObjectHandles = []
+        if handle2 is None:
+            handle2 = self.sim.handle_all
+        result = self.sim.checkCollision(agentHandle, handle2)
+        if type(result) is tuple:
+            collisionResult = result[0]
+            collidingObjectHandles = result[1]
+        else:
+            collisionResult = result
+        collisionResult = bool(collisionResult)
+        if self.problem_models:
+            for handle in self.problem_models:
+                box = self.problem_bounding_box(handle, static=static)
+                pt = self.get_object_pos(agentHandle)
+                if self.within_box(pt, box):
+                    collisionResult = True
+                    collidingObjectHandles.append(handle)
+        return collisionResult, collidingObjectHandles
+
+    def get_object_pos(self, handle):
+        """
+        returns position of object
+        @param handle: handle of object
+        @return: R^3 position
+        """
+        return np.array(self.sim.getObjectPosition(handle, self.sim.handle_world))
+
+    def problem_bounding_box(self, handle, static):
+        """
+        returns bounding box of problem object
+            speedup if this has been accessed before
+        @param handle: handle of object
+        @param static: if True, object has not moved
+        @return: (R x R)^3 bounding box
+        """
+        if static:
+            if self.problem_models[handle] is not None:
+                return self.problem_models[handle]
+        box = self.bounding_box(handle)
+        self.problem_models[handle] = box
+        return box
+
+    def bounding_box(self, handle):
+        """
+        returns bounding box of object
+        @param handle: handle of object
+        @return: (R x R)^3 bounding box
+        """
+        box = np.zeros((3, 2)) + self.get_object_pos(handle).reshape((3, 1))
+        box[0][0] += self.sim.getObjectFloatParameter(handle, self.sim.objfloatparam_objbbox_min_x)[1]
+        box[0][1] += self.sim.getObjectFloatParameter(handle, self.sim.objfloatparam_objbbox_max_x)[1]
+
+        box[1][0] += self.sim.getObjectFloatParameter(handle, self.sim.objfloatparam_objbbox_min_y)[1]
+        box[1][1] += self.sim.getObjectFloatParameter(handle, self.sim.objfloatparam_objbbox_max_y)[1]
+
+        box[2][0] += self.sim.getObjectFloatParameter(handle, self.sim.objfloatparam_objbbox_min_z)[1]
+        box[2][1] += self.sim.getObjectFloatParameter(handle, self.sim.objfloatparam_objbbox_max_z)[1]
+        return box
+
+    @staticmethod
+    def box_overlap(box0, box1):
+        """
+        returns if bounding boxes overlap
+        @param box0: first box
+        @param box1: second box
+        """
+        return all(
+            any(box0[dim][0] < box1[dim][i] and box1[dim][i] < box0[dim][1] for i in range(2))
+            # overlaps if either the minimum coord of box 1 is between the bounds of box 0, or the maximum
+            for dim in range(3)  # only intersection if all dimensions overlap
+        )
+
+    @staticmethod
+    def within_box(pt, box):
+        """
+        returns if point is in box, inclusive
+        @param pt: point
+        @param box:  box
+        """
+        return all(
+            box[dim][0] <= pt[dim] and pt[dim] <= box[dim][1]
+            for dim in range(3)  # only within if all dimensions overlap
+        )
+
+    def set_color(self, handle, color, type=None):
+        """
+        sets object color
+
+        @param handle: object handle
+        @param color: [0...255]^3
+        @param type: color component, self.sim.colorcomponent_ambient_diffuse is the best other option
+            https://www.coppeliarobotics.com/helpFiles/en/apiConstants.htm#colorComponents
+        """
+        if type is None:
+            type = self.sim.colorcomponent_emission
+        self.sim.setObjectColor(handle, 0, type, color)
+
     def add_problem_model(self, handle):
         """
         adds model to check bounding box of more thorougly for collisions
@@ -212,8 +334,6 @@ class Experiment:
         """
         self.problem_models = dict()
 
-
-# NODE=None
 
 class BlimpExperiment(Experiment):
 
@@ -262,36 +382,6 @@ class BlimpExperiment(Experiment):
     ####################################################################################################################
     # init/shutdown functions
     ####################################################################################################################
-    def spawnBlimp(self, modelPath, pos_rng, spawn_tries, orientation=None):
-        """
-        spawns a model in a certian area
-
-        @param modelPath: path to .ttm model to spawn
-        @param pos_rng: ()->(R U R^2)^3, range to spawn into
-            (if single value, this is the value for the respective coordinate)
-            (if tuple, than uniformly chooses from (low,high))
-        @param spawn_tries: number of tries to spawn without collisions before giving up
-                if 1, then sets position, does not change if collision detected
-        @param orientation: R^3, orientation to spawn into, None if default model orientation
-        @return: handle of model spawned
-        """
-        agentHandle = self.sim.loadModel(os.path.abspath(os.path.expanduser(modelPath)))
-        for _ in range(spawn_tries):
-            Pos = []
-            rng = pos_rng()
-            for k in range(3):
-                try:
-                    Pos.append(np.random.uniform(rng[k][0], rng[k][1]))
-                except:
-                    Pos.append(float(rng[k]))
-            self.sim.setObjectPosition(agentHandle, -1, Pos)
-            if orientation is not None:
-                self.sim.setObjectOrientation(agentHandle, -1, [float(o) for o in orientation])
-            collisionResult, collidingObjectHandles = self.collision_check(agentHandle)
-            if not collisionResult:
-                break
-        return agentHandle
-
     def spawnThings(self):
         """
         to be run at start of each expiriment
@@ -306,7 +396,7 @@ class BlimpExperiment(Experiment):
         self.agentData = dict()
         for i in range(self.num_agents):
             this_agent = dict()
-            this_agent['agentHandle'] = self.spawnBlimp(self.modelPath, lambda: self.start_zone(i), self.spawn_tries)
+            this_agent['agentHandle'] = self.spawnModel(self.modelPath, lambda: self.start_zone(i), self.spawn_tries)
             this_agent['agent_id'] = i
 
             unique = str(time.time()).replace('.', '_')
@@ -418,35 +508,6 @@ class BlimpExperiment(Experiment):
     ####################################################################################################################
     # Agent functions
     ####################################################################################################################
-    def collision_check(self, agentHandle, handle2=None, static=True):
-        """
-        returns whether agent is colliding with some object
-
-        @param agentHandle: handle to check collision
-        @param handle2: handle to check collision
-            (if None, then checks all objects)
-        @param static: whether no models moved from last time
-            if true, speeds up bounding box check
-        @return: (whether collisiion is detected, list of object handle collisions)
-        """
-        collidingObjectHandles = []
-        if handle2 is None:
-            handle2 = self.sim.handle_all
-        result = self.sim.checkCollision(agentHandle, handle2)
-        if type(result) is tuple:
-            collisionResult = result[0]
-            collidingObjectHandles = result[1]
-        else:
-            collisionResult = result
-        collisionResult = bool(collisionResult)
-        if self.problem_models:
-            for handle in self.problem_models:
-                box = self.problem_bounding_box(handle, static=static)
-                pt = self.get_object_pos(agentHandle)
-                if self.within_box(pt, box):
-                    collisionResult = True
-                    collidingObjectHandles.append(handle)
-        return collisionResult, collidingObjectHandles
 
     def move_agent(self, agent_id, vec):
         """
@@ -651,71 +712,6 @@ class BlimpExperiment(Experiment):
         k_tant = int(k*theta/(2*np.pi))
         # will always be in range [0,k)
         return min(l - 1, l_tant), k_tant
-
-    def get_object_pos(self, handle):
-        """
-        returns position of object
-        @param handle: handle of object
-        @return: R^3 position
-        """
-        return np.array(self.sim.getObjectPosition(handle, self.sim.handle_world))
-
-    def problem_bounding_box(self, handle, static):
-        """
-        returns bounding box of problem object
-            speedup if this has been accessed before
-        @param handle: handle of object
-        @param static: if True, object has not moved
-        @return: (R x R)^3 bounding box
-        """
-        if static:
-            if self.problem_models[handle] is not None:
-                return self.problem_models[handle]
-        box = self.bounding_box(handle)
-        self.problem_models[handle] = box
-        return box
-
-    def bounding_box(self, handle):
-        """
-        returns bounding box of object
-        @param handle: handle of object
-        @return: (R x R)^3 bounding box
-        """
-        box = np.zeros((3, 2)) + self.get_object_pos(handle).reshape((3, 1))
-        box[0][0] += self.sim.getObjectFloatParameter(handle, self.sim.objfloatparam_objbbox_min_x)[1]
-        box[0][1] += self.sim.getObjectFloatParameter(handle, self.sim.objfloatparam_objbbox_max_x)[1]
-
-        box[1][0] += self.sim.getObjectFloatParameter(handle, self.sim.objfloatparam_objbbox_min_y)[1]
-        box[1][1] += self.sim.getObjectFloatParameter(handle, self.sim.objfloatparam_objbbox_max_y)[1]
-
-        box[2][0] += self.sim.getObjectFloatParameter(handle, self.sim.objfloatparam_objbbox_min_z)[1]
-        box[2][1] += self.sim.getObjectFloatParameter(handle, self.sim.objfloatparam_objbbox_max_z)[1]
-        return box
-
-    @staticmethod
-    def box_overlap(box0, box1):
-        """
-        returns if bounding boxes overlap
-        @param box0: first box
-        @param box1: second box
-        """
-        return all(
-            any(box0[dim][0] < box1[dim][i] and box1[dim][i] < box0[dim][1] for i in range(2))
-            # overlaps if either the minimum coord of box 1 is between the bounds of box 0, or the maximum
-            for dim in range(3)  # only intersection if all dimensions overlap
-        )
-
-    @staticmethod
-    def within_box(pt, box):
-        """
-        returns if point is in box, inclusive
-        @param pt: point
-        @param box:  box
-        """
-        return all(
-            box[dim][0] <= pt[dim] and pt[dim] <= box[dim][1]
-            for dim in range(3)  # only within if all dimensions overlap
-        )
 
 
 class blimpTest(BlimpExperiment):

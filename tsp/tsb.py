@@ -110,7 +110,7 @@ class travelingSalesBlimp(BlimpExperiment):
 
         self.pointData = defaultdict(lambda: dict())
 
-        depot_handle = self.spawnBlimp(self.goalPath, lambda: self.depot, 1)
+        depot_handle = self.spawnModel(self.goalPath, lambda: self.depot, 1)
         self.pointData[depot_handle]['pos'] = self.depot
         self.pointData[depot_handle]['edge_cost'] = dict()
         self.pointData[depot_handle]['order_added'] = -1
@@ -121,7 +121,7 @@ class travelingSalesBlimp(BlimpExperiment):
         self.non_depot_handles = []
         for i in range(self.num_points):
             pt_info = self.spawn_pt_info(i)
-            pt_handle = self.spawnBlimp(self.goalPath, lambda: pt_info['pos'], spawn_tries=1)
+            pt_handle = self.spawnModel(self.goalPath, lambda: pt_info['pos'], spawn_tries=1)
             self.non_depot_handles.append(pt_handle)
             # self.points.append((pt, goalHandle))
             self.pointData[pt_handle]['pos'] = pt_info['pos']
