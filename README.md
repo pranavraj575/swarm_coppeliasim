@@ -1,5 +1,5 @@
-# Blimp Coppeliasim
-Used for making swarm experiments for blimps in Coppeliasim. experiments using the NEAT evolutionary algorithm are under ```\evolution```. 
+# Swarm Coppeliasim
+Used for making swarm experiments for blimps/other in Coppeliasim. experiments using the NEAT evolutionary algorithm are under ```\evolution```. 
 ```\pymaze``` contains a modified version of the [pymaze](https://github.com/jostbr/pymaze) github.
 
 ## Installation
@@ -61,9 +61,9 @@ Used for making swarm experiments for blimps in Coppeliasim. experiments using t
    Clone this directory, copy all the ```.lua``` files into the correct place (replace ```<path to coppelia>``` with the path to the Coppeliasim folder). This should be run from wherever you want the repo to be.
 
     ```bash
-    git clone https://github.com/pranavraj575/blimp_coppeliasim
-    cp blimp_coppeliasim/lua/* /<path to coppelia>/lua/
-    cd blimp_coppeliasim
+    git clone https://github.com/pranavraj575/swarm_coppeliasim
+    cp swarm_coppeliasim/lua/* /<path to coppelia>/lua/
+    cd swarm_coppeliasim
     pip3 install -e .
     ```
     
@@ -88,7 +88,7 @@ Used for making swarm experiments for blimps in Coppeliasim. experiments using t
     * clone the [sim_ros2_interface](https://github.com/CoppeliaRobotics/simExtROS2) directory and install dependencies.
       * The best way to do this is with the folder we made
           ```bash
-          cp -r /<path to blimp_coppeliasim>/setup_files/sim_ros2_interface ros2_ws/src
+          cp -r /<path to swarm_coppeliasim>/setup_files/sim_ros2_interface ros2_ws/src
           ```
       * However, you can try setting up according to the [tutorial](https://www.coppeliarobotics.com/helpFiles/en/ros2Tutorial.htm) like this
           ```bash
@@ -125,7 +125,7 @@ Used for making swarm experiments for blimps in Coppeliasim. experiments using t
 
   First open any coppelia scene with the ```coppelia``` command. Though not necessary, it might be useful to [spawn some objects](https://www.coppeliarobotics.com/helpFiles/index.html) to see the physics work.
 
-  Then run the following file from the ```blimp_coppeliasim``` directory
+  Then run the following file from the ```swarm_coppeliasim``` directory
   ```bash
   python3 tests/testZeroMQRemoteAPI.py
   ```
@@ -136,7 +136,7 @@ Used for making swarm experiments for blimps in Coppeliasim. experiments using t
 
   First open coppelia with the ```coppelia``` command
 
-  Then run the following file from the ```blimp_coppeliasim``` directory
+  Then run the following file from the ```swarm_coppeliasim``` directory
   ```bash
   python3 tests/ros_ctrl_test.py
   ```
@@ -147,7 +147,7 @@ Used for making swarm experiments for blimps in Coppeliasim. experiments using t
 * ### Parallelism test
   Tests if parallel instances of Coppeliasim can run 
 
-  Run the following file from the ```blimp_coppeliasim``` directory
+  Run the following file from the ```swarm_coppeliasim``` directory
   ```bash
   python3 tests/mult_scene_test.py
   ```
@@ -159,7 +159,7 @@ Used for making swarm experiments for blimps in Coppeliasim. experiments using t
 * ### Experiment/maze blimp test
   tests the module setup and is pretty cool i think
 
-  Run the following file from the ```blimp_coppeliasim``` directory
+  Run the following file from the ```swarm_coppeliasim``` directory
   ```bash
   python3 src/maze_blimps.py
   ```
