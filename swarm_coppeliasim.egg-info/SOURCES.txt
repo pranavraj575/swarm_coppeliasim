@@ -1,0 +1,8 @@
+README.md
+setup.py
+swarm_coppeliasim.egg-info/PKG-INFO
+swarm_coppeliasim.egg-info/SOURCES.txt
+swarm_coppeliasim.egg-info/dependency_links.txt
+swarm_coppeliasim.egg-info/requires.txt
+swarm_coppeliasim.egg-info/top_level.txt
+tests/testZeroMQRemoteAPI.py

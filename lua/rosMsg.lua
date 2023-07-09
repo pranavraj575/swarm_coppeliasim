@@ -1,5 +1,6 @@
 -- This file contains the defintions for ros2 related messages and topics
-TOPIC_PRE = '/swarm/a'
+TOPIC_PRE_ANKI = '/swarm/a'
+TOPIC_PRE_BLIMP = '/swarm/b'
 TOPIC_CMD = '/set/cmd_vel'
 TOPIC_GLOBAL = '/state/global'
 TOPIC_PROXIMITY = '/state/proximity'

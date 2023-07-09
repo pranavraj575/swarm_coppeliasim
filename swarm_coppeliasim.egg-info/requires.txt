@@ -1,0 +1,5 @@
+numpy
+psutil
+zmq
+cbor
+neat-python==0.92
