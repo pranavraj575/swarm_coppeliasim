@@ -1090,8 +1090,8 @@ class ankiTest(AnkiExperiment):
 
 
 if __name__ == "__main__":
-    # bb = blimpTest(10, lambda i: ((-5, 5), (-5, 5), (1, 5)), command=(0, 0, .1), wakeup=[COPPELIA_WAKEUP])
-    # bb.run_exp()
+    bb = blimpTest(10, lambda i: ((-5, 5), (-5, 5), (1, 5)), command=(0, 0, .1), wakeup=[COPPELIA_WAKEUP])
+    bb.run_exp()
 
-    aa = ankiTest(5, lambda i: (i/5 - .35, 0, .035), command=(0, 1, .2, -45), wakeup=[COPPELIA_WAKEUP])
-    aa.run_exp()
+    # aa = ankiTest(5, lambda i: (i/5 - .35, 0, .035), command=(0, 1, .2, -45), wakeup=[COPPELIA_WAKEUP])
+    # aa.run_exp()
