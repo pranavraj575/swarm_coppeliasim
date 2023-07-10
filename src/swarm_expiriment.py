@@ -8,12 +8,12 @@ from std_msgs.msg import Float64
 
 DIR = os.path.dirname(os.path.join(os.getcwd(), os.path.dirname(sys.argv[0])))
 
-msgfile=os.path.join(DIR,'lua','rosMsg.lua')
-TOPIC_NAMES=dict()
+msgfile = os.path.join(DIR, 'lua', 'rosMsg.lua')
+TOPIC_NAMES = dict()
 with  open(msgfile) as f:
-    r=[t.split('=') for t in f.read().strip().split('\n') if '=' in t]
-    for key,item in r:
-        TOPIC_NAMES[key.strip()]=item.strip().replace("'",'')
+    r = [t.split('=') for t in f.read().strip().split('\n') if '=' in t]
+    for key, item in r:
+        TOPIC_NAMES[key.strip()] = item.strip().replace("'", '')
 
 frictionless_wall_path = os.path.join(DIR, 'scenes', 'FrictionlessWallClimb.ttt')
 wall_climb_path = os.path.join(DIR, 'scenes', 'WallClimb.ttt')
@@ -733,10 +733,12 @@ class blimpTest(BlimpExperiment):
                  command=(0., 0., 0.),
                  scene_path=cage_arena_path,
                  blimp_path=narrow_blimp_path,
+                 end_time=10,
                  simId=23000,
                  wakeup=None):
         super().__init__(num_agents, start_zone, scene_path, blimp_path, simId=simId, wakeup=wakeup)
         self.command = command
+        self.end_time = end_time
 
     ####################################################################################################################
     # Expiriment functions
@@ -751,7 +753,7 @@ class blimpTest(BlimpExperiment):
         for agent_id in self.agentData:
             pos = self.get_position(agent_id, use_ultra=False, spin=True)
             self.move_agent(agent_id, self.command)
-        return False
+        return self.sim.getSimulationTime() > self.end_time
 
     def goal_data(self):
         """
@@ -1058,10 +1060,12 @@ class ankiTest(AnkiExperiment):
                  command,
                  scene_path=anki_arena_path,
                  blimp_path=anki_path,
+                 end_time=10,
                  simId=23000,
                  wakeup=None):
         super().__init__(num_agents, start_zone, scene_path, blimp_path, simId=simId, wakeup=wakeup)
         self.command = command
+        self.end_time = end_time
 
     ####################################################################################################################
     # Expiriment functions
@@ -1076,7 +1080,7 @@ class ankiTest(AnkiExperiment):
         for agent_id in self.agentData:
             pos = self.get_position(agent_id, spin=True)
             self.move_agent(agent_id, self.command)
-        return False
+        return self.sim.getSimulationTime() > self.end_time
 
     def goal_data(self):
         """
@@ -1092,6 +1096,7 @@ class ankiTest(AnkiExperiment):
                 print("ERROR DEBUG")
                 return None
         return s
+
 
 class CopterExperiment(Experiment):
 
@@ -1154,7 +1159,7 @@ class CopterExperiment(Experiment):
         for i in range(self.num_agents):
             this_agent = dict()
             this_agent['agentHandle'] = self.spawnModel(self.modelPath, lambda: self.start_zone(i), self.spawn_tries,
-                                                        orientation=(0,0,90))
+                                                        orientation=(0, 0, 90))
             this_agent['agent_id'] = i
 
             unique = str(time.time()).replace('.', '_')
@@ -1210,7 +1215,7 @@ class CopterExperiment(Experiment):
         for agent_id in agent_ids:
             self.agentData[agent_id]['executor'].spin_once(timeout_sec=.01)
 
-    def create_callback_twist(self, dictionary, key, state_keys=('x', 'y', 'z', 'r','p','w', 'DEBUG')):
+    def create_callback_twist(self, dictionary, key, state_keys=('x', 'y', 'z', 'r', 'p', 'w', 'DEBUG')):
         """
         creates a callback that updates the "key" element of "dictionary" with the twist state
 
@@ -1260,7 +1265,6 @@ class CopterExperiment(Experiment):
 
         msgTwist.angular.z = float(vec[3])
 
-
         self.agentData[agent_id]['vec_publisher'].publish(msgTwist)
 
     def get_state(self, agent_id, spin=True):
@@ -1286,7 +1290,7 @@ class CopterExperiment(Experiment):
         @return: position of agent
         """
         s = self.get_state(agent_id, spin=spin)
-        return np.array((s['x'], s['y'],s['z']))
+        return np.array((s['x'], s['y'], s['z']))
 
     def _gen_get_neighbors(self, agent_id, is_neigh, spin=False):
         """
@@ -1335,12 +1339,14 @@ class quadTest(CopterExperiment):
     def __init__(self, num_agents,
                  start_zone,
                  command,
-                 scene_path=empty_path,
+                 scene_path=cage_arena_path,
                  copterPath=quad_path,
+                 end_time=10,
                  simId=23000,
                  wakeup=None):
         super().__init__(num_agents, start_zone, scene_path, copterPath=copterPath, simId=simId, wakeup=wakeup)
         self.command = command
+        self.end_time = end_time
 
     ####################################################################################################################
     # Expiriment functions
@@ -1356,7 +1362,7 @@ class quadTest(CopterExperiment):
             pos = self.get_position(agent_id, spin=True)
 
             self.move_agent(agent_id, self.command)
-        return False
+        return self.sim.getSimulationTime() > self.end_time
 
     def goal_data(self):
         """
@@ -1373,12 +1379,25 @@ class quadTest(CopterExperiment):
                 return None
         return s
 
+
 if __name__ == "__main__":
-    bb = blimpTest(10, lambda i: ((-5, 5), (-5, 5), (1, 5)), command=(0, 0, 0), wakeup=[COPPELIA_WAKEUP])
+    bb = blimpTest(10,
+                   lambda i: ((-5, 5), (-5, 5), (1, 5)),
+                   command=(0, 0, .1), # (x, y, z) velocity
+                   wakeup=[COPPELIA_WAKEUP])
     bb.run_exp()
+    bb.kill()
 
-    # aa = ankiTest(5, lambda i: (i/5 - .35, 0, .035), command=(0, 1, .2, -45), wakeup=[COPPELIA_WAKEUP])
-    # aa.run_exp()
+    aa = ankiTest(5,
+                  lambda i: (i/5 - .35, 0, .035),
+                  command=(0, 1, .2, -45), # (thrust, rotation, arm lift, head tilt)
+                  wakeup=[COPPELIA_WAKEUP])
+    aa.run_exp()
+    aa.kill()
 
-    # qq=quadTest(2,lambda i: (i - .35, 0, 1),command=(.01, 0, 0, .0),wakeup=[COPPELIA_WAKEUP])
-    # qq.run_exp()
+    qq = quadTest(2,
+                  lambda i: (i - .35, 0, 1),
+                  command=(0, 0, .1, .1), # (x, y, z, rotation) force
+                  wakeup=[COPPELIA_WAKEUP])
+    qq.run_exp()
+    qq.kill()
