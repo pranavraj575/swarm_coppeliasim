@@ -42,7 +42,7 @@ class ecosystem_two_layer_area_coverage(k_tant_area_coverage):
                  start_zone,
                  scenePath,
                  blimpPath,
-                 networkfn,
+                 networkfns,
                  height_range,
                  obstacles,
                  obstacle_height,
@@ -90,7 +90,7 @@ class ecosystem_two_layer_area_coverage(k_tant_area_coverage):
             start_zone=start_zone,
             scenePath=scenePath,
             blimpPath=blimpPath,
-            networkfn=networkfn,
+            networkfn=networkfns,
             height_range=height_range,
             use_ultra=True,
             obstacles=obstacles,
@@ -184,13 +184,13 @@ def SPAWN_ZONE(i):
     return (args.xmin, args.xmax), (args.ymin, args.ymax), (args.zmin, args.zmax)
 
 
-def ecosytem_exp_make(net, sim=None, port=23000, wakeup=None):
+def ecosytem_exp_make(nets, sim=None, port=23000, wakeup=None):
     return ecosystem_two_layer_area_coverage(
         num_agents=AGENTS,
         start_zone=SPAWN_ZONE,
         scenePath=cage_arena_path,
         blimpPath=narrow_blimp_path,
-        networkfn=net.activate,
+        networkfns=lambda i: nets(i).activate,
         height_range=(h_low, h_upp),
         height_cutoffs=(args.height_layer,),
         obstacles=args.obstacles,
