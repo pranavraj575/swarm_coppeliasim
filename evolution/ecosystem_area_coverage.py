@@ -164,7 +164,7 @@ class ecosystem_two_layer_area_coverage(k_tant_area_coverage):
                     p = zxy/self.num_agents
                     if p > 0:
                         entropy += p*np.log(1/p)
-        return entropy
+        return [entropy for _ in range(self.num_agents)]
 
 
 OBS_DIR = os.path.join(DIR, 'models', 'obstacles')
