@@ -46,21 +46,6 @@ function getVelos(xDot, thetaDot)
     return vl, vr
 end
 
--- Function to return the id number based on the model name that adheres to 
--- Coppeliasim's automatic naming convention. 
--- Models without a '#' are typically the first/original model and will have id 0
--- Models with a '#' and then a num, start incrementing from 0, 
--- so we add 1 to its number to offset it from the first/original model
-function getIdFromName(nameStr)
-    local result = string.find(nameStr, '#')
-    if result then
-        local hashSubstr = string.sub(nameStr, result + 1) -- +1 to ignore the hash
-        return (tonumber(hashSubstr) + 1) -- +1 to offset from base model name not having a hash 
-    else
-        return 0
-    end
-end
-
 -- This function will iterate over all objects in the scene and identify all the anki bots and their id
 -- and return a formatted string for publishing to the /swarm/list topic
 function searchSceneForAnkis()
