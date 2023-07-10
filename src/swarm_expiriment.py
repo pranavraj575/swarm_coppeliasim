@@ -400,8 +400,8 @@ class BlimpExperiment(Experiment):
         """
         TOPIC_PRE_BLIMP = TOPIC_NAMES['TOPIC_PRE_BLIMP']
         TOPIC_CMD = TOPIC_NAMES['TOPIC_CMD']
-        TOPIC_GLOBAL = TOPIC_NAMES['TOPIC_CMD']
-        TOPIC_ULTRA = TOPIC_NAMES['TOPIC_CMD']
+        TOPIC_GLOBAL = TOPIC_NAMES['TOPIC_GLOBAL']
+        TOPIC_ULTRA = TOPIC_NAMES['TOPIC_ULTRA']
 
         if not rclpy.ok():
             rclpy.init()
@@ -1374,7 +1374,7 @@ class quadTest(CopterExperiment):
         return s
 
 if __name__ == "__main__":
-    bb = blimpTest(10, lambda i: ((-5, 5), (-5, 5), (1, 5)), command=(0, 0, .1), wakeup=[COPPELIA_WAKEUP])
+    bb = blimpTest(10, lambda i: ((-5, 5), (-5, 5), (1, 5)), command=(0, 0, 0), wakeup=[COPPELIA_WAKEUP])
     bb.run_exp()
 
     # aa = ankiTest(5, lambda i: (i/5 - .35, 0, .035), command=(0, 1, .2, -45), wakeup=[COPPELIA_WAKEUP])
