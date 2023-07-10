@@ -144,6 +144,17 @@ Used for making swarm experiments for blimps/other in Coppeliasim. experiments u
   
   Mess with the file (the RECCY variable) to output graphs of the state, and mess with the test variable to change the command given
 
+* ### Swarm control experiments test
+  Tests if swarm experiments are set up properly
+
+  Run the following file from the ```swarm_coppeliasim``` directory
+  ```bash
+  python3 src/swarm_experiment.py
+  ```
+  This test will load a scene, load a swarm of agents in different positions, and begin the simulation, giving each agent a basic command
+
+  The simulation will run for 10 seconds, then reset with a different swarm. Currently we implemented blimps, ankis, and quadcopters
+
 * ### Parallelism test
   Tests if parallel instances of Coppeliasim can run 
 
