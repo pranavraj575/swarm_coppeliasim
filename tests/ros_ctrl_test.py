@@ -9,7 +9,7 @@ import numpy as np
 PI = 3.14159
 SIMID = 23000
 
-TOPIC_PRE = '/swarm/a'
+TOPIC_PRE = '/swarm/b'
 TOPIC_CMD = '/set/cmd_vel'
 TOPIC_GLOBAL = '/state/global'
 

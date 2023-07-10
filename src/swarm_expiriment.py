@@ -1395,7 +1395,7 @@ if __name__ == "__main__":
     aa.run_exp()
     aa.kill()
 
-    qq = quadTest(2,
+    qq = quadTest(5,
                   lambda i: (i - .35, 0, 1),
                   command=(0, 0, .1, .1), # (x, y, z, rotation) force
                   wakeup=[COPPELIA_WAKEUP])
