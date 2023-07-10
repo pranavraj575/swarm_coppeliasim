@@ -581,14 +581,12 @@ class k_tant_area_coverage(xyBlimp):
         @param networkfn: neural network function call for blimp to act
         @param height_range: R^2, height range to keep blimps at
         @param use_ultra: whether to use ultrasound to set height (and as network input)
-
         @param obstacles: number of obstacles to randomly spawn in
         @param obstacle_height: height to spawn in obstacles
         @param obstacle_paths: paths to obstacles to spawn in, list chosen from uniformly
         @param end_time: time it takes for experiment to end
         @param bounds: (RxR)^2, x bounds and y bounds to test for the area covered
             the goal function will uniformly choose some points in this area and rate the blimps based on closeness
-
         @param height_factor: factor to multiply height adjust by
         @param sim: simulator, if already defined
         @param simId: simulator id, used to pass messages to correct topics
