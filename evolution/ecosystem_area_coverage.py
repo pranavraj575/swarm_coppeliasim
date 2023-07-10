@@ -1,5 +1,5 @@
 from src.network_blimps import *
-from evolution.evolutionBlimp import EvolutionExperiment
+from evolution.evolutionBlimp import EcosystemEvolutionExperiment
 from evolution.arg_parser import *
 
 PARSER.description = "for creating and running an area coverage ecosytem evolutionary experiment with height layers"
@@ -7,12 +7,15 @@ PARSER.description = "for creating and running an area coverage ecosytem evoluti
 PARSER.add_argument("--obstacles", type=int, required=False, default=0,
                     help="number of obstacles to generate for training")
 PARSER.add_argument("--obstacle_height", type=float, required=False, default=1.5,
-                    help="obstacle spawn height, default of 1.5 (only relevant for 2d)")
+                    help="obstacle spawn height, default of 1.5")
 
 PARSER.add_argument("--height_lower", type=float, required=False, default=.8,
-                    help="lower bound of height to hold blimps at (irrelevant for 3D)")
+                    help="lower bound of height to hold blimps at")
 PARSER.add_argument("--height_upper", type=float, required=False, default=1.2,
-                    help="upper bound of height to hold blimps at (irrelevant for 3D)")
+                    help="upper bound of height to hold blimps at")
+
+PARSER.add_argument("--height_layer", type=float, required=False, default=1.5,
+                    help="layer to recognize a 'stacked' blimp")
 
 PARSER.add_argument("--xmin", type=float, required=False, default=-3.,
                     help="x spawning lower bound (should be > 0 so they do not spawn on other side of wall)")
@@ -46,7 +49,7 @@ class ecosystem_two_layer_area_coverage(k_tant_area_coverage):
                  obstacle_paths,
                  end_time,
                  bounds,
-                 height_cutoffs=(1.5,),
+                 height_cutoffs,
                  height_factor=.2,
                  sim=None,
                  simId=23000,
@@ -143,13 +146,13 @@ class ecosystem_two_layer_area_coverage(k_tant_area_coverage):
         xbound, ybound = self.bounds
         for agent_id in self.agentData:
             xyz = self.get_position(agent_id, use_ultra=False)
-            x, y,z = xyz
+            x, y, z = xyz
             xbox = self.dimension_split*(x - xbound[0])/(xbound[1] - xbound[0])
             ybox = self.dimension_split*(y - ybound[0])/(ybound[1] - ybound[0])
-            zbox=0
+            zbox = 0
             for cut in self.height_cutoffs:
-                if z>cut:
-                    zbox+=1
+                if z > cut:
+                    zbox += 1
             boxes[int(zbox)][int(xbox)][int(ybox)] += 1
             bug = self.get_state(agent_id)["DEBUG"]
             if bug == 0.:
@@ -181,15 +184,15 @@ def SPAWN_ZONE(i):
     return (args.xmin, args.xmax), (args.ymin, args.ymax), (args.zmin, args.zmax)
 
 
-def expe_make(net, sim=None, port=23000, wakeup=None):
-    return k_tant_area_coverage(
+def ecosytem_exp_make(net, sim=None, port=23000, wakeup=None):
+    return ecosystem_two_layer_area_coverage(
         num_agents=AGENTS,
         start_zone=SPAWN_ZONE,
         scenePath=cage_arena_path,
         blimpPath=narrow_blimp_path,
         networkfn=net.activate,
         height_range=(h_low, h_upp),
-        use_ultra=False,
+        height_cutoffs=(args.height_layer,),
         obstacles=args.obstacles,
         obstacle_height=args.obstacle_height,
         obstacle_paths=OBS_PATHS,
@@ -203,10 +206,8 @@ def expe_make(net, sim=None, port=23000, wakeup=None):
     )
 
 
-dim = ('3' if args.three_d else '2')
-
-save_name = str(AGENTS) + '_blimp_' + dim + 'D_' \
-            + str(args.obstacles) + '_obstacle_area_coverage_ecosystem'
+save_name = 'ECOSYSTEM' + str(AGENTS) + '_blimp_' + \
+            str(args.obstacles) + '_obstacle_area_coverage'
 checkpt_dir = os.path.join(DIR, 'checkpoints', save_name)
 print("SAVING TO:", checkpt_dir)
 
@@ -215,9 +216,10 @@ if not os.path.exists(checkpt_dir):
         os.makedirs(checkpt_dir)
     else:
         raise Exception("DIRECTORY DOES NOT EXIST (try running with --create): " + checkpt_dir)
-ee = EvolutionExperiment(checkpt_dir=checkpt_dir,
-                         exp_maker=expe_make,
-                         config_name='blimp_' + dim + 'd_area')
+ee = EcosystemEvolutionExperiment(num_agents=AGENTS,
+                                  checkpt_dir=checkpt_dir,
+                                  ecosystem_exp_maker=ecosytem_exp_make,
+                                  config_name='blimp_2d_area')
 if gens:
     port_step = args.port_step
     zmq_def_port = 23000 + port_step*args.offset
