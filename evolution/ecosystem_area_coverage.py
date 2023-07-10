@@ -2,7 +2,7 @@ from src.network_blimps import *
 from evolution.evolutionBlimp import EvolutionExperiment
 from evolution.arg_parser import *
 
-PARSER.description = "for creating and running an area coverage evolutionary experiment"
+PARSER.description = "for creating and running an area coverage ecosytem evolutionary experiment with height layers"
 
 PARSER.add_argument("--obstacles", type=int, required=False, default=0,
                     help="number of obstacles to generate for training")
@@ -206,7 +206,7 @@ def expe_make(net, sim=None, port=23000, wakeup=None):
 dim = ('3' if args.three_d else '2')
 
 save_name = str(AGENTS) + '_blimp_' + dim + 'D_' \
-            + str(args.obstacles) + '_obstacle_area_coverage'
+            + str(args.obstacles) + '_obstacle_area_coverage_ecosystem'
 checkpt_dir = os.path.join(DIR, 'checkpoints', save_name)
 print("SAVING TO:", checkpt_dir)
 
