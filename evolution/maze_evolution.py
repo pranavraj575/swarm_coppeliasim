@@ -94,7 +94,7 @@ def expe_make(net, sim=None, port=23000, wakeup=None):
                            )
 
 
-save_name = str(AGENTS) + '_blimp_' + str(H) + 'x' + str(W) + 'maze_max_goal_range_' + str(RANGE).replace('.', '_')
+save_name = str(AGENTS) + '_blimp_' + str(H) + 'x' + str(W) + 'maze_max_goal_new_range_' + str(RANGE).replace('.', '_')
 checkpt_dir = os.path.join(DIR, 'checkpoints', save_name)
 
 print("SAVING TO:", checkpt_dir)

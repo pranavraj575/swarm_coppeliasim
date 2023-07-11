@@ -696,6 +696,7 @@ class maxAmazingBlimp(amazingBlimp):
             bug = self.get_state(agent_id)["DEBUG"]
             if bug == 0.:
                 return None
+        return furthest # better to not worry about number completed
         return completed + furthest  # completed is positive iff furthest is 0
 
 
