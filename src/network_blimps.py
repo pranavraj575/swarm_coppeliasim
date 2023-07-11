@@ -1,6 +1,5 @@
 from src.swarm_expiriment import *
 import numpy as np
-from typing import TypeVar, Generic
 
 
 class blimpNet(BlimpExperiment):

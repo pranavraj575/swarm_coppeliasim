@@ -999,6 +999,18 @@ class AnkiExperiment(Experiment):
         s = self.get_state(agent_id, spin=spin)
         return np.array((s['x'], s['y']))
 
+    def get_head(self, agent_id, spin=True):
+        """
+        returns heading of agent
+
+        @param agent_id: agent id
+        @param spin: whether to update agent before getting state
+        @rtype: R
+        @return: heading of agent
+        """
+        s = self.get_state(agent_id, spin=spin)
+        return s['w']
+
     def get_prox(self, agent_id, spin=True):
         """
         returns proximity sensor of agent
@@ -1383,21 +1395,21 @@ class quadTest(CopterExperiment):
 if __name__ == "__main__":
     bb = blimpTest(10,
                    lambda i: ((-5, 5), (-5, 5), (1, 5)),
-                   command=(0, 0, .1), # (x, y, z) velocity
+                   command=(0, 0, .1),  # (x, y, z) velocity
                    wakeup=[COPPELIA_WAKEUP])
     bb.run_exp()
     bb.kill()
 
     aa = ankiTest(5,
                   lambda i: (i/5 - .35, 0, .035),
-                  command=(0, 1, .2, -45), # (thrust, rotation, arm lift, head tilt)
+                  command=(0, 1, .2, -45),  # (thrust, rotation, arm lift, head tilt)
                   wakeup=[COPPELIA_WAKEUP])
     aa.run_exp()
     aa.kill()
 
     qq = quadTest(5,
                   lambda i: (i - .35, 0, 1),
-                  command=(0, 0, .1, .1), # (x, y, z, rotation) force
+                  command=(0, 0, .1, .1),  # (x, y, z, rotation) force
                   wakeup=[COPPELIA_WAKEUP])
     qq.run_exp()
     qq.kill()
