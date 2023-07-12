@@ -21,17 +21,18 @@ infos = [{'pos': array([-4.13007858, 2.21171989, 1.]), 'tau': 1.0},
          {'pos': array([2.49765138, 7.08216976, 2.52365775]), 'tau': 1.0},
          {'pos': array([0.4479817, -4.1943272, 1.]), 'tau': 1.0},
          {'pos': array([-5.59681296, 0.53872593, 7.12257391]), 'tau': 1.0}]
-pounts=5
+pounts_in=5
 infos = []
-for i in range(pounts):
+for i in range(pounts_in):
     pos=np.random.normal((0, 0, 2), (.5, .5, 0)).clip([-10, -10, 1])
     infos.append({'pos': pos,
           'tau': 1E0})
-R=3
-for i in range(pounts):
-    infos.append({'pos': np.array((R*np.cos(2*np.pi*i/pounts),R*np.sin(2*np.pi*i/pounts),2)),
+R=4
+pounts_out=10
+for i in range(pounts_out):
+    infos.append({'pos': np.array((R*np.cos(2*np.pi*i/pounts_out),R*np.sin(2*np.pi*i/pounts_out),2)),
         'tau': 1E0})
-pounts=2*pounts
+pounts=pounts_out+pounts_in
 bb = travelingSalesBlimp(num_agents=2,
                       start_zone=lambda i: depot + np.random.normal((0, 0, 0), (1, 1, 0)),
                       num_points=pounts,

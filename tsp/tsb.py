@@ -414,7 +414,7 @@ class travelingSalesBlimp(BlimpExperiment):
         return [node_to_key[i] for i in lis[0]]
 
     def make_goal_partition(self):
-        return self.make_kmeans_partition()
+        return self.make_spectral_partition()
 
     ####################################################################################################################
     # K-means partitioning
@@ -452,7 +452,7 @@ class travelingSalesBlimp(BlimpExperiment):
         for i in range(n):
             for j in range(i + 1, n):
                 c = self.get_cost(H[i], H[j])
-                c = np.exp(-c)
+                c = np.exp(-c**2)
                 # since we are minimizing the sum of costs, larger connectivity should be correlated with less cost
                 A[i][j] = c
                 A[j][i] = c
@@ -479,8 +479,8 @@ class travelingSalesBlimp(BlimpExperiment):
             # if we outnumber the number of POIs, just send one blimp to each POI
             return [[h] for h in H] + [[] for _ in range(k - len(H))]
         L = self.make_laplacian()
-        print(L)
         eigenvalues, eigenvectors = np.linalg.eig(L)
+        eigenvalues, eigenvectors = self.sort_eig(eigenvalues, eigenvectors,key=abs)
         F = eigenvectors[:, 0:k]  # the k smallest eigenvectors
         # now F[i,:] is the 'feature vector' of the ith POI
         for i in range(len(F)):
@@ -595,6 +595,22 @@ class travelingSalesBlimp(BlimpExperiment):
         for i, h in enumerate(self.non_depot_handles):
             part[int(string[i])].append(h)
         return part
+
+    @staticmethod
+    def sort_eig(eigenvalues, eigenvectors,key=abs):
+        """
+        returns sorted eigenvalues and eigenvectors
+            necessary since np.linalg.eig does not sort
+
+        @param eigenvalues: np array of n eigenvalues
+        @param eigenvectors: nxn array of eigenvectors, with eigenvectors[:,k] corresponding to eigenvalues[k]
+        @param key: key to sort eigenvectors by, defaults to absolute value
+        @return: eigenvalues, eigenvectors, sorted by absolute value
+        """
+        perm = list(range(len(eigenvalues)))
+        perm.sort(key=lambda i: key(eigenvalues[i]))
+        return (np.array([eigenvalues[i] for i in perm]),
+                np.array([[eigenvectors[i][j] for j in perm] for i in range(len(eigenvectors))]))
 
 
 class singleBlimp(travelingSalesBlimp):
