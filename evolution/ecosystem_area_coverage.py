@@ -50,6 +50,7 @@ class ecosystem_two_layer_area_coverage(k_tant_area_coverage):
                  end_time,
                  bounds,
                  height_cutoffs,
+                 prop_ground=.8,
                  height_factor=.2,
                  sim=None,
                  simId=23000,
@@ -74,6 +75,7 @@ class ecosystem_two_layer_area_coverage(k_tant_area_coverage):
         @param end_time: time it takes for experiment to end
         @param bounds: (RxR)^2, x bounds and y bounds to test for the area covered
             the goal function will uniformly choose some points in this area and rate the blimps based on closeness
+        @param prop_ground: proportion of blimps that should be on 'ground level', used to determine number of cells
         @param height_factor: factor to multiply height adjust by
         @param height_cutoffs: segment the environment into cells based on this list of heights as dividers
             used for deployment engtropy fitness function
@@ -108,6 +110,7 @@ class ecosystem_two_layer_area_coverage(k_tant_area_coverage):
         )
         self.networks = self.network
         self.height_cutoffs = height_cutoffs
+        self.dimension_split = int((num_agents*prop_ground)**(1/2))
 
     ####################################################################################################################
     # Expiriment functions
@@ -153,7 +156,9 @@ class ecosystem_two_layer_area_coverage(k_tant_area_coverage):
             for cut in self.height_cutoffs:
                 if z > cut:
                     zbox += 1
-            boxes[int(zbox)][int(xbox)][int(ybox)] += 1
+            xbox = np.clip(xbox, 0, self.dimension_split - .5)
+            ybox = np.clip(ybox, 0, self.dimension_split - .5)
+            boxes[int(zbox), int(xbox), int(ybox)] += 1
             bug = self.get_state(agent_id)["DEBUG"]
             if bug == 0.:
                 return None

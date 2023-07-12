@@ -673,7 +673,10 @@ class k_tant_area_coverage(xyBlimp):
             x, y = xy
             xbox = self.dimension_split*(x - xbound[0])/(xbound[1] - xbound[0])
             ybox = self.dimension_split*(y - ybound[0])/(ybound[1] - ybound[0])
-            boxes[int(xbox)][int(ybox)] += 1
+
+            xbox = np.clip(xbox, 0, self.dimension_split - .5)
+            ybox = np.clip(ybox, 0, self.dimension_split - .5)
+            boxes[int(xbox), int(ybox)] += 1
 
             bug = self.get_state(agent_id)["DEBUG"]
             if bug == 0.:
@@ -892,7 +895,11 @@ class l_k_tant_area_coverage(xyzBlimp):
             xbox = self.dimension_split*(x - xbound[0])/(xbound[1] - xbound[0])
             ybox = self.dimension_split*(y - ybound[0])/(ybound[1] - ybound[0])
             zbox = self.dimension_split*(z - zbound[0])/(zbound[1] - zbound[0])
-            boxes[int(xbox)][int(ybox)][int(zbox)] += 1
+
+            xbox = np.clip(xbox, 0, self.dimension_split - .5)
+            ybox = np.clip(ybox, 0, self.dimension_split - .5)
+            zbox = np.clip(zbox, 0, self.dimension_split - .5)
+            boxes[int(xbox), int(ybox), int(zbox)] += 1
 
             bug = self.get_state(agent_id)["DEBUG"]
             if bug == 0.:
