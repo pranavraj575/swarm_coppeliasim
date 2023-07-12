@@ -1,0 +1,18 @@
+#! /bin/sh
+# /etc/init.d/stream_cmd
+
+### BEGIN INIT INFO
+# Provides:          stream_cmd
+# Required-Start:    $remote_fs $syslog
+# Required-Stop:     $remote_fs $syslog
+# Default-Start:     2 3 4 5
+# Default-Stop:      0 1 6
+# Short-Description: start a program from boot
+# Description:       A simple script  which will start a program from boot and stop upon shut-down
+### END INIT INFO
+
+screen -dm bash -c 'python3 /home/pi/open-blimp/src/piStreaming/stream_pi02.py'
+
+exit 0
+;;
+esac

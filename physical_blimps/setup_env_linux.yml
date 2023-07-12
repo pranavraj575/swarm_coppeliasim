@@ -1,0 +1,15 @@
+name: openBlimp
+channels:
+- menpo
+- defaults
+dependencies:
+- python=3.9
+- scipy
+- numpy
+- pyserial
+- pip
+- pip:
+  - pyyaml
+  - pygame
+  - opencv-contrib-python==4.6.0.66
+  - matplotlib
