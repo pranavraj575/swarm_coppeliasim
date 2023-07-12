@@ -1,5 +1,5 @@
+cbor
+neat-python==0.92
 numpy
 psutil
 zmq
-cbor
-neat-python==0.92
