@@ -806,8 +806,7 @@ class k_tant_wall_sense_area_coverage(k_tant_area_coverage):
         k_tant = np.zeros(k)
         xbound, ybound = self.bounds
         for i in range(k):
-            rng = (i*np.pi*2, (i + 1)*np.pi*2)
-
+            rng = (i*np.pi*2/k, (i + 1)*np.pi*2/k)
             if (any(r > np.pi/2 and r < 3*np.pi/2 for r in rng)  # one of the bounds is on this range
                     or rng[0] <= np.pi/2 and rng[1] >= 3*np.pi/3):  # bounds encompass this range
                 # can see x0 wall

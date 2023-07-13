@@ -318,7 +318,7 @@ class Experiment:
         """
         diff=(a0-a1)%(2*np.pi) # on [0,2pi)
         if diff>=np.pi:
-            diff=diff-np.pi
+            diff=diff-2*np.pi
         return diff
 
     def set_color(self, handle, color, type=None):
