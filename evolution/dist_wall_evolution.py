@@ -14,9 +14,9 @@ PARSER.add_argument("--xmin", type=float, required=False, default=.5,
 PARSER.add_argument("--xmax", type=float, required=False, default=11.,
                     help="x spawning upper bound")
 
-PARSER.add_argument("--ymin", type=float, required=False, default=-9.,
+PARSER.add_argument("--ymin", type=float, required=False, default=-7.,
                     help="y spawning upper bound")
-PARSER.add_argument("--ymax", type=float, required=False, default=9.,
+PARSER.add_argument("--ymax", type=float, required=False, default=7.,
                     help="y spawning upper bound")
 
 PARSER.add_argument("--zmin", type=float, required=False, default=.8,
