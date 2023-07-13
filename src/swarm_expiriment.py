@@ -311,6 +311,15 @@ class Experiment:
             box[dim][0] <= pt[dim] and pt[dim] <= box[dim][1]
             for dim in range(3)  # only within if all dimensions overlap
         )
+    @staticmethod
+    def angle_diff(a0,a1):
+        """
+        returns angle difference of a0-a1, on [-pi,pi)
+        """
+        diff=(a0-a1)%(2*np.pi) # on [0,2pi)
+        if diff>=np.pi:
+            diff=diff-np.pi
+        return diff
 
     def set_color(self, handle, color, type=None):
         """

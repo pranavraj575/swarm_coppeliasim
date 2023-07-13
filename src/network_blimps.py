@@ -557,6 +557,7 @@ class k_tant_area_coverage(xyBlimp):
                  obstacle_paths,
                  end_time,
                  bounds,
+                 k=8,
                  height_factor=.2,
                  sim=None,
                  simId=23000,
@@ -582,6 +583,7 @@ class k_tant_area_coverage(xyBlimp):
         @param end_time: time it takes for experiment to end
         @param bounds: (RxR)^2, x bounds and y bounds to test for the area covered
             the goal function will uniformly choose some points in this area and rate the blimps based on closeness
+        @param k: number of divisions to split sensing
         @param height_factor: factor to multiply height adjust by
         @param sim: simulator, if already defined
         @param simId: simulator id, used to pass messages to correct topics
@@ -608,6 +610,7 @@ class k_tant_area_coverage(xyBlimp):
             spawn_tries=spawn_tries)
         self.end_time = end_time
         self.bounds = bounds
+        self.k = k
         self.dimension_split = int(num_agents**(1/2))
         self.obstacles = obstacles
         self.obstacle_height = obstacle_height
@@ -645,7 +648,7 @@ class k_tant_area_coverage(xyBlimp):
         @return: R^k np array
         """
 
-        k_tant = self.global_get_inv_dist_2d_k_tant(agent_id, is_neigh=lambda id0, id1: True, k=8, spin=True)
+        k_tant = self.global_get_inv_dist_2d_k_tant(agent_id, is_neigh=lambda id0, id1: True, k=self.k, spin=True)
         return k_tant.reshape((-1, 1))
 
     ####################################################################################################################
@@ -700,6 +703,154 @@ class k_tant_area_coverage(xyBlimp):
         @return: R^2 random sample
         """
         return np.random.uniform([b[0] for b in self.bounds], [b[1] for b in self.bounds], (n, len(self.bounds)))
+
+
+class k_tant_wall_sense_area_coverage(k_tant_area_coverage):
+
+    def __init__(self,
+                 num_agents,
+                 start_zone,
+                 scenePath,
+                 blimpPath,
+                 networkfn,
+                 height_range,
+                 use_ultra,
+                 obstacles,
+                 obstacle_height,
+                 obstacle_paths,
+                 end_time,
+                 bounds,
+                 k=8,
+                 height_factor=.2,
+                 sim=None,
+                 simId=23000,
+                 msg_queue=10,
+                 wakeup=None,
+                 sleeptime=.01,
+                 spawn_tries=100):
+        """
+        blimp sees the closest neighbor on each octant, as well as bounds
+
+        @param num_agents: number of blimps in this swarm expiriment
+        @param start_zone: int -> (RxR U R)^3 goes from the blimp number to the spawn area
+                (each dimension could be (value) or (low, high), chosen uniformly at random)
+        @param scenePath: path to coppeliasim scene
+        @param blimpPath: path to blimp for spawning
+        @param networkfn: neural network function call for blimp to act
+        @param height_range: R^2, height range to keep blimps at
+        @param use_ultra: whether to use ultrasound to set height (and as network input)
+        @param obstacles: number of obstacles to randomly spawn in
+        @param obstacle_height: height to spawn in obstacles
+        @param obstacle_paths: paths to obstacles to spawn in, list chosen from uniformly
+        @param end_time: time it takes for experiment to end
+        @param bounds: (RxR)^2, x bounds and y bounds to test for the area covered
+            the goal function will uniformly choose some points in this area and rate the blimps based on closeness
+        @param k: number of divisions to split sensing
+        @param height_factor: factor to multiply height adjust by
+        @param sim: simulator, if already defined
+        @param simId: simulator id, used to pass messages to correct topics
+        @param msg_queue: queue length of ROS messages
+        @param wakeup: code to run in command line before starting experiment
+        @param sleeptime: time to wait before big commands (i.e. stop simulation, start simulation, pause simulation)
+        @param spawn_tries: number of tries to spawn without collisions before giving up
+                if 1, then sets position, does not change if collision detected
+        """
+        super().__init__(
+            num_agents=num_agents,
+            start_zone=start_zone,
+            scenePath=scenePath,
+            blimpPath=blimpPath,
+            networkfn=networkfn,
+            height_range=height_range,
+            use_ultra=use_ultra,
+            obstacles=obstacles,
+            obstacle_paths=obstacle_paths,
+            obstacle_height=obstacle_height,
+            end_time=end_time,
+            bounds=bounds,
+            k=k,
+            height_factor=height_factor,
+            sim=sim,
+            simId=simId,
+            msg_queue=msg_queue,
+            wakeup=wakeup,
+            sleeptime=sleeptime,
+            spawn_tries=spawn_tries,
+        )
+
+    ####################################################################################################################
+    # network functions
+    ####################################################################################################################
+    def get_network_input(self, agent_id):
+        """
+        gets the network input for agent specified
+
+        @param agent_id: agent to get input for
+        @return: R^k np array
+        """
+
+        neighbor_k_tant = self.global_get_inv_dist_2d_k_tant(agent_id, is_neigh=lambda id0, id1: True, k=self.k,
+                                                             spin=True)
+        bounds_k_tant = self.get_bounds_k_tant(self.get_position(agent_id, spin=False), k=self.k)
+        k_tant = np.max((neighbor_k_tant, bounds_k_tant), axis=0)
+        return k_tant.reshape((-1, 1))
+
+    def get_bounds_k_tant(self, pos, k, min_dist=.01):
+        """
+        gets the inverse distance to nearest bound for each k-tant
+
+        @param pos: position to start from
+        @param k: k-tants
+        @return R^k array with inverse distance to closest bound on each k-tant
+        """
+        k_tant = np.zeros(k)
+        xbound, ybound = self.bounds
+        for i in range(k):
+            rng = (i*np.pi*2, (i + 1)*np.pi*2)
+
+            if (any(r > np.pi/2 and r < 3*np.pi/2 for r in rng)  # one of the bounds is on this range
+                    or rng[0] <= np.pi/2 and rng[1] >= 3*np.pi/3):  # bounds encompass this range
+                # can see x0 wall
+                x = max(min_dist, pos[0] - xbound[0])
+                if rng[0] <= np.pi and np.pi <= rng[1]:
+                    ang = 0  # np.pi-np.pi
+                else:
+                    ang = min(rng, key=lambda a: abs(self.angle_diff(a, np.pi))) - np.pi
+                inv_d = np.cos(ang)/x
+                k_tant[i] = max(inv_d, k_tant[i])
+
+            if rng[0] < np.pi/2 or rng[1] > 3*np.pi/2:
+                # can see x1 wall
+                x = max(min_dist, xbound[1] - pos[0])
+                if i == 0 or i == k - 1:
+                    ang = 0
+                else:
+                    ang = min(rng, key=lambda a: abs(self.angle_diff(a, 0)))
+                # d=x/np.cos(ang)
+                inv_d = np.cos(ang)/x
+                k_tant[i] = max(inv_d, k_tant[i])
+            if rng[1] > np.pi:
+                # can see y0 wall
+                y = max(min_dist, pos[1] - ybound[0])
+                if rng[0] <= np.pi*3/2 and np.pi*3/2 <= rng[1]:
+                    ang = 0  # np.pi*3/2-np.pi*3/2
+                else:
+                    ang = min(rng, key=lambda a: abs(self.angle_diff(a, np.pi*3/2))) - np.pi*3/2
+
+                inv_d = np.cos(ang)/y
+                k_tant[i] = max(inv_d, k_tant[i])
+            if rng[0] < np.pi:
+                # can see y1 wall
+                y = max(min_dist, ybound[1] - pos[1])
+
+                if rng[0] <= np.pi/2 and np.pi/2 <= rng[1]:
+                    ang = 0  # np.pi/2-np.pi/2
+                else:
+                    ang = min(rng, key=lambda a: abs(self.angle_diff(a, np.pi/2))) - np.pi/2
+
+                inv_d = np.cos(ang)/y
+                k_tant[i] = max(inv_d, k_tant[i])
+        return k_tant
 
 
 class xyzBlimp(blimpNet):
