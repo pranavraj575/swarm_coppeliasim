@@ -798,7 +798,8 @@ class EcosystemEvolutionExperiment(GeneralEvolutionaryExperiment):
                 eco = []
                 for i in range(self.num_agents):
                     eco.append(global_population[np.random.randint(0, len(global_population))])
-                exp: blimpNet = self.exp_maker(nets=lambda i: eco[i], wakeup=wakeup)
+                networks = [neat.nn.FeedForwardNetwork.create(genome, self.config) for genome in eco]
+                exp: blimpNet = self.exp_maker(nets=lambda i: networks[i], wakeup=wakeup)
                 goals = exp.experiments(trials=1)
                 exp.kill()
                 all_goals.append(goals)
