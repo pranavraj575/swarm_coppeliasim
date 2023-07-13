@@ -437,10 +437,9 @@ class k_tant_wall_climb_blimp(xyBlimp):
         @return: R^(l*k) np array
         """
 
-        k_tant = self.get_neighbors_2d_k_ant(agent_id,
-                                             is_neigh=lambda id0, id1: self.within_range(id0, id1, rng=self.rng),
-                                             k=8,
-                                             spin=True)
+        k_tant = self.get_neighbors_2d_k_tant(agent_id,
+                                              is_neigh=lambda id0, id1: self.within_range(id0, id1, rng=self.rng), k=8,
+                                              spin=True)
         return k_tant.reshape((-1, 1))
 
     ####################################################################################################################
@@ -540,10 +539,7 @@ class dist_k_tant_wall_climb_blimp(k_tant_wall_climb_blimp):
         @return: R^(l*k) np array
         """
 
-        k_tant = self.get_inv_dist_2d_k_ant(agent_id,
-                                            is_neigh=lambda id0, id1: True,
-                                            k=8,
-                                            spin=True)
+        k_tant = self.global_get_inv_dist_2d_k_tant(agent_id, is_neigh=lambda id0, id1: True, k=8, spin=True)
         return k_tant.reshape((-1, 1))
 
 
@@ -649,10 +645,7 @@ class k_tant_area_coverage(xyBlimp):
         @return: R^k np array
         """
 
-        k_tant = self.get_inv_dist_2d_k_ant(agent_id,
-                                            is_neigh=lambda id0, id1: True,
-                                            k=8,
-                                            spin=True)
+        k_tant = self.global_get_inv_dist_2d_k_tant(agent_id, is_neigh=lambda id0, id1: True, k=8, spin=True)
         return k_tant.reshape((-1, 1))
 
     ####################################################################################################################
@@ -865,12 +858,8 @@ class l_k_tant_area_coverage(xyzBlimp):
         @param agent_id: agent to get input for
         @return: R^(l*k) np array
         """
-        l_k_tant = self.get_inv_dist_3d_l_k_ant(agent_id,
-                                                is_neigh=lambda id0, id1: True,
-                                                l=self.l,
-                                                k=self.k,
-                                                min_dist=.01,
-                                                spin=True)
+        l_k_tant = self.global_get_inv_dist_3d_l_k_tant(agent_id, is_neigh=lambda id0, id1: True, l=self.l, k=self.k,
+                                                        min_dist=.01, spin=True)
         return l_k_tant.reshape((-1, 1))
 
     ####################################################################################################################
@@ -1088,14 +1077,12 @@ class l_k_tant_clump_blimp(blimpNet):
         @param agent_id: agent to get input for
         @return: R^(l*k) np array
         """
-        l_k_tant = self.get_neighbors_3d_l_k_ant(agent_id=agent_id,
-                                                 is_neigh=lambda id1, id2: self.within_range(id0=id1,
-                                                                                             id1=id2,
-                                                                                             rng=self.rng,
-                                                                                             spin=False),
-                                                 k=self.k,
-                                                 l=self.l,
-                                                 spin=True)
+        l_k_tant = self.get_neighbors_3d_l_k_tant(agent_id=agent_id,
+                                                  is_neigh=lambda id1, id2: self.within_range(id0=id1,
+                                                                                              id1=id2,
+                                                                                              rng=self.rng,
+                                                                                              spin=False), l=self.l,
+                                                  k=self.k, spin=True)
         return l_k_tant.reshape((-1, 1))
 
     ####################################################################################################################

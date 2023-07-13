@@ -552,10 +552,7 @@ class amazingBlimp(aMazeBlimp):
         @return: R^(l*k) np array
         """
 
-        k_tant = self.get_neighbors_2d_k_ant(agent_id,
-                                             is_neigh=self.agent_sight,
-                                             k=8,
-                                             spin=True)
+        k_tant = self.get_neighbors_2d_k_tant(agent_id, is_neigh=self.agent_sight, k=8, spin=True)
         return k_tant.reshape((-1, 1))
 
     ####################################################################################################################
@@ -894,10 +891,7 @@ class dist_sense_max_amazing_blimp(maxAmazingBlimp):
         @return: R^(l*k) np array
         """
 
-        k_tant = self.get_inv_dist_2d_k_ant(agent_id,
-                                            is_neigh=self.agent_sight,
-                                            k=8,
-                                            spin=True)
+        k_tant = self.global_get_inv_dist_2d_k_tant(agent_id, is_neigh=self.agent_sight, k=8, spin=True)
         return k_tant.reshape((-1, 1))
 
 

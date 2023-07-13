@@ -346,6 +346,55 @@ class Experiment:
         """
         self.problem_models = dict()
 
+    def _get_l_k_tant(self, vec, l, k):
+        """
+        gets l,k-tant of vec
+            i.e. l=2, k=1 is equivalent to 'north hemisphere, south hemisphere'
+            l=2 k=4 is equivalent to octants of a sphere
+
+        @param vec: vector to check
+        @param l: divisions of phi to consider when using spherical coordinates
+        @param k: divisions of theta to consider when using spherical coordinates
+        @return: l-tant, k-tant;
+            i.e. return of i,j means in spherical coords, vec is in range phi=pi*[i,i+1)/l and theta=2*pi*[j,j+1)/k
+        """
+        theta = np.arctan2(vec[1], vec[0])%(2*np.pi)
+        phi = np.pi/2 - np.arctan2(vec[2], np.linalg.norm(vec[:2]))
+
+        l_tant = int(l*phi/(np.pi))
+        # is in range [0,l], needs to be clipped if phi=pi
+
+        k_tant = int(k*theta/(2*np.pi))
+        # will always be in range [0,k)
+        return min(l - 1, l_tant), k_tant
+
+    def _get_k_tant(self, vec, k):
+        """
+        gets k-tant of vec
+            i.e. k=4 is equivalent to quadrants
+
+        @param vec: vector to check
+        @param k: divisions of theta to consider when using spherical coordinates
+        @return: k-tant;
+            i.e. return of j means in polar coords, vec is in range theta=2*pi*[j,j+1)/k
+        """
+        theta = np.arctan2(vec[1], vec[0])
+        return self._get_k_tant_from_theta(theta, k=k)
+
+    def _get_k_tant_from_theta(self, theta, k):
+        """
+        gets k-tant of vector at angle theta
+            i.e. k=4 is equivalent to quadrants
+
+        @param theta: angle to check
+        @param k: divisions of theta to consider when using spherical coordinates
+        @return: k-tant;
+            i.e. return of j means in polar coords, theta is in range 2*pi*[j,j+1)/k
+        """
+        k_tant = int(k*(theta%(2*np.pi))/(2*np.pi))
+        # will always be in range [0,k)
+        return k_tant
+
 
 class BlimpExperiment(Experiment):
 
@@ -593,9 +642,9 @@ class BlimpExperiment(Experiment):
         """
         return self._gen_get_neighbors(agent_id, lambda id0, id1: self.within_range(id0, id1, rng, spin=False), spin)
 
-    def get_neighbors_3d_l_k_ant(self, agent_id, is_neigh, l=2, k=8, spin=True):
+    def get_neighbors_3d_l_k_tant(self, agent_id, is_neigh, l=2, k=8, spin=True):
         """
-        gets count of neighbors in each l,k-ant
+        gets count of neighbors in each l,k-tant
             i.e. l=2, k=1 is equivalent to 'north hemisphere, south hemisphere'
             l=2 k=4 is equivalent to octants of a sphere
 
@@ -617,9 +666,9 @@ class BlimpExperiment(Experiment):
             output[l_tant][k_tant] += 1
         return np.array(output)
 
-    def get_neighbors_2d_k_ant(self, agent_id, is_neigh, k=8, spin=True):
+    def get_neighbors_2d_k_tant(self, agent_id, is_neigh, k=8, spin=True):
         """
-        gets count of neighbors in each k-ant
+        gets count of neighbors in each k-tant
             i.e. k=4 is equivalent to quadrants of the xy plane
 
         @param agent_id: agent id
@@ -631,15 +680,11 @@ class BlimpExperiment(Experiment):
 
         @note: when getting neighbors with range, z direction is considered,
         """
-        return self.get_neighbors_3d_l_k_ant(agent_id=agent_id,
-                                             is_neigh=is_neigh,
-                                             l=1,
-                                             k=k,
-                                             spin=spin)[0]
+        return self.get_neighbors_3d_l_k_tant(agent_id=agent_id, is_neigh=is_neigh, l=1, k=k, spin=spin)[0]
 
-    def get_inv_dist_3d_l_k_ant(self, agent_id, is_neigh, l=2, k=8, min_dist=.01, spin=True):
+    def global_get_inv_dist_3d_l_k_tant(self, agent_id, is_neigh, l=2, k=8, min_dist=.01, spin=True):
         """
-        gets inverse distance from nearest neighbor in each l,k-ant (0 if no neighbor)
+        gets inverse distance from nearest neighbor in each l,k-tant (0 if no neighbor)
             i.e. l=2, k=1 is equivalent to 'north hemisphere, south hemisphere'
             l=2 k=4 is equivalent to octants of a sphere
 
@@ -650,7 +695,8 @@ class BlimpExperiment(Experiment):
         @param min_dist: lowest distance to sense, to avoid division by 0
         @param spin: whether to update all agents before checking neighbors
         @rtype: N^(l x k) array
-        @return: return[i][j] specifies number of neighbors in the range phi=pi*[i,i+1)/l and theta=2*pi*[j,j+1)/k
+        @return: return[i][j] specifies inverse distance to nearest neighbor
+            in the range phi=pi*[i,i+1)/l and theta=2*pi*[j,j+1)/k
         """
         neighbors = self._gen_get_neighbors(agent_id=agent_id, is_neigh=is_neigh, spin=spin)
         output = [[0 for _ in range(k)] for _ in range(l)]
@@ -665,9 +711,9 @@ class BlimpExperiment(Experiment):
             output[l_tant][k_tant] = max(output[l_tant][k_tant], 1/d)
         return np.array(output)
 
-    def get_inv_dist_2d_k_ant(self, agent_id, is_neigh, k=8, min_dist=.01, spin=True):
+    def global_get_inv_dist_2d_k_tant(self, agent_id, is_neigh, k=8, min_dist=.01, spin=True):
         """
-        gets count of neighbors in each k-ant
+        gets count of neighbors in each k-tant
             i.e. k=4 is equivalent to quadrants of the xy plane
 
         @param agent_id: agent id
@@ -676,16 +722,12 @@ class BlimpExperiment(Experiment):
         @param min_dist: lowest distance to sense, to avoid division by 0
         @param spin: whether to update all agents before checking neighbors
         @rtype: N^k array
-        @return: return[i] specifies number of neighbors in the approximate direction ()
+        @return: return[j] specifies distance to nearest neighbor in the range theta=2*pi*[j,j+1)/k
 
         @note: when getting neighbors with range, z direction is considered,
         """
-        return self.get_inv_dist_3d_l_k_ant(agent_id=agent_id,
-                                            is_neigh=is_neigh,
-                                            l=1,
-                                            k=k,
-                                            min_dist=min_dist,
-                                            spin=spin)[0]
+        return self.global_get_inv_dist_3d_l_k_tant(agent_id=agent_id, is_neigh=is_neigh, l=1, k=k, min_dist=min_dist,
+                                                    spin=spin)[0]
 
     ####################################################################################################################
     # utility functions
@@ -703,28 +745,6 @@ class BlimpExperiment(Experiment):
         pos1 = self.get_position(id0, use_ultra=False, spin=spin)
         pos2 = self.get_position(id1, use_ultra=False, spin=spin)
         return np.linalg.norm(pos1 - pos2) <= rng
-
-    def _get_l_k_tant(self, vec, l, k):
-        """
-        gets l,k-tant of vec
-            i.e. l=2, k=1 is equivalent to 'north hemisphere, south hemisphere'
-            l=2 k=4 is equivalent to octants of a sphere
-
-        @param vec: vector to check
-        @param l: divisions of phi to consider when using spherical coordinates
-        @param k: divisions of theta to consider when using spherical coordinates
-        @return: l-tant, k-tant;
-            i.e. return of i,j means in spherical coords, vec is in range phi=pi*[i,i+1)/l and theta=2*pi*[j,j+1)/k
-        """
-        theta = np.arctan2(vec[1], vec[0])%(2*np.pi)
-        phi = np.pi/2 - np.arctan2(vec[2], np.linalg.norm(vec[:2]))
-
-        l_tant = int(l*phi/(np.pi))
-        # is in range [0,l], needs to be clipped if phi=pi
-
-        k_tant = int(k*theta/(2*np.pi))
-        # will always be in range [0,k)
-        return min(l - 1, l_tant), k_tant
 
 
 class blimpTest(BlimpExperiment):
@@ -1064,6 +1084,61 @@ class AnkiExperiment(Experiment):
         pos1 = self.get_position(id0, spin=spin)
         pos2 = self.get_position(id1, spin=spin)
         return np.linalg.norm(pos1 - pos2) <= rng
+
+    def get_neighbors_k_tant(self, agent_id, is_neigh, k=8, spin=True):
+        """
+        gets count of neighbors in each k-tant
+            i.e. k=4 is equivalent to quadrants
+
+        @param agent_id: agent id
+        @param is_neigh: agent_id0 x agent_id1 -> bool; returns if agent 1 is a neighbor of agent 0
+        @param k: divisions of theta to consider when using spherical coordinates
+        @param spin: whether to update all agents before checking neighbors
+        @rtype: N^k array
+        @return: return[i] specifies number of neighbors in the range theta=2*pi*[j,j+1)/k
+        """
+        neighbors = self._gen_get_neighbors(agent_id=agent_id, is_neigh=is_neigh, spin=spin)
+        output = [0 for _ in range(k)]
+        pos = self.get_position(agent_id, spin=False)
+        head = self.get_head(agent_id, spin=False)
+        for neigh_id in neighbors:
+            neigh_pos = self.get_position(neigh_id, spin=False)
+            vec = neigh_pos - pos
+            theta_global = np.arctan2(vec[1], vec[0])%(2*np.pi)
+            theta_local = theta_global - head
+            k_tant = self._get_k_tant_from_theta(theta_local, k=k)
+            output[k_tant] += 1
+        return np.array(output)
+
+    def local_get_inv_dist_k_tant(self, agent_id, is_neigh, k=8, min_dist=.01, spin=True):
+        """
+        gets inverse distance from nearest neighbor in each k-tant (0 if no neighbor)
+            i.e. k=4 is equivalent to quadrants
+
+        @param agent_id: agent id
+        @param is_neigh: agent_id0 x agent_id1 -> bool; returns if agent 1 is a neighbor of agent 0
+        @param k: divisions of theta to consider when using spherical coordinates
+        @param min_dist: lowest distance to sense, to avoid division by 0
+        @param spin: whether to update all agents before checking neighbors
+        @rtype: N^k array
+        @return: return[j] specifies distance to nearest neighbor in the range theta=2*pi*[j,j+1)/k
+        """
+        neighbors = self._gen_get_neighbors(agent_id=agent_id, is_neigh=is_neigh, spin=spin)
+        output = [0 for _ in range(k)]
+        pos = self.get_position(agent_id, spin=False)
+        head = self.get_head(agent_id, spin=False)
+        for neigh_id in neighbors:
+            neigh_pos = self.get_position(neigh_id, spin=False)
+            vec = neigh_pos - pos
+            theta_global = np.arctan2(vec[1], vec[0])%(2*np.pi)
+            theta_local = theta_global - head
+
+            d = np.linalg.norm(vec)
+            if d < min_dist:
+                d = min_dist
+            k_tant = self._get_k_tant_from_theta(theta_local, k=k)
+            output[k_tant] = max(output[k_tant], 1/d)
+        return np.array(output)
 
 
 class ankiTest(AnkiExperiment):
