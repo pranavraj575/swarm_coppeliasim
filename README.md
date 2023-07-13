@@ -80,6 +80,12 @@ Used for making swarm experiments for blimps/other in Coppeliasim. experiments u
       sudo apt-get install xsltproc
       pip3 install xmlschema
       ```
+    * Note: if using a conda environment, you might get an error like [this](https://github.com/colcon/colcon-ros/issues/118)
+
+      running the following might help:
+      ```bash
+      conda install -c conda-forge catkin_pkg empy lark
+      ```
     * make a ROS2 workspace (the name can probably be different)
       ```bash
       cd ~
