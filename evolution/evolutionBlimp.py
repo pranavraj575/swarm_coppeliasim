@@ -183,17 +183,16 @@ class GeneralEvolutionaryExperiment:
               TRIALS,
               evaluate_each_gen,
               num_simulators=8,
-              open_coppelia=True,
               headless=True,
               checkpt_freq=1,
               port_step=2,
               zmq_def_port=23000,
               websocket_def_port=23050,
-              close_after=True,
               sleeptime=.1,
               resttime=.1,
               restore=True,
               num_sim_range=None,
+              reset_after_first_fail=True,
               debug=False
               ):
         """
@@ -205,17 +204,16 @@ class GeneralEvolutionaryExperiment:
             if False, keeps the fitness score of a genome evaluated in the previous generation
             This parameter will not affect the restored checkpoint generation
         @param num_simulators: number of coppelia sims to use
-        @param open_coppelia: whether to open the simulators each generation
         @param headless: whether to run coppelia in headless mode
         @param checkpt_freq: how often to save checkpoints
         @param port_step: amount to increment ports for different coppelia instances
         @param zmq_def_port: default port for ZMQ API
         @param websocket_def_port: default port for the websocket
-        @param close_after: whether to close instances of coppelia after running this
         @param sleeptime: time to sleep after important commands
         @param resttime: time to sleep after each generation
         @param restore: whether to restore progress
         @param num_sim_range: range to test 'num sims' parameters, None if just use given
+        @param reset_after_first_fail: if we reset all coppeliasims after one failure to connect
         @param debug: whether to print excessive debug messages
         @return: best genome
         """
@@ -243,14 +241,13 @@ class GeneralEvolutionaryExperiment:
                                                                  config=config,
                                                                  TRIALS=TRIALS,
                                                                  evaluate_each_gen=evaluate_each_gen,
-                                                                 open_coppelia=open_coppelia,
                                                                  headless=headless,
                                                                  port_step=port_step,
                                                                  zmq_def_port=zmq_def_port,
                                                                  websocket_def_port=websocket_def_port,
-                                                                 close_after=close_after,
                                                                  sleeptime=sleeptime,
                                                                  resttime=resttime,
+                                                                 reset_after_first_fail=reset_after_first_fail,
                                                                  debug=debug
                                                                  ),
                        generations)
@@ -261,14 +258,13 @@ class GeneralEvolutionaryExperiment:
                      config,
                      TRIALS,
                      evaluate_each_gen,
-                     open_coppelia,
                      headless,
                      port_step,
                      zmq_def_port,
                      websocket_def_port,
-                     close_after,
                      sleeptime,
                      resttime,
+                     reset_after_first_fail,
                      debug,
                      ):
         """
@@ -282,16 +278,67 @@ class GeneralEvolutionaryExperiment:
         @param evaluate_each_gen: whether to evaluate each genome each generation
             if False, keeps the fitness score of a genome evaluated in the previous generation
             This parameter will not affect the restored checkpoint generation
-        @param open_coppelia: whether to open coppelia at the start
         @param headless: whether to run coppelia in headless mode
         @param port_step: amount to increment ports for different coppelia instances
         @param zmq_def_port: default port for ZMQ api
         @param websocket_def_port: default port for websocket
-        @param close_after: whether to close coppela after done
         @param sleeptime: amount to sleep after important commands
         @param resttime: amount to rest after done
+        @param reset_after_first_fail: if we reset all coppeliasims after one failure to connect
         @param debug: whether to print excessive debug messages
         @return: elapsed time
+        """
+        if self.bandits is not None:
+            self.decide_num_sims(100)
+        start_time = time.time()
+        print('starting evaluation')
+        # evaluate the genomes
+        tries = self.inner_loop(genomes=genomes,
+                                config=config,
+                                TRIALS=TRIALS,
+                                evaluate_each_gen=evaluate_each_gen,
+                                sleeptime=sleeptime,
+                                reset_after_first_fail=reset_after_first_fail,
+                                zmq_def_port=zmq_def_port,
+                                websocket_def_port=websocket_def_port,
+                                port_step=port_step,
+                                headless=headless,
+                                debug=debug)
+        dt = time.time() - start_time
+        time.sleep(resttime)
+        self.update_bandits(dt, tries)
+        self.just_restored = False
+
+        return dt
+    def close_coppelia_sims(self):
+        for zmqport in self.processes:
+            self.kill(self.processes[zmqport]['pid'])
+    def make_coppelia_sims(self,zmq_def_port,websocket_def_port,port_step,headless):
+        """
+        makes self.current_num_sims instances of coppeliasim
+
+        @param zmq_def_port: default port for zmq api
+        @param websocket_def_port: default port for websocket api
+        @param port_step: amount to change ports (should be 2 probably)
+        @param headless: whether to run headless
+        """
+        print('opening coppelia sims')
+        self.processes = defaultdict(lambda: defaultdict(lambda: None))
+        # open coppeliasim instances on different ports
+        for k in range(self.current_num_sims):
+            zmqport = zmq_def_port + port_step*k
+            cmd = COPPELIA_WAKEUP + (' -h' if headless else '') + \
+                  ' -GwsRemoteApi.port=' + str(websocket_def_port + port_step*k) + \
+                  ' -GzmqRemoteApi.rpcPort=' + str(zmqport)
+            p = subprocess.Popen(cmd, stdout=subprocess.PIPE, shell=True)
+            self.processes[zmqport]['subproc'] = p
+            self.processes[zmqport]['pid'] = p.pid
+
+    def activate_rclpy(self,sleeptime):
+        """
+        activates rclpy
+
+        @param sleeptime: time to rest between attempts
         """
         while True:
             try:
@@ -300,49 +347,19 @@ class GeneralEvolutionaryExperiment:
                 break
             except:
                 time.sleep(sleeptime)
-        if self.bandits is not None:
-            self.decide_num_sims(100)
-        start_time = time.time()
-        print('opening coppelia instances')
-        self.processes = defaultdict(lambda: defaultdict(lambda: None))
-        # open coppeliasim instances on different ports
-        for k in range(self.current_num_sims):
-            zmqport = zmq_def_port + port_step*k
+    def shutdown_rclpy(self,sleeptime):
+        """
+        deactivates rclpy
 
-            if open_coppelia:
-                cmd = COPPELIA_WAKEUP + (' -h' if headless else '') + \
-                      ' -GwsRemoteApi.port=' + str(websocket_def_port + port_step*k) + \
-                      ' -GzmqRemoteApi.rpcPort=' + str(zmqport)
-                p = subprocess.Popen(cmd, stdout=subprocess.PIPE, shell=True)
-                self.processes[zmqport]['subproc'] = p
-                self.processes[zmqport]['pid'] = p.pid
-
-        print('starting evaluation')
-        # evaluate the genomes
-        tries = self.inner_loop(genomes=genomes,
-                                config=config,
-                                TRIALS=TRIALS,
-                                evaluate_each_gen=evaluate_each_gen,
-                                sleeptime=sleeptime,
-                                debug=debug)
-        dt = time.time() - start_time
-        # maybe close the coppelia processes
-        if close_after:
-            for zmqport in self.processes:
-                self.kill(self.processes[zmqport]['pid'])
-
-            while True:
-                try:
-                    if rclpy.ok():
-                        rclpy.shutdown()
-                    break
-                except:
-                    time.sleep(sleeptime)
-        time.sleep(resttime)
-        self.update_bandits(dt, tries)
-        self.just_restored = False
-
-        return dt
+        @param sleeptime: time to rest between attempts
+        """
+        while True:
+            try:
+                if rclpy.ok():
+                    rclpy.shutdown()
+                break
+            except:
+                time.sleep(sleeptime)
 
     def collect_genome_fitnesses(self, debug):
         """
@@ -353,7 +370,17 @@ class GeneralEvolutionaryExperiment:
         """
         raise NotImplementedError()
 
-    def inner_loop(self, genomes, config, TRIALS, evaluate_each_gen, sleeptime, debug):
+    def inner_loop(self, genomes,
+                   config,
+                   TRIALS,
+                   evaluate_each_gen,
+                   sleeptime,
+                   reset_after_first_fail,
+                   zmq_def_port,
+                   websocket_def_port,
+                   port_step,
+                   headless,
+        debug):
         """
         looops through genomes, creates an experiment with that network, and sets the genome fitness
 
@@ -365,6 +392,11 @@ class GeneralEvolutionaryExperiment:
             if False, keeps the fitness score of a genome evaluated in the previous generation
             This parameter will not affect the restored checkpoint generation
         @param sleeptime: amount to sleep after important commands
+        @param reset_after_first_fail: if we reset all coppeliasims after one failure to connect
+        @param zmq_def_port: default port for ZMQ api
+        @param websocket_def_port: default port for websocket
+        @param port_step: amount to increment ports for different coppelia instances
+        @param headless: whether to run coppelia in headless mode
         @param debug: whether to print excessive debug messages
         @return: number of tries it took to finish all genomes
             if more than 1, some error probably happened
@@ -508,7 +540,18 @@ class EvolutionExperiment(GeneralEvolutionaryExperiment):
 
         return done
 
-    def inner_loop(self, genomes, config, TRIALS, evaluate_each_gen, sleeptime, debug):
+    def inner_loop(self,
+                   genomes,
+                   config,
+                   TRIALS,
+                   evaluate_each_gen,
+                   sleeptime,
+                   reset_after_first_fail,
+                   zmq_def_port,
+                   websocket_def_port,
+                   port_step,
+                   headless,
+                   debug):
         """
         looops through genomes, creates an experiment with that network, and sets the genome fitness
 
@@ -520,6 +563,11 @@ class EvolutionExperiment(GeneralEvolutionaryExperiment):
             if False, keeps the fitness score of a genome evaluated in the previous generation
             This parameter will not affect the restored checkpoint generation
         @param sleeptime: amount to sleep after important commands
+        @param reset_after_first_fail: if we reset all coppeliasims after one failure to connect
+        @param zmq_def_port: default port for ZMQ api
+        @param websocket_def_port: default port for websocket
+        @param port_step: amount to increment ports for different coppelia instances
+        @param headless: whether to run coppelia in headless mode
         @param debug: whether to print excessive debug messages
         @return: number of tries it took to finish all genomes
             if more than 1, some error probably happened
@@ -531,6 +579,11 @@ class EvolutionExperiment(GeneralEvolutionaryExperiment):
         for genome_id, genome in genomes:
             global_polulation.append(genome)
         while tries == 0 or self.failed_genomes:
+            self.activate_rclpy(sleeptime=sleeptime)
+            self.make_coppelia_sims(zmq_def_port=zmq_def_port,
+                                    websocket_def_port=websocket_def_port,
+                                    port_step=port_step,
+                                    headless=headless)
             tries += 1
             j = 0
             if tries == 1:
@@ -554,6 +607,11 @@ class EvolutionExperiment(GeneralEvolutionaryExperiment):
                     # otherwise, we already did this
                     if genome.fitness is not None:
                         skip = True
+
+                if (not skip) and reset_after_first_fail and self.failed_genomes:
+                    # if we have already failed, and we havent skipped already
+                    self.failed_genomes.append(genome)
+                    skip=True
                 print(('skipping' if skip else 'evaluating') + ' genome ' + str(j) + '/' + str(len(todo)),
                       end=('\n' if debug else '\r'))
                 if skip:
@@ -593,6 +651,8 @@ class EvolutionExperiment(GeneralEvolutionaryExperiment):
                 tries += 1
                 print()
                 print("FAILED SOME GENOME, TRYING AGAIN, time number " + str(tries))
+            self.close_coppelia_sims()
+            self.shutdown_rclpy(sleeptime=sleeptime)
         print()
         pool.close()
         return tries
@@ -681,7 +741,18 @@ class EcosystemEvolutionExperiment(GeneralEvolutionaryExperiment):
                         print('got genome:', self.processes[zmqport]['genome order'])
         return done
 
-    def inner_loop(self, genomes, config, TRIALS, evaluate_each_gen, sleeptime, debug):
+    def inner_loop(self,
+                   genomes,
+                   config,
+                   TRIALS,
+                   evaluate_each_gen,
+                   sleeptime,
+                   reset_after_first_fail,
+                   zmq_def_port,
+                   websocket_def_port,
+                   port_step,
+                   headless,
+                   debug):
         """
         looops through genomes, creates an experiment with that network, and sets the genome fitness
 
@@ -690,10 +761,16 @@ class EcosystemEvolutionExperiment(GeneralEvolutionaryExperiment):
         @param TRIALS: trials to evaluate each genome
         @param evaluate_each_gen: irrelevant for this class
         @param sleeptime: amount to sleep after important commands
+        @param reset_after_first_fail: if we reset all coppeliasims after one failure to connect
+        @param zmq_def_port: default port for ZMQ api
+        @param websocket_def_port: default port for websocket
+        @param port_step: amount to increment ports for different coppelia instances
+        @param headless: whether to run coppelia in headless mode
         @param debug: whether to print excessive debug messages
         @return: number of tries it took to finish all genomes
             if more than 1, some error probably happened
         """
+
         pool = Pool(processes=self.current_num_sims)
         self.failed_genomes = []
         tries = 0
@@ -704,6 +781,11 @@ class EcosystemEvolutionExperiment(GeneralEvolutionaryExperiment):
                 genome.fitness = None
                 # needs to be set manually because sometimes it carries over
         while tries == 0 or self.failed_genomes:
+            self.activate_rclpy(sleeptime=sleeptime)
+            self.make_coppelia_sims(zmq_def_port=zmq_def_port,
+                                    websocket_def_port=websocket_def_port,
+                                    port_step=port_step,
+                                    headless=headless)
             tries += 1
             j = 0
             if tries == 1:
@@ -717,6 +799,9 @@ class EcosystemEvolutionExperiment(GeneralEvolutionaryExperiment):
                 if self.just_restored:
                     # if we just restored, we can skip evaluating this generation
                     skip = True
+                if (not skip) and reset_after_first_fail and self.failed_genomes:
+                    self.failed_genomes.append(genome)
+                    skip=True
 
                 print(('skipping' if skip else 'evaluating') + ' genome ' + str(j) + '/' + str(len(todo)),
                       end=('\n' if debug else '\r'))
@@ -763,6 +848,8 @@ class EcosystemEvolutionExperiment(GeneralEvolutionaryExperiment):
                 tries += 1
                 print()
                 print("FAILED SOME GENOME, TRYING AGAIN, time number " + str(tries))
+            self.close_coppelia_sims()
+            self.shutdown_rclpy(sleeptime=sleeptime)
         for genome_id, genome in genomes:
             genome.fitness = np.mean(genome.fitness)
         print()
