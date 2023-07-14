@@ -30,7 +30,7 @@ class ankiNet(AnkiExperiment):
                  msg_queue=10,
                  wakeup=None,
                  sleeptime=.01,
-                 spawn_tries=1,
+                 spawn_tries=100,
                  ):
         """
         experiement of anki swarm each controlled by a neural network
@@ -127,7 +127,7 @@ class ecosystemAnkiNet(AnkiExperiment):
                  msg_queue=10,
                  wakeup=None,
                  sleeptime=.01,
-                 spawn_tries=1,
+                 spawn_tries=100,
                  ):
         """
         experiement of anki swarm each controlled by a different neural network for each anki
@@ -226,7 +226,7 @@ class LRAnki(ankiNet):
                  msg_queue=10,
                  wakeup=None,
                  sleeptime=.01,
-                 spawn_tries=1):
+                 spawn_tries=100):
         """
         each anki returns a left wheel and right wheel velocity
 
@@ -287,7 +287,7 @@ class LRAngleAnki(LRAnki):
                  msg_queue=10,
                  wakeup=None,
                  sleeptime=.01,
-                 spawn_tries=1):
+                 spawn_tries=100):
         """
         anki only sees xy coordinates, rewarded for mean closeness to origin
 
@@ -334,7 +334,6 @@ class LRAngleAnki(LRAnki):
         """
         pos = self.get_position(agent_id, spin=True)
         head = self.get_head(agent_id, spin=False)
-        print(head)
         return np.array([pos[0], pos[1], head])
 
     ####################################################################################################################
@@ -373,13 +372,13 @@ class k_tant_anki_area_coverage(LRAnki):
                  ankiPath,
                  networkfn,
                  bounds=((-.45, .6), (-.5, .5)),
-                 end_time=10,
+                 end_time=100,
                  sim=None,
                  simId=23000,
                  msg_queue=10,
                  wakeup=None,
                  sleeptime=.01,
-                 spawn_tries=1):
+                 spawn_tries=100):
         """
         maximize deployment entropy given proximity sensor and k-tant information
 

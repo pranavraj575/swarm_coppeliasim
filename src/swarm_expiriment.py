@@ -857,7 +857,7 @@ class AnkiExperiment(Experiment):
         self.modelPath = ankiPath
         self.agentData = dict()
         self.spawn_tries = spawn_tries
-        self.anki_length = .06
+        self.anki_length = .08
 
     ####################################################################################################################
     # init/shutdown functions
@@ -1029,7 +1029,8 @@ class AnkiExperiment(Experiment):
 
             msgTwist.angular.y = float(vec[3])
             msgTwist.angular.z = float(1)
-            self.agentData[agent_id]['vec_publisher'].publish(msgTwist)
+
+        self.agentData[agent_id]['vec_publisher'].publish(msgTwist)
 
     def move_agent_thrust_rot(self, agent_id, vec):
         """
@@ -1543,7 +1544,7 @@ if __name__ == "__main__":
 
     aa = ankiTest(1,
                   lambda i: ((-.35, .35), (-.35, .35), .035),
-                  command=(-.05, .1, .2, -45),  # (left wheel, right wheel, arm lift, head tilt)
+                  command=(.22, -.22),  # (left wheel, right wheel, arm lift, head tilt)
                   wakeup=[COPPELIA_WAKEUP])
     aa.run_exp()
     aa.kill()

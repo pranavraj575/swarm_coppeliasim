@@ -21,7 +21,7 @@ args = PARSER.parse_args()
 check_basic(args=args)
 AGENTS = args.agents
 gens = args.generations
-END = 20
+END = 60
 
 
 def SPAWN_ZONE(i):
@@ -29,21 +29,21 @@ def SPAWN_ZONE(i):
 
 
 def expe_make(net, sim=None, port=23000, wakeup=None):
-    return LRAngleAnki(num_agents=AGENTS,
-                             start_zone=SPAWN_ZONE,
-                             scenePath=anki_arena_path,
-                             ankiPath=anki_path,
-                             networkfn=net.activate,
-                             angle_goal=np.pi,
-                             end_time=END,
-                             sim=sim,
-                             simId=port,
-                             wakeup=wakeup,
-                             sleeptime=.01
-                             )
+    return k_tant_anki_area_coverage(num_agents=AGENTS,
+                                     start_zone=SPAWN_ZONE,
+                                     scenePath=anki_arena_path,
+                                     ankiPath=anki_path,
+                                     networkfn=net.activate,
+                                     bounds=((-.45, .6), (-.5, .5)),
+                                     end_time=END,
+                                     sim=sim,
+                                     simId=port,
+                                     wakeup=wakeup,
+                                     sleeptime=.01
+                                     )
 
 
-save_name = str(AGENTS) + '_anki_test'
+save_name = str(AGENTS) + '_anki_area_coverage'
 
 checkpt_dir = os.path.join(DIR, 'checkpoints', save_name)
 print("SAVING TO:", checkpt_dir)
@@ -55,7 +55,7 @@ if not os.path.exists(checkpt_dir):
         raise Exception("DIRECTORY DOES NOT EXIST (try running with --create): " + checkpt_dir)
 ee = EvolutionExperiment(checkpt_dir=checkpt_dir,
                          exp_maker=expe_make,
-                         config_name='anki_test')
+                         config_name='anki_area')
 if gens:
     port_step = args.port_step
     zmq_def_port = 23000 + port_step*args.offset
