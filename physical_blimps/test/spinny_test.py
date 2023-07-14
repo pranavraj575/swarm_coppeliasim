@@ -9,36 +9,14 @@ from pyBlimp.utils import *
 
 from CONFIG import *
 
-BLIMP_DIR = os.path.dirname(os.path.join(os.getcwd(), os.path.dirname(sys.argv[0])))
-CONFIGS_DIR = os.path.join(BLIMP_DIR, 'configs')
-
 if __name__ == "__main__":
     # setup exit on ctrl-c
     running = True
-    ids = [2]
+    blimp_ids = [2]
     cfg_paths = []
-    for id in ids:
+    for blimp_id in blimp_ids:
         # create config file
-        path = os.path.join(CONFIGS_DIR, 'config' + str(id) + '.yaml')
-        f = open(path, 'w')
-        f.write('id_num: ' + str(id) + '\n')
-        f.write('my_ip: "' + MY_IP + '"\n')
-        f.write('pi_ip: "' + IP_BLIMP_SUBNET + str(id + IP_BLIMP_INIT) + '"\n')
-        for line in (
-                'im_rows: 240',
-                'im_cols: 360',
-                'fps: 15',
-                'qual: 15',
-                '# motor board parameters',
-                'positive_only: False',
-                'k_r:  [0.45, 0., -1.7]',
-                'k_p:  [0.45, 0., -1.7]',
-                'k_yw: [0.002, 0.001, 0.07]',
-                'k_pz: [0.35, 0.001, 0.055]',
-        ):
-            f.write(line)
-            f.write('\n')
-        f.close()
+        path=create_config_file(blimp_id)
         cfg_paths.append(path)
 
 

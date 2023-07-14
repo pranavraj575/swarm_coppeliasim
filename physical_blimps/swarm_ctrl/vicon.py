@@ -7,7 +7,8 @@ class Vicon:
             grabs object positions and headings
         """
         self.num_objects=0
-        raise NotImplementedError()
+
+        #raise NotImplementedError()
     def get_object_pos(self,obj_id):
         """
         Gets xyz position of object specified
@@ -16,7 +17,8 @@ class Vicon:
             index of object to return
         @return: R^3, xyz position of object
         """
-        raise NotImplementedError()
+        return 0
+        #raise NotImplementedError()
     def get_object_head(self,obj_id):
         """
         Gets heading of object specified
@@ -25,4 +27,5 @@ class Vicon:
             index of object to return
         @return: R, angle of object from global x axis
         """
-        raise NotImplementedError()
+        return 0
+        #raise NotImplementedError()

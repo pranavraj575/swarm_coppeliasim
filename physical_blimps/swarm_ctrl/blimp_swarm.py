@@ -64,15 +64,15 @@ class viconBlimps(BlimpManager):
         # 'forward' command
         cmd[0]=r*np.cos(theta_p)
         # 'left' command
-        cmd[1]=r*np.sin(theta_p)
+        cmd[1]=-r*np.sin(theta_p)
         # 'height' command
-        cmd[2]=vec[2]
+        cmd[2]=-vec[2]
         # 'rotation' command
         if len(vec)==3:
             cmd[3]=self.get_stability_command(agent_id=agent_id)
         else:
-            cmd[3]=vec[3]
-
+            cmd[3]=-vec[3]
+        print(cmd)
         self.set_cmd(cmd,agent_id)
     def get_stability_command(self,agent_id):
         """
