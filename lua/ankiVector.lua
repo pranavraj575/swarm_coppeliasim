@@ -4,9 +4,33 @@ require 'common'
 
 function ctrlsFromInput(vec)
     -- must return in order lVel, rVel, headPos, liftHeight
-    -- found in child script
-    use_lift=vec[3] -- bit that decides whether to use lift control
-    use_head=vec[5] -- bit that decides whether to tilt head
+    return ctrlsFromLR(vec)
+end
+
+function ctrlsFromLR(vec)
+    -- must return in order lVel, rVel, headPos, liftHeight
+    -- assumes vec is (left wheel V, right wheel V, lift, lift boolean, head tile, head tilt boolean)
+    use_lift=vec[4]
+    use_head=vec[6]
+
+    headPos=0
+    liftHeight=0
+    if (use_head~=0) then
+        headPos=vec[5]
+    end
+    if (use_lift~=0) then
+        liftHeight=vec[3]
+    end
+    lVel=clamp(vec[1], ANKI_MAX_SPEED, -ANKI_MAX_SPEED)
+    rVel=clamp(vec[2], ANKI_MAX_SPEED, -ANKI_MAX_SPEED)
+    return lVel, rVel, headPos, liftHeight
+end
+
+function ctrlsFromThrustRot(vec)
+    -- must return in order lVel, rVel, headPos, liftHeight
+    -- assumes vec is (thrust, lift, lift boolean, head tilt, head tilt boolean, rotation)
+    use_lift=vec[3]
+    use_head=vec[5]
 
     lVel, rVel = getVelos(vec[1],vec[6])
     headPos=0

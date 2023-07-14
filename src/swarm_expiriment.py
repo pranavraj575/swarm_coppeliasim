@@ -187,6 +187,26 @@ class Experiment:
     ####################################################################################################################
     # utility functions
     ####################################################################################################################
+    def moveObject(self, handle, pos_rng, orientation=None):
+        """
+
+        @param handle: object handle
+        @param pos_rng: ()->(R U R^2)^3, range to spawn into
+            (if single value, this is the value for the respective coordinate)
+            (if tuple, than uniformly chooses from (low,high))
+        @param orientation: orientation to move to (None if no change)
+        """
+        Pos = []
+        rng = pos_rng()
+        for k in range(3):
+            try:
+                Pos.append(np.random.uniform(rng[k][0], rng[k][1]))
+            except:
+                Pos.append(float(rng[k]))
+        self.sim.setObjectPosition(handle, -1, Pos)
+        if orientation is not None:
+            self.sim.setObjectOrientation(handle, -1, [float(o) for o in orientation])
+
     def spawnModel(self, modelPath, pos_rng, spawn_tries, orientation=None):
         """
         spawns a model in a certian area
@@ -202,16 +222,7 @@ class Experiment:
         """
         agentHandle = self.sim.loadModel(os.path.abspath(os.path.expanduser(modelPath)))
         for _ in range(spawn_tries):
-            Pos = []
-            rng = pos_rng()
-            for k in range(3):
-                try:
-                    Pos.append(np.random.uniform(rng[k][0], rng[k][1]))
-                except:
-                    Pos.append(float(rng[k]))
-            self.sim.setObjectPosition(agentHandle, -1, Pos)
-            if orientation is not None:
-                self.sim.setObjectOrientation(agentHandle, -1, [float(o) for o in orientation])
+            self.moveObject(handle=agentHandle, pos_rng=pos_rng, orientation=orientation)
             collisionResult, collidingObjectHandles = self.collision_check(agentHandle)
             if not collisionResult:
                 break
@@ -311,14 +322,17 @@ class Experiment:
             box[dim][0] <= pt[dim] and pt[dim] <= box[dim][1]
             for dim in range(3)  # only within if all dimensions overlap
         )
+
     @staticmethod
-    def angle_diff(a0,a1):
+    def angle_diff(a0, a1):
         """
         returns angle difference of a0-a1, on [-pi,pi)
+
+        returns a0-a1
         """
-        diff=(a0-a1)%(2*np.pi) # on [0,2pi)
-        if diff>=np.pi:
-            diff=diff-2*np.pi
+        diff = (a0 - a1)%(2*np.pi)  # on [0,2pi)
+        if diff >= np.pi:
+            diff = diff - 2*np.pi
         return diff
 
     def set_color(self, handle, color, type=None):
@@ -812,7 +826,7 @@ class AnkiExperiment(Experiment):
                  msg_queue=10,
                  wakeup=None,
                  sleeptime=.01,
-                 spawn_tries=1,  # TODO: self collision why
+                 spawn_tries=100,
                  ):
         """
         experiments involving anki swarms (controlled by ROS velocity controller)
@@ -843,6 +857,7 @@ class AnkiExperiment(Experiment):
         self.modelPath = ankiPath
         self.agentData = dict()
         self.spawn_tries = spawn_tries
+        self.anki_length = .06
 
     ####################################################################################################################
     # init/shutdown functions
@@ -859,9 +874,24 @@ class AnkiExperiment(Experiment):
         if not rclpy.ok():
             rclpy.init()
         self.agentData = dict()
+        positions = []
         for i in range(self.num_agents):
             this_agent = dict()
-            this_agent['agentHandle'] = self.spawnModel(self.modelPath, lambda: self.start_zone(i), self.spawn_tries)
+            # TODO: fix this mess
+            this_agent['agentHandle'] = self.spawnModel(self.modelPath, lambda: self.start_zone(i),
+                                                        1)
+            for _ in range(self.spawn_tries):
+                pos = np.array(self.sim.getObjectPosition(this_agent['agentHandle'], self.sim.handle_world))
+                done = True
+                for p2 in positions:
+                    if np.linalg.norm(pos - p2) < self.anki_length:
+                        done = False
+                        break
+                if done:
+                    positions.append(pos)
+                    break
+                self.moveObject(this_agent['agentHandle'], lambda: self.start_zone(i))
+
             this_agent['agent_id'] = i
 
             unique = str(time.time()).replace('.', '_')
@@ -974,7 +1004,6 @@ class AnkiExperiment(Experiment):
     ####################################################################################################################
     # Agent functions
     ####################################################################################################################
-
     def move_agent(self, agent_id, vec):
         """
         publishes a vector to an agent
@@ -982,10 +1011,38 @@ class AnkiExperiment(Experiment):
 
         @param agent_id: agent id to publish to
         @param vec: vector to publish
+            order right now is left wheel, right wheel, lift, head
+
+        @note: (left wheel V, right wheel V, lift, lift boolean, head tile, head tilt boolean)
+            is the vector expected by coppelia model
+        """
+        if agent_id not in self.agentData:
+            raise Exception("attempted to move agent that does not exist: id of " + str(agent_id))
+        msgTwist = Twist()
+        msgTwist.linear.x = float(vec[0])
+
+        msgTwist.linear.y = float(vec[1])
+
+        if len(vec) == 4:
+            msgTwist.linear.z = float(vec[2])
+            msgTwist.angular.x = float(1)
+
+            msgTwist.angular.y = float(vec[3])
+            msgTwist.angular.z = float(1)
+            self.agentData[agent_id]['vec_publisher'].publish(msgTwist)
+
+    def move_agent_thrust_rot(self, agent_id, vec):
+        """
+        OLD VERSION
+        publishes a vector to an agent
+            (currently publishes a velocity goal, and LUA controls in blimpNew.lua takes care of rest)
+
+        @param agent_id: agent id to publish to
+        @param vec: vector to publish
             order right now is thrust, turn, lift, head
 
-        @note: currently using just the linear part of twist message,
-            can use orientation for other stuff if we update blimpNew.lua
+        @note: (thrust, lift, lift boolean, head tilt, head tilt boolean, rotation)
+            is the vector expected by coppelia model
         """
         if agent_id not in self.agentData:
             raise Exception("attempted to move agent that does not exist: id of " + str(agent_id))
@@ -1484,9 +1541,9 @@ if __name__ == "__main__":
     bb.run_exp()
     bb.kill()
 
-    aa = ankiTest(5,
-                  lambda i: (i/5 - .35, 0, .035),
-                  command=(0, 1, .2, -45),  # (thrust, rotation, arm lift, head tilt)
+    aa = ankiTest(1,
+                  lambda i: ((-.35, .35), (-.35, .35), .035),
+                  command=(-.05, .1, .2, -45),  # (left wheel, right wheel, arm lift, head tilt)
                   wakeup=[COPPELIA_WAKEUP])
     aa.run_exp()
     aa.kill()

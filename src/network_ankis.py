@@ -1,6 +1,22 @@
 from src.swarm_expiriment import *
 import numpy as np
 
+ANKI_INFO_FILE = os.path.join(DIR, 'lua', 'ankiHeader.lua')
+ANKI_INFO = dict()
+with open(ANKI_INFO_FILE) as f:
+    for line in f.read().strip().split('\n'):
+        line = line.strip()
+        if '--' in line:
+            line = line[:line.index('--')]
+            if '=' in line:
+                key, value = line.split('=')
+                try:
+                    key = key.strip()
+                    value = float(value.strip())
+                    ANKI_INFO[key] = value
+                except:
+                    pass
+
 
 class ankiNet(AnkiExperiment):
     def __init__(self,
@@ -198,7 +214,7 @@ class ecosystemAnkiNet(AnkiExperiment):
         raise NotImplementedError()
 
 
-class thrust_rot_anki(ankiNet):
+class LRAnki(ankiNet):
     def __init__(self,
                  num_agents,
                  start_zone,
@@ -212,7 +228,7 @@ class thrust_rot_anki(ankiNet):
                  sleeptime=.01,
                  spawn_tries=1):
         """
-        each anki returns a thrust vector and a rotation
+        each anki returns a left wheel and right wheel velocity
 
         @param num_agents: number of ankis in this swarm expiriment
         @param start_zone: int -> (RxR U R)^3 goes from the anki number to the spawn area
@@ -252,12 +268,12 @@ class thrust_rot_anki(ankiNet):
         @param output: network output
         @return: control vector, probably R^3 encoding velocity goal
         """
-        th_rot = np.array(output).flatten()  # this is in ([0,1]^2)
-        th_rot = th_rot*2 - 1  # cast into [-1,1]^2
-        return th_rot
+        LR = np.array(output).flatten()  # this is in ([0,1]^2)
+        LR = LR*2 - 1  # cast into [-1,1]^2
+        return LR*ANKI_INFO['ANKI_MAX_SPEED']
 
 
-class th_rot_angle_anki(thrust_rot_anki):
+class LRAngleAnki(LRAnki):
     def __init__(self,
                  num_agents,
                  start_zone,
@@ -348,20 +364,8 @@ class th_rot_angle_anki(thrust_rot_anki):
         """
         return self.sim.getSimulationTime() > self.end_time
 
-    @staticmethod
-    def angle_diff(a0, a1):
-        """
-        returns angle difference between two angles on [-pi,pi]
 
-        returns a0-a1
-        """
-        diff = (a0 - a1)%(2*np.pi)
-        if diff > np.pi:
-            diff = diff - 2*np.pi
-        return diff
-
-
-class k_tant_anki_area_coverage(thrust_rot_anki):
+class k_tant_anki_area_coverage(LRAnki):
     def __init__(self,
                  num_agents,
                  start_zone,
