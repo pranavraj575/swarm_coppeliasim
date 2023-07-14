@@ -1,8 +1,11 @@
 # Using [open-blimp](https://github.com/thedancomplex/open-blimp)
 
-to set this up 
+To set this up 
 
 ### 1. Install [Anaconda](https://docs.anaconda.com/free/anaconda/install/index.html)
+
+Note: if you are installing conda for the first time, you might need to go back and [set up ZMQ](https://github.com/pranavraj575/swarm_coppeliasim/tree/master#set-up-the-zmq-package-into-coppeliasim), [install the swarm coppeliasim package](https://github.com/pranavraj575/swarm_coppeliasim/tree/master#set-up-this-project),and [install the ROS2 package](https://github.com/pranavraj575/swarm_coppeliasim/tree/master#install-the-ros2-coppelia-package-according-to-the-tutorial)
+
 ### 2. Create openBlimp environment
 
 (if using mac or windows, use the corresponding .yml file
