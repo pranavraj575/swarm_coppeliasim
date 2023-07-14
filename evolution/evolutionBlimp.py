@@ -310,10 +310,12 @@ class GeneralEvolutionaryExperiment:
         self.just_restored = False
 
         return dt
+
     def close_coppelia_sims(self):
         for zmqport in self.processes:
             self.kill(self.processes[zmqport]['pid'])
-    def make_coppelia_sims(self,zmq_def_port,websocket_def_port,port_step,headless):
+
+    def make_coppelia_sims(self, zmq_def_port, websocket_def_port, port_step, headless):
         """
         makes self.current_num_sims instances of coppeliasim
 
@@ -334,7 +336,7 @@ class GeneralEvolutionaryExperiment:
             self.processes[zmqport]['subproc'] = p
             self.processes[zmqport]['pid'] = p.pid
 
-    def activate_rclpy(self,sleeptime):
+    def activate_rclpy(self, sleeptime):
         """
         activates rclpy
 
@@ -347,7 +349,8 @@ class GeneralEvolutionaryExperiment:
                 break
             except:
                 time.sleep(sleeptime)
-    def shutdown_rclpy(self,sleeptime):
+
+    def shutdown_rclpy(self, sleeptime):
         """
         deactivates rclpy
 
@@ -380,7 +383,7 @@ class GeneralEvolutionaryExperiment:
                    websocket_def_port,
                    port_step,
                    headless,
-        debug):
+                   debug):
         """
         looops through genomes, creates an experiment with that network, and sets the genome fitness
 
@@ -531,7 +534,7 @@ class EvolutionExperiment(GeneralEvolutionaryExperiment):
                     self.processes[zmqport]['genome'].fitness = fitness
                     self.processes[zmqport]['genome'] = None
                     self.processes[zmqport]['pool_worker'] = None
-                    if fitness is None: # do this anyway
+                    if fitness is None:  # do this anyway
                         print()
                         print('failed genome:', self.processes[zmqport]['genome order'])
                     if debug and fitness is not None:
@@ -611,7 +614,7 @@ class EvolutionExperiment(GeneralEvolutionaryExperiment):
                 if (not skip) and reset_after_first_fail and self.failed_genomes:
                     # if we have already failed, and we havent skipped already
                     self.failed_genomes.append(genome)
-                    skip=True
+                    skip = True
                 print(('skipping' if skip else 'evaluating') + ' genome ' + str(j) + '/' + str(len(todo)),
                       end=('\n' if debug else '\r'))
                 if skip:
@@ -678,7 +681,9 @@ class EvolutionExperiment(GeneralEvolutionaryExperiment):
             wakeup = []
         all_goals = []
         for index in gen_indices:
-            p = self.restore_checkpoint(os.path.join(self.checkpt_dir, self.MOST_RECENT(self.checkpt_dir)[index]))
+            path = os.path.join(self.checkpt_dir, self.MOST_RECENT(self.checkpt_dir)[index])
+            p = self.restore_checkpoint(path)
+            print("DISPLAYING:", path)
             winner = max([p.population[g] for g in p.population], key=lambda genome: genome.fitness)
             winner_net = neat.nn.FeedForwardNetwork.create(winner, self.config)
             exp: blimpNet = self.exp_maker(net=winner_net, wakeup=wakeup)
@@ -733,7 +738,7 @@ class EcosystemEvolutionExperiment(GeneralEvolutionaryExperiment):
                             # keep as list for now
                     self.processes[zmqport]['genomes'] = None
                     self.processes[zmqport]['pool_worker'] = None
-                    if fitnesses is None: # do this anyway
+                    if fitnesses is None:  # do this anyway
                         print()
                         print('failed genome:', self.processes[zmqport]['genome order'])
                     if debug and fitnesses is not None:
@@ -801,7 +806,7 @@ class EcosystemEvolutionExperiment(GeneralEvolutionaryExperiment):
                     skip = True
                 if (not skip) and reset_after_first_fail and self.failed_genomes:
                     self.failed_genomes.append(genome)
-                    skip=True
+                    skip = True
 
                 print(('skipping' if skip else 'evaluating') + ' genome ' + str(j) + '/' + str(len(todo)),
                       end=('\n' if debug else '\r'))
@@ -877,7 +882,9 @@ class EcosystemEvolutionExperiment(GeneralEvolutionaryExperiment):
             wakeup = []
         all_goals = []
         for index in gen_indices:
-            p = self.restore_checkpoint(os.path.join(self.checkpt_dir, self.MOST_RECENT(self.checkpt_dir)[index]))
+            path = os.path.join(self.checkpt_dir, self.MOST_RECENT(self.checkpt_dir)[index])
+            p = self.restore_checkpoint(path)
+            print("DISPLAYING:", path)
             global_population = []
             for genome_id in p.population:
                 global_population.append(p.population[genome_id])
