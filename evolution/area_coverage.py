@@ -120,7 +120,8 @@ if gens:
              zmq_def_port=zmq_def_port,
              websocket_def_port=websocket_def_port,
              port_step=port_step,
-             num_sim_range=None if args.sims_low < 1 else (args.sims_low, args.sims_high)
+             num_sim_range=None if args.sims_low < 1 else (args.sims_low, args.sims_high),
+             debug=args.debug
              )
 
 if args.show_stats:
