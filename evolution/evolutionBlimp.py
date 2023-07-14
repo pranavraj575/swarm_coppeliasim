@@ -364,6 +364,18 @@ class GeneralEvolutionaryExperiment:
             except:
                 time.sleep(sleeptime)
 
+    def processes_active(self):
+        """
+        returns list of processes active
+
+        @return: list of genome orders
+        """
+        out = []
+        for zmqport in self.processes:
+            if self.processes[zmqport]['pool_worker'] is not None:
+                out.append(self.processes[zmqport]['genome order'])
+        return out
+
     def collect_genome_fitnesses(self, debug):
         """
         loops through processes and saves the fitnesses of genomes if they are done
@@ -649,6 +661,8 @@ class EvolutionExperiment(GeneralEvolutionaryExperiment):
                 # will run until all processes are done
                 # i.e. when collect_genome_fitnesses returns True
                 time.sleep(sleeptime)
+                if debug:
+                    print('left: ',self.processes_active(),'           ',end='\r')
 
             if self.failed_genomes:
                 tries += 1
