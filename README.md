@@ -27,6 +27,8 @@ Used for making swarm experiments for blimps/other in Coppeliasim. experiments u
     alias coppelia="$COPPELIASIM_ROOT_DIR/coppeliaSim.sh"
     ```
 
+    * Note: to remove the annoying error messages on setup, go to ```<coppelia folder path>/system/usrset.txt```. Scroll down to the 'Messaging' section and change 'doNotShowCrashRecoveryMessage' to 'true'.
+
 
 2. ### Install [ROS2](https://docs.ros.org/)
 
