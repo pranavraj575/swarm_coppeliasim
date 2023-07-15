@@ -23,7 +23,7 @@ anki_arena_path = os.path.join(DIR, 'scenes', 'ankiArena.ttt')
 empty_path = os.path.join(DIR, 'scenes', 'empty.ttt')
 
 narrow_blimp_path = os.path.join(DIR, 'ros_ctrl_models', 'blimp_narrow.ttm')
-anki_path = os.path.join(DIR, 'ros_ctrl_models', 'anki.ttm')
+anki_path = os.path.join(DIR, 'ros_ctrl_models', 'anki_visionless.ttm')
 quad_path = os.path.join(DIR, 'ros_ctrl_models', 'quad_copter.ttm')
 
 COPPELIA_WAKEUP = '~/Downloads/CoppeliaSim_Edu_V4_3_0_rev12_Ubuntu20_04/coppeliaSim.sh'
