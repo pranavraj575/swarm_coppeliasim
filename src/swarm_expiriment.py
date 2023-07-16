@@ -20,6 +20,7 @@ wall_climb_path = os.path.join(DIR, 'scenes', 'WallClimb.ttt')
 caged_wall_climb_path = os.path.join(DIR, 'scenes', 'wall_climb_caged.ttt')
 cage_arena_path = os.path.join(DIR, 'scenes', 'cage_arena_better.ttt')
 anki_arena_path = os.path.join(DIR, 'scenes', 'ankiArena.ttt')
+anki_large_arena_path = os.path.join(DIR, 'scenes', 'largeAnkiArena.ttt')
 empty_path = os.path.join(DIR, 'scenes', 'empty.ttt')
 
 narrow_blimp_path = os.path.join(DIR, 'ros_ctrl_models', 'blimp_narrow.ttm')

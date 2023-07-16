@@ -4,6 +4,9 @@ from evolution.arg_parser import *
 
 PARSER.description = "for creating and running anki test experiment"
 
+PARSER.add_argument("--large", action="store_true", required=False,
+                    help="whether to use 'largeAnkiArena'")
+
 PARSER.add_argument("--xmin", type=float, required=False, default=-.25,
                     help="x spawning lower bound (should be > 0 so they do not spawn on other side of wall)")
 PARSER.add_argument("--xmax", type=float, required=False, default=.25,
@@ -22,6 +25,13 @@ check_basic(args=args)
 AGENTS = args.agents
 gens = args.generations
 END = 60
+LARGE=args.large
+if LARGE:
+    bounds=((-.9 , 1.2), (-1, 1))
+    SCENE=anki_large_arena_path
+else:
+    bounds=((-.45, .6), (-.5, .5))
+    SCENE=anki_arena_path
 
 
 def SPAWN_ZONE(i):
@@ -31,10 +41,10 @@ def SPAWN_ZONE(i):
 def expe_make(net, sim=None, port=23000, wakeup=None):
     return k_tant_anki_area_coverage(num_agents=AGENTS,
                                      start_zone=SPAWN_ZONE,
-                                     scenePath=anki_arena_path,
+                                     scenePath=SCENE,
                                      ankiPath=anki_path,
                                      networkfn=net.activate,
-                                     bounds=((-.45, .6), (-.5, .5)),
+                                     bounds=bounds,
                                      end_time=END,
                                      sim=sim,
                                      simId=port,
@@ -43,7 +53,7 @@ def expe_make(net, sim=None, port=23000, wakeup=None):
                                      )
 
 
-save_name = str(AGENTS) + '_anki_area_coverage'
+save_name = str(AGENTS) + '_anki_area_coverage'+('_large' if LARGE else '')
 
 checkpt_dir = os.path.join(DIR, 'checkpoints', save_name)
 print("SAVING TO:", checkpt_dir)
