@@ -75,4 +75,4 @@ if gens:
 if args.show_stats:
     ee.show_stats()
 if args.show:
-    print(ee.result_of_experiment())
+    print(ee.result_of_experiment(gen_indices=(args.show_gen,)))

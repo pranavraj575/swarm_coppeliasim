@@ -25,6 +25,8 @@ PARSER.add_argument("--overwrite", action="store_true", required=False,
 
 PARSER.add_argument("--show", action="store_true", required=False,
                     help="whether to show graphics, run this with -g 0 to show result")
+PARSER.add_argument("--show_gen", type=int, required=False, default=-1,
+                    help="if --show is on, choose which generation to display at end (defaults to last)")
 PARSER.add_argument("--show_stats", action="store_true", required=False,
                     help="whether to show statistics at end (run with -g 0 to just show stats)")
 
