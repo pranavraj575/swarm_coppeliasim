@@ -122,11 +122,11 @@ class GeneralEvolutionaryExperiment:
     ####################################################################################################################
     # number of simulators update functions
     ####################################################################################################################
-    def decide_num_sims(self, def_stdev=100):
+    def decide_num_sims(self, def_stdev=lambda val: abs(val)/2):
         """
         sets self.current_num_sims to best neighbor, based on sample of times using the mean and stdev found
 
-        @param def_stdev: stdev to use if only one sample
+        @param def_stdev: stdev to use for a given value if only one sample
         """
         if self.bandits[self.current_num_sims]:
             arr = self.bandits[self.current_num_sims]
@@ -134,7 +134,7 @@ class GeneralEvolutionaryExperiment:
             mean = np.mean(arr)
 
             # sample standard deviation of mean
-            stdev = np.std(arr)/np.sqrt(n - 1) if n > 1 else def_stdev
+            stdev = np.std(arr)/np.sqrt(n - 1) if n > 1 else def_stdev(mean)
             sample = np.random.normal(mean, stdev)
             # if we actually have test data, continue, otherwise just use self.current_num_sims
             temp_nsims = self.current_num_sims
@@ -148,9 +148,10 @@ class GeneralEvolutionaryExperiment:
                 # if we can decrease our time, choose this instead
                 if s_temp in self.bandits:
                     yarr = self.bandits[s_temp]
+                    rude=np.mean(yarr)
                     m = len(yarr)
-                    stdev2 = np.std(yarr)/np.sqrt(m - 1) if m > 1 else def_stdev
-                    if yarr and np.random.normal(np.mean(yarr), stdev2) < sample:
+                    stdev2 = np.std(yarr)/np.sqrt(m - 1) if m > 1 else def_stdev(rude)
+                    if yarr and np.random.normal(rude, stdev2) < sample:
                         temp_nsims = s_temp
             self.current_num_sims = temp_nsims
         print('using ' + str(self.current_num_sims) + " simulators")
@@ -289,7 +290,7 @@ class GeneralEvolutionaryExperiment:
         @return: elapsed time
         """
         if self.bandits is not None:
-            self.decide_num_sims(100)
+            self.decide_num_sims()
         start_time = time.time()
         print('starting evaluation')
         # evaluate the genomes

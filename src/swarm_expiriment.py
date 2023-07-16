@@ -187,14 +187,16 @@ class Experiment:
     ####################################################################################################################
     # utility functions
     ####################################################################################################################
-    def moveObject(self, handle, pos_rng, orientation=None):
+    def moveObject(self, handle, pos_rng, orient_rng=None):
         """
 
         @param handle: object handle
         @param pos_rng: ()->(R U R^2)^3, range to spawn into
             (if single value, this is the value for the respective coordinate)
             (if tuple, than uniformly chooses from (low,high))
-        @param orientation: orientation to move to (None if no change)
+        @param orient_rng: ()->(R U R^2)^3, range of orientations to spawn into,
+            None if default model orientation
+            roll, pitch, yaw
         """
         Pos = []
         rng = pos_rng()
@@ -204,10 +206,17 @@ class Experiment:
             except:
                 Pos.append(float(rng[k]))
         self.sim.setObjectPosition(handle, -1, Pos)
-        if orientation is not None:
-            self.sim.setObjectOrientation(handle, -1, [float(o) for o in orientation])
+        if orient_rng is not None:
+            Orient=[]
+            rng=orient_rng()
+            for k in range(3):
+                try:
+                    Orient.append(np.random.uniform(rng[k][0], rng[k][1]))
+                except:
+                    Orient.append(float(rng[k]))
+            self.sim.setObjectOrientation(handle, -1, Orient)
 
-    def spawnModel(self, modelPath, pos_rng, spawn_tries, orientation=None):
+    def spawnModel(self, modelPath, pos_rng, spawn_tries, orient_rng=None):
         """
         spawns a model in a certian area
 
@@ -217,12 +226,14 @@ class Experiment:
             (if tuple, than uniformly chooses from (low,high))
         @param spawn_tries: number of tries to spawn without collisions before giving up
                 if 1, then sets position, does not change if collision detected
-        @param orientation: R^3, orientation to spawn into, None if default model orientation
+        @param orient_rng: ()->(R U R^2)^3, range of orientations to spawn into,
+            None if default model orientation
+            roll, pitch, yaw
         @return: handle of model spawned
         """
         agentHandle = self.sim.loadModel(os.path.abspath(os.path.expanduser(modelPath)))
         for _ in range(spawn_tries):
-            self.moveObject(handle=agentHandle, pos_rng=pos_rng, orientation=orientation)
+            self.moveObject(handle=agentHandle, pos_rng=pos_rng, orient_rng=orient_rng)
             collisionResult, collidingObjectHandles = self.collision_check(agentHandle)
             if not collisionResult:
                 break
@@ -878,8 +889,10 @@ class AnkiExperiment(Experiment):
         for i in range(self.num_agents):
             this_agent = dict()
             # TODO: fix this mess
-            this_agent['agentHandle'] = self.spawnModel(self.modelPath, lambda: self.start_zone(i),
-                                                        1)
+            this_agent['agentHandle'] = self.spawnModel(self.modelPath,
+                                                        lambda: self.start_zone(i),
+                                                        1,
+                                                        orient_rng=lambda:(0,0,(0,2*np.pi)))
             for _ in range(self.spawn_tries):
                 pos = np.array(self.sim.getObjectPosition(this_agent['agentHandle'], self.sim.handle_world))
                 done = True
@@ -890,7 +903,8 @@ class AnkiExperiment(Experiment):
                 if done:
                     positions.append(pos)
                     break
-                self.moveObject(this_agent['agentHandle'], lambda: self.start_zone(i))
+                self.moveObject(this_agent['agentHandle'], lambda: self.start_zone(i),
+                                orient_rng=lambda:(0,0,(0,2*np.pi)))
 
             this_agent['agent_id'] = i
 
@@ -1312,8 +1326,9 @@ class CopterExperiment(Experiment):
         self.agentData = dict()
         for i in range(self.num_agents):
             this_agent = dict()
-            this_agent['agentHandle'] = self.spawnModel(self.modelPath, lambda: self.start_zone(i), self.spawn_tries,
-                                                        orientation=(0, 0, 90))
+            this_agent['agentHandle'] = self.spawnModel(self.modelPath,
+                                                        lambda: self.start_zone(i), self.spawn_tries,
+                                                        orient_rng=lambda:(0, 0, 90))
             this_agent['agent_id'] = i
 
             unique = str(time.time()).replace('.', '_')

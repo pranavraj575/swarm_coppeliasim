@@ -125,7 +125,7 @@ class aMazeBlimp(xyBlimp):
         if length in self.len_to_wall:
             return (self.spawnModel(modelPath=self.len_to_wall[length],
                                     pos_rng=lambda: np.sum(locs, axis=0)/len(locs),
-                                    orientation=orientation,
+                                    orient_rng=lambda: orientation,
                                     spawn_tries=1),
                     locs,
                     [])
@@ -260,7 +260,10 @@ class aMazeBlimp(xyBlimp):
 
         self.start_zone = START
 
-        self.cell_handle = self.spawnModel(self.cellPath, lambda: cell_loc, 1, maze_dict['entry_orientation'])
+        self.cell_handle = self.spawnModel(self.cellPath,
+                                           pos_rng=lambda: cell_loc,
+                                           spawn_tries=1,
+                                           orient_rng=lambda:maze_dict['entry_orientation'])
         if 'exit_wall' in maze_dict:
             if maze_dict['exit_wall'] == 'top':
                 exit_cell_loc += v_shift
@@ -270,8 +273,9 @@ class aMazeBlimp(xyBlimp):
                 exit_cell_loc -= h_shift
             else:
                 exit_cell_loc += h_shift
-            self.exit_cell_handle = self.spawnModel(self.cellPath, lambda: exit_cell_loc, 1,
-                                                    maze_dict['exit_orientation'])
+            self.exit_cell_handle = self.spawnModel(self.cellPath,pos_rng= lambda: exit_cell_loc,
+                                                    spawn_tries=1,
+                                                    orient_rng=lambda:maze_dict['exit_orientation'])
         if self.cover_dir is not None:
             h = self.maze.num_rows*self.grid_size
             if int(h) == h:
