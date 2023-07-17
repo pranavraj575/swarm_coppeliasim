@@ -2,26 +2,26 @@ from src.network_blimps import *
 from evolution.evolutionBlimp import EvolutionExperiment
 from evolution.arg_parser import *
 
-PARSER.description = "for creating and running an area coverage evolutionary experiment, can sense wall"
+PARSER.description = "for creating and running an obstacle surrounding evolutionary experiment"
 
-PARSER.add_argument("--obstacles", type=int, required=False, default=0,
+PARSER.add_argument("--obstacles", type=int, required=False, default=1,
                     help="number of obstacles to generate for training")
-PARSER.add_argument("--obstacle_height", type=float, required=False, default=1.5,
-                    help="obstacle spawn height, default of 1.5 (only relevant for 2d)")
+PARSER.add_argument("--activation_range", type=int, required=False, default=4,
+                    help="distance where blimps are 'near' obstacles")
 
 PARSER.add_argument("--height_lower", type=float, required=False, default=.8,
-                    help="lower bound of height to hold blimps at (irrelevant for 3D)")
+                    help="lower bound of height to hold blimps at")
 PARSER.add_argument("--height_upper", type=float, required=False, default=1.2,
-                    help="upper bound of height to hold blimps at (irrelevant for 3D)")
+                    help="upper bound of height to hold blimps at")
 
-PARSER.add_argument("--xmin", type=float, required=False, default=-3.,
-                    help="x spawning lower bound (should be > 0 so they do not spawn on other side of wall)")
-PARSER.add_argument("--xmax", type=float, required=False, default=3.,
+PARSER.add_argument("--xmin", type=float, required=False, default=-6.,
+                    help="x spawning lower bound")
+PARSER.add_argument("--xmax", type=float, required=False, default=6.,
                     help="x spawning upper bound")
 
-PARSER.add_argument("--ymin", type=float, required=False, default=-3.,
+PARSER.add_argument("--ymin", type=float, required=False, default=-6.,
                     help="y spawning upper bound")
-PARSER.add_argument("--ymax", type=float, required=False, default=3.,
+PARSER.add_argument("--ymax", type=float, required=False, default=6.,
                     help="y spawning upper bound")
 
 PARSER.add_argument("--zmin", type=float, required=False, default=.8,
@@ -29,10 +29,24 @@ PARSER.add_argument("--zmin", type=float, required=False, default=.8,
 PARSER.add_argument("--zmax", type=float, required=False, default=1.2,
                     help="z spawning upper bound")
 
+PARSER.add_argument("--xmin_obs", type=float, required=False, default=-8.,
+                    help="x obstacle spawning lower bound")
+PARSER.add_argument("--xmax_obs", type=float, required=False, default=8.,
+                    help="x obstacle spawning upper bound")
+
+PARSER.add_argument("--ymin_obs", type=float, required=False, default=-8.,
+                    help="y obstacle spawning upper bound")
+PARSER.add_argument("--ymax_obs", type=float, required=False, default=8.,
+                    help="y obstacle spawning upper bound")
+
+PARSER.add_argument("--obs_height", type=float, required=False, default=1.5,
+                    help="obstacle spawn height")
+
 args = PARSER.parse_args()
 check_basic(args=args)
 OBS_DIR = os.path.join(DIR, 'models', 'obstacles')
-OBS_PATHS = [os.path.join(OBS_DIR, d) for d in os.listdir(OBS_DIR)]
+# OBS_PATHS = [os.path.join(OBS_DIR, d) for d in os.listdir(OBS_DIR)]
+OBS_PATHS = [os.path.join(OBS_DIR, '3r3_cylinder.ttm')]
 
 AGENTS = args.agents
 gens = args.generations
@@ -46,19 +60,18 @@ def SPAWN_ZONE(i):
 
 
 def expe_make(net, sim=None, port=23000, wakeup=None):
-    return k_tant_wall_sense_area_coverage(
+    return k_tant_obstacle_surround(
         num_agents=AGENTS,
         start_zone=SPAWN_ZONE,
         scenePath=cage_arena_path,
         blimpPath=narrow_blimp_path,
         networkfn=net.activate,
         height_range=(h_low, h_upp),
-        use_ultra=False,
         obstacles=args.obstacles,
-        obstacle_height=args.obstacle_height,
         obstacle_paths=OBS_PATHS,
+        obstacle_zone=((args.xmin_obs, args.xmax_obs), (args.ymin_obs, args.ymax_obs), args.obs_height),
+        activation_range=args.activation_range,
         end_time=END,
-        bounds=((-12.5, 12.5), (-12.5, 12.5)),
         height_factor=1.,
         sim=sim,
         simId=port,
@@ -68,7 +81,7 @@ def expe_make(net, sim=None, port=23000, wakeup=None):
 
 
 save_name = str(AGENTS) + '_blimp_' \
-            + str(args.obstacles) + '_obstacle_area_coverage_wall_sense'
+            + str(args.obstacles) + '_obstacle_surround'
 checkpt_dir = os.path.join(DIR, 'checkpoints', save_name)
 print("SAVING TO:", checkpt_dir)
 
@@ -79,7 +92,7 @@ if not os.path.exists(checkpt_dir):
         raise Exception("DIRECTORY DOES NOT EXIST (try running with --create): " + checkpt_dir)
 ee = EvolutionExperiment(checkpt_dir=checkpt_dir,
                          exp_maker=expe_make,
-                         config_name='blimp_2d_area')
+                         config_name='blimp_' + str(args.obstacles) + '_obs_surround')
 if gens:
     port_step = args.port_step
     zmq_def_port = 23000 + port_step*args.offset

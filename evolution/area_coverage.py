@@ -39,9 +39,6 @@ OBS_PATHS = [os.path.join(OBS_DIR, d) for d in os.listdir(OBS_DIR)]
 
 AGENTS = args.agents
 gens = args.generations
-if args.sims_low >= 1:
-    if not args.sims_low <= args.num_sims or not args.num_sims < args.sims_high:
-        raise Exception("bruh")
 END = 60
 h_low = args.height_lower
 h_upp = args.height_upper

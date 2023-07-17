@@ -631,7 +631,7 @@ class k_tant_area_coverage(xyBlimp):
                                    lambda: np.concatenate(
                                        (self.sample_from_bounds(1).flatten(), [self.obstacle_height])),
                                    spawn_tries=1,
-                                   orient_rng=lambda:(0,0,(0,2*np.pi))
+                                   orient_rng=lambda: (0, 0, (0, 2*np.pi))
                                    )
             self.obs_handles.append(hand)
             self.add_problem_model(hand)
@@ -852,6 +852,173 @@ class k_tant_wall_sense_area_coverage(k_tant_area_coverage):
         return k_tant
 
 
+class k_tant_obstacle_surround(xyBlimp):
+    def __init__(self,
+                 num_agents,
+                 start_zone,
+                 scenePath,
+                 blimpPath,
+                 networkfn,
+                 height_range,
+                 obstacles,
+                 obstacle_paths,
+                 obstacle_zone,
+                 activation_range,
+                 end_time,
+                 k=8,
+                 height_factor=.2,
+                 sim=None,
+                 simId=23000,
+                 msg_queue=10,
+                 wakeup=None,
+                 sleeptime=.01,
+                 spawn_tries=100
+                 ):
+        """
+        blimp sees the closest neighbor on each octant as well as obstacle vectors,
+            rewarded for surrounding an obstacle
+
+        @param num_agents: number of blimps in this swarm expiriment
+        @param start_zone: int -> (RxR U R)^3 goes from the blimp number to the spawn area
+                (each dimension could be (value) or (low, high), chosen uniformly at random)
+        @param scenePath: path to coppeliasim scene
+        @param blimpPath: path to blimp for spawning
+        @param networkfn: neural network function call for blimp to act
+        @param height_range: R^2, height range to keep blimps at
+        @param obstacles: number of obstacles to randomly spawn in
+        @param obstacle_paths: paths to obstacles to spawn in, list chosen from uniformly
+        @param obstacle_zone: (RxR U R)^3 the spawn area of obstacles
+                (each dimension could be (value) or (low, high), chosen uniformly at random)
+        @param activation_range: range where blimps are registered as 'surrounding' an obstacle
+            also will keep obstacles at least double this distance apart so no overlap
+        @param end_time: time it takes for experiment to end
+        @param k: number of divisions to split sensing
+        @param height_factor: factor to multiply height adjust by
+        @param sim: simulator, if already defined
+        @param simId: simulator id, used to pass messages to correct topics
+        @param msg_queue: queue length of ROS messages
+        @param wakeup: code to run in command line before starting experiment
+        @param sleeptime: time to wait before big commands (i.e. stop simulation, start simulation, pause simulation)
+        @param spawn_tries: number of tries to spawn without collisions before giving up
+                if 1, then sets position, does not change if collision detected
+        """
+        super().__init__(
+            num_agents=num_agents,
+            start_zone=start_zone,
+            scenePath=scenePath,
+            blimpPath=blimpPath,
+            networkfn=networkfn,
+            height_range=height_range,
+            use_ultra=False,
+            height_factor=height_factor,
+            sim=sim,
+            simId=simId,
+            msg_queue=msg_queue,
+            wakeup=wakeup,
+            sleeptime=sleeptime,
+            spawn_tries=spawn_tries)
+        self.end_time = end_time
+        self.k = k
+        self.obstacles = obstacles
+        self.obstacle_zone = obstacle_zone
+        self.obstacle_paths = obstacle_paths
+        self.activation_range = activation_range
+        self.obs_handles = None
+
+    ####################################################################################################################
+    # init/shutdown functions
+    ####################################################################################################################
+    def spawnThings(self):
+        """
+        to be run at start of each expiriment
+        """
+        self.obs_handles = []
+        self.obs_poses = []
+        for _ in range(self.obstacles):
+            obs = self.obstacle_paths[np.random.randint(0, len(self.obstacle_paths))]
+            hand = self.spawnModel(obs,
+                                   lambda: (0, 0, 0),
+                                   spawn_tries=1,
+                                   orient_rng=lambda: (0, 0, (0, 2*np.pi))
+                                   )
+            obs_pos = None
+            for i in range(self.spawn_tries):
+                self.moveObject(handle=hand, pos_rng=lambda: self.obstacle_zone,
+                                orient_rng=lambda: (0, 0, (0, 2*np.pi)))
+                obs_pos = self.get_object_pos(hand)[:2]
+                too_close = False
+                for p2 in self.obs_poses:
+                    if np.linalg.norm(obs_pos - p2) < self.activation_range*2:
+                        too_close = True
+                        break
+                if not too_close:
+                    break
+            self.obs_poses.append(obs_pos)
+            self.obs_handles.append(hand)
+            self.add_problem_model(hand)
+        super().spawnThings()
+
+    ####################################################################################################################
+    # network functions
+    ####################################################################################################################
+    def get_network_input(self, agent_id):
+        """
+        gets the network input for agent specified
+
+        @param agent_id: agent to get input for
+        @return: R^(k+2*num_obstacles) np array
+        """
+
+        k_tant = self.global_get_inv_dist_2d_k_tant(agent_id, is_neigh=lambda id0, id1: True, k=self.k, spin=True)
+        pos = self.get_position(agent_id=agent_id, use_ultra=False, spin=False)[:2]
+        return np.concatenate([k_tant] + [obs_pos - pos for obs_pos in self.obs_poses])
+
+    ####################################################################################################################
+    # Expiriment functions
+    ####################################################################################################################
+    def goal_data(self):
+        """
+        data to return at the end of each experiment trial
+
+        @return: the largest angle arc uncovered by a blimp near an object
+            if there are too few blimps near an object, there is a penalty of the distance to the closest blimp
+            if multiple objects, this value is summed
+        """
+        obj = 0
+        for obs_pos in self.obs_poses:
+            angles = []
+            nearest_dist = float('inf')
+            for agent_id in self.agentData:
+                xy = self.get_position(agent_id, use_ultra=False)[:2]
+                vec = xy - obs_pos
+                nearest_dist = min(nearest_dist, np.linalg.norm(vec))
+                if np.linalg.norm(vec) < self.activation_range:
+                    angle = np.arctan2(vec[1], vec[0])
+                    angles.append(angle%(2*np.pi))
+                bug = self.get_state(agent_id)["DEBUG"]
+                if bug == 0.:
+                    return None
+            angles.sort()
+            if len(angles) < 2:
+                max_dist = 2*np.pi
+                obj -= nearest_dist  # penalty
+            else:
+                max_dist = (angles[0] + 2*np.pi) - angles[-1]
+                for i in range(len(angles) - 1):
+                    max_dist = max(max_dist, angles[i + 1] - angles[i])
+            obj -= max_dist
+
+        return obj
+
+    def end_test(self):
+        """
+        Runs at the end of step to decide termination of experiment
+
+        @return: boolean of whether the experiment is done
+        """
+        return self.sim.getSimulationTime() > self.end_time
+
+
 class xyzBlimp(blimpNet):
     def __init__(self,
                  num_agents,
@@ -993,7 +1160,7 @@ class l_k_tant_area_coverage(xyzBlimp):
             hand = self.spawnModel(obs,
                                    lambda: self.sample_from_bounds(1).flatten(),
                                    spawn_tries=1,
-                                   orient_rng=lambda:((0,2*np.pi),(0,2*np.pi),(0,2*np.pi))
+                                   orient_rng=lambda: ((0, 2*np.pi), (0, 2*np.pi), (0, 2*np.pi))
                                    )
             self.obs_handles.append(hand)
             self.add_problem_model(hand)
