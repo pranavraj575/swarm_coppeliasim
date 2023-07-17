@@ -4,3 +4,5 @@ __pycache__/
 **/.idea/
 blimp_coppeliasim.egg-info/
 **/blimp_coppeliasim.egg-info/
+*.egg-info/
+**.egg-info/
