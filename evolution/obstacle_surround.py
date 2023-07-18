@@ -10,6 +10,9 @@ PARSER.add_argument("--obstacles", type=int, required=False, default=1,
 PARSER.add_argument("--activation_range", type=int, required=False, default=4,
                     help="distance where blimps are 'near' obstacles")
 
+PARSER.add_argument("--cube", action="store_true", required=False,
+                    help="whether to use the cube obstacle")
+
 PARSER.add_argument("--height_lower", type=float, required=False, default=.8,
                     help="lower bound of height to hold blimps at")
 PARSER.add_argument("--height_upper", type=float, required=False, default=1.2,
@@ -47,7 +50,10 @@ args = PARSER.parse_args()
 check_basic(args=args)
 OBS_DIR = os.path.join(DIR, 'models', 'obstacles')
 # OBS_PATHS = [os.path.join(OBS_DIR, d) for d in os.listdir(OBS_DIR)]
-OBS_PATHS = [os.path.join(OBS_DIR, '3r3_cylinder.ttm')]
+if args.cube:
+    OBS_PATHS = [os.path.join(OBS_DIR, '3m_cube.ttm')]
+else:
+    OBS_PATHS = [os.path.join(OBS_DIR, '3r3_cylinder.ttm')]
 
 AGENTS = args.agents
 gens = args.generations
@@ -82,7 +88,7 @@ def expe_make(net, sim=None, port=23000, wakeup=None):
 
 
 save_name = str(AGENTS) + '_blimp_' \
-            + str(args.obstacles) + '_obstacle_surround'
+            + str(args.obstacles) + ('_cube' if args.cube else '_cylinder') + '_obstacle_surround'
 checkpt_dir = ckpt_dir_from_name(save_name)
 print("SAVING TO:", checkpt_dir)
 
