@@ -7,7 +7,7 @@ PARSER.description = "for creating and running an obstacle surrounding evolution
 
 PARSER.add_argument("--obstacles", type=int, required=False, default=1,
                     help="number of obstacles to generate for training")
-PARSER.add_argument("--activation_range", type=int, required=False, default=4,
+PARSER.add_argument("--activation_range", type=float, required=False, default=4.,
                     help="distance where blimps are 'near' obstacles")
 
 PARSER.add_argument("--cube", action="store_true", required=False,
@@ -88,7 +88,8 @@ def expe_make(net, sim=None, port=23000, wakeup=None):
 
 
 save_name = str(AGENTS) + '_blimp_' \
-            + str(args.obstacles) + ('_cube' if args.cube else '_cylinder') + '_obstacle_surround'
+            + str(args.obstacles) + ('_cube' if args.cube else '_cylinder') + '_obstacle_surround' + \
+            '_range_' + str(args.activation_range).replace('.', '_')
 checkpt_dir = ckpt_dir_from_name(save_name)
 print("SAVING TO:", checkpt_dir)
 
