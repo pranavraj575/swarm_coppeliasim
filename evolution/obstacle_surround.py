@@ -7,7 +7,7 @@ PARSER.description = "for creating and running an obstacle surrounding evolution
 
 PARSER.add_argument("--obstacles", type=int, required=False, default=1,
                     help="number of obstacles to generate for training")
-PARSER.add_argument("--activation_range", type=float, required=False, default=4.,
+PARSER.add_argument("--activation_range", type=float, required=False, default=3.,
                     help="distance where blimps are 'near' obstacles")
 
 PARSER.add_argument("--cube", action="store_true", required=False,
