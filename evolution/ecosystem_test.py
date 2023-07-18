@@ -1,6 +1,7 @@
 from src.network_blimps import *
 from evolution.evolutionBlimp import EcosystemEvolutionExperiment
 from evolution.arg_parser import *
+from evolution.ev_utils import *
 
 
 class ecosystem_xy_wall_climb(k_tant_wall_climb_blimp):
@@ -73,6 +74,7 @@ class ecosystem_xy_wall_climb(k_tant_wall_climb_blimp):
             return None
         return [val for _ in range(self.num_agents)]
 
+
 PARSER.description = "for testing the ecosystem setup on a basic wall climbing evolutionary experiment"
 
 PARSER.add_argument("--height_lower", type=float, required=False, default=.8,
@@ -132,7 +134,7 @@ def eco_expe_make(nets, sim=None, port=23000, wakeup=None):
 save_name = 'ECOSYSTEM' + str(AGENTS) + \
             '_blimp_height_' + str(h_low).replace('.', '_') + "_to_" + str(h_upp).replace('.', '_') + \
             '_wall_climb_neighbor_rng_' + str(RANGE).replace('.', '_')
-checkpt_dir = os.path.join(DIR, 'checkpoints', save_name)
+checkpt_dir = ckpt_dir_from_name(save_name)
 print("SAVING TO:", checkpt_dir)
 
 if not os.path.exists(checkpt_dir):
@@ -143,7 +145,7 @@ if not os.path.exists(checkpt_dir):
 ee = EcosystemEvolutionExperiment(checkpt_dir=checkpt_dir,
                                   ecosystem_exp_maker=eco_expe_make,
                                   num_agents=AGENTS,
-                                  config_name='blimp_wall_test')
+                                  config_file=config_path_from_name('blimp_wall_test'))
 if gens:
     port_step = args.port_step
     zmq_def_port = 23000 + port_step*args.offset

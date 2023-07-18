@@ -16,7 +16,6 @@ OUT = ''
 PI = 3.14159
 SIMID = 23000
 
-
 DIR = os.path.dirname(os.path.join(os.getcwd(), os.path.dirname(sys.argv[0])))
 
 msgfile = os.path.join(DIR, 'lua', 'rosMsg.lua')
@@ -31,8 +30,7 @@ TOPIC_CMD = TOPIC_NAMES['TOPIC_CMD']
 TOPIC_GLOBAL = TOPIC_NAMES['TOPIC_GLOBAL']
 TOPIC_ULTRA = TOPIC_NAMES['TOPIC_ULTRA']
 
-
-SWARM_DATA = defaultdict(lambda: np.array([0.] * 5))
+SWARM_DATA = defaultdict(lambda: np.array([0.]*5))
 
 
 class Chains:
@@ -110,9 +108,9 @@ class Chains:
         if goal_field == None:
             d = .01
             goal_field = lambda p: -np.array([
-                (self.goal_value(p + np.array((d, 0, 0))) - self.goal_value(p + np.array((-d, 0, 0)))) / (2 * d),
-                (self.goal_value(p + np.array((0, d, 0))) - self.goal_value(p + np.array((0, -d, 0)))) / (2 * d),
-                (self.goal_value(p + np.array((0, 0, d))) - self.goal_value(p + np.array((0, 0, -d)))) / (2 * d)
+                (self.goal_value(p + np.array((d, 0, 0))) - self.goal_value(p + np.array((-d, 0, 0))))/(2*d),
+                (self.goal_value(p + np.array((0, d, 0))) - self.goal_value(p + np.array((0, -d, 0))))/(2*d),
+                (self.goal_value(p + np.array((0, 0, d))) - self.goal_value(p + np.array((0, 0, -d))))/(2*d)
             ])
         self.goal_field = goal_field
 
@@ -173,7 +171,7 @@ class Chains:
         size = np.linalg.norm(vec)
         if size <= 0:
             size = d
-        return vec / size
+        return vec/size
 
     def point_obs_force(self, position, point_obstacles, obs_range=1.5, obs_rep=10):
         out = np.zeros(3)
@@ -186,7 +184,7 @@ class Chains:
 
             if dist < obs_range:
                 v_obs = self.safe_norm(v_obs)
-                v_obs *= (-1 * (obs_rep * 1 * 1) / (dist ** 2))
+                v_obs *= (-1*(obs_rep*1*1)/(dist**2))
             else:
                 v_obs = np.zeros(3)
 
@@ -309,7 +307,7 @@ class Chains:
 
                 dPos = self.safe_norm(dPos)
 
-                ljp = dPos * (24 * etta * (-26 / ((0.6 * (dist + 0.75)) ** 14) + 7 / ((0.6 * (dist + 0.75)) ** 8)))
+                ljp = dPos*(24*etta*(-26/((0.6*(dist + 0.75))**14) + 7/((0.6*(dist + 0.75))**8)))
 
                 if item[4] < queue_value:
                     queue_value = item[4] + 1
@@ -345,7 +343,7 @@ class Chains:
                         new_v_min = dPos
                         min_size = siz
         if np.linalg.norm(v_visc) > max_ljp:
-            v_visc = self.safe_norm(v_visc) * max_ljp
+            v_visc = self.safe_norm(v_visc)*max_ljp
         #####################################################################################################
         # Workspace
         v_bound = np.zeros(3)
@@ -361,16 +359,16 @@ class Chains:
         #####################################################################################################
         # Full
 
-        v_full = v_goal * weight[0] + \
-                 v_obs_tot * weight[1] + \
-                 v_visc * weight[2] + \
-                 new_v_min * weight[3] + \
-                 v_bound * weight[4]
+        v_full = v_goal*weight[0] + \
+                 v_obs_tot*weight[1] + \
+                 v_visc*weight[2] + \
+                 new_v_min*weight[3] + \
+                 v_bound*weight[4]
         if height:
-            v_full[2] = (height - pos[2]) * .1
+            v_full[2] = (height - pos[2])*.1
             # USE ULTRASOUND POS HERE
         if np.linalg.norm(v_full) > max_speed:
-            v_full = self.safe_norm(v_full) * max_speed
+            v_full = self.safe_norm(v_full)*max_speed
         p_full = v_full + real_pos
         disp_weights = list(weight) + [1.]
 
@@ -441,7 +439,7 @@ if __name__ == '__main__':
 
 
     def make_goal_radial(goal):
-        return lambda pos: np.linalg.norm(pos - goal) ** 2
+        return lambda pos: np.linalg.norm(pos - goal)**2
 
 
     for i in range(num_agents):
@@ -462,7 +460,7 @@ if __name__ == '__main__':
                     # lambda pos:np.cos(pos[0])-(pos[1]-1)**2-((pos[2]-1)**2/100 if pos[2]>2 or pos[2]<.5 else 0)
                     # make_goal_radial(np.array((0, 0, 10)))
                     make_goal_radial(np.array(
-                        (R * np.sin(2 * i * PI / num_agents), 0., R * np.cos(2 * i * PI / num_agents) + R + .1)))
+                        (R*np.sin(2*i*PI/num_agents), 0., R*np.cos(2*i*PI/num_agents) + R + .1)))
                     )
         chains.append(pp)
 
@@ -487,9 +485,9 @@ if __name__ == '__main__':
             pp = chains[j]
             pos = pp.get_position(use_ultra=False)
             size = .1
-            vec = pp.goal_field(pos) * .1
+            vec = pp.goal_field(pos)*.1
             if np.linalg.norm(vec) > size:
-                vec = size * vec / np.linalg.norm(vec)
+                vec = size*vec/np.linalg.norm(vec)
             pp.move(vec)
             if j == 0:
                 # print([round(p,4) for p in (pos-old_poses[j])/(50/1000)],' '*10,end='\r')

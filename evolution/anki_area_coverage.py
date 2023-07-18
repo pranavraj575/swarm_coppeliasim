@@ -1,6 +1,7 @@
 from src.network_ankis import *
 from evolution.evolutionBlimp import EvolutionExperiment
 from evolution.arg_parser import *
+from evolution.ev_utils import *
 
 PARSER.description = "for creating and running anki test experiment"
 
@@ -25,13 +26,13 @@ check_basic(args=args)
 AGENTS = args.agents
 gens = args.generations
 END = 60
-LARGE=args.large
+LARGE = args.large
 if LARGE:
-    bounds=((-.9 , 1.2), (-1, 1))
-    SCENE=anki_large_arena_path
+    bounds = ((-.9, 1.2), (-1, 1))
+    SCENE = anki_large_arena_path
 else:
-    bounds=((-.45, .6), (-.5, .5))
-    SCENE=anki_arena_path
+    bounds = ((-.45, .6), (-.5, .5))
+    SCENE = anki_arena_path
 
 
 def SPAWN_ZONE(i):
@@ -53,9 +54,10 @@ def expe_make(net, sim=None, port=23000, wakeup=None):
                                      )
 
 
-save_name = str(AGENTS) + '_anki_area_coverage'+('_large' if LARGE else '')
+save_name = str(AGENTS) + '_anki_area_coverage' + ('_large' if LARGE else '')
+config_name = 'anki_area'
 
-checkpt_dir = os.path.join(DIR, 'checkpoints', save_name)
+checkpt_dir = ckpt_dir_from_name(save_name)
 print("SAVING TO:", checkpt_dir)
 
 if not os.path.exists(checkpt_dir):
@@ -65,7 +67,7 @@ if not os.path.exists(checkpt_dir):
         raise Exception("DIRECTORY DOES NOT EXIST (try running with --create): " + checkpt_dir)
 ee = EvolutionExperiment(checkpt_dir=checkpt_dir,
                          exp_maker=expe_make,
-                         config_name='anki_area')
+                         config_file=config_path_from_name(config_name))
 if gens:
     port_step = args.port_step
     zmq_def_port = 23000 + port_step*args.offset

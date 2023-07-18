@@ -4,7 +4,7 @@ import numpy as np
 from scipy.stats import norm
 
 DIR = os.path.dirname(os.path.join(os.getcwd(), os.path.dirname(sys.argv[0])))
-CHAIN_DIR=os.path.join(DIR,'chain_siphon')
+CHAIN_DIR = os.path.join(DIR, 'chain_siphon')
 ALL = []
 RT = 'test_output'
 RT = 'output_old_blimps_frictionless'
@@ -40,18 +40,18 @@ for PROP in (False, True):
         DATA = dict()
         for i in range(len(fields)):
             DATA[fields[i]] = np.array([float(row[i]) for row in data])
-        y = DATA['succ'] / (DATA['num_agents'] if PROP else 1)
+        y = DATA['succ']/(DATA['num_agents'] if PROP else 1)
         var = DATA['variance'] if 'variance' in DATA else np.zeros(len(y))
         stdev = np.sqrt(var)
         CONF_INT = 95
 
-        percentile = 1 - (1 - CONF_INT / 100) / 2
+        percentile = 1 - (1 - CONF_INT/100)/2
         # since double sided
 
         # 95% confidence interval, subtract 1 from num trials since 1 DOF lost for variance
-        conf = (stdev / np.sqrt(DATA['trials'] - 1)) * norm.ppf(percentile)
+        conf = (stdev/np.sqrt(DATA['trials'] - 1))*norm.ppf(percentile)
         if PROP:
-            conf = conf / DATA['num_agents']
+            conf = conf/DATA['num_agents']
 
         # VALUES=DATA['num_agents']
         low = np.max((y - conf, [0 for _ in range(len(y))]), axis=0)
@@ -75,9 +75,9 @@ for PROP in (False, True):
         b = result[0][0][0]
         m = result[0][1][0]
 
-        guess = np.array([[i * m + b] for i in VALUES])
+        guess = np.array([[i*m + b] for i in VALUES])
 
-        plt.plot(VALUES, guess.reshape(-1) / (np.array(VALUES) if PROP else 1), '--' if folder == "CHAINS" else ':',
+        plt.plot(VALUES, guess.reshape(-1)/(np.array(VALUES) if PROP else 1), '--' if folder == "CHAINS" else ':',
                  alpha=.5, color='purple')
         leg.append(('y = {0}*x' + (' + ' if b > 0 else ' ') + '{1}').format(round(m, ROUND), round(b, ROUND)))
 

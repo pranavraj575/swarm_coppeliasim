@@ -38,7 +38,7 @@ class chainSiphon(BlimpExperiment):
                          sleeptime=sleeptime)
 
         self.weight = weight
-        self.end_time=end_time
+        self.end_time = end_time
         self.point_obstacles = point_obstacles
         self.obs_vector = obs_vector
         self.max_speed = max_speed
@@ -51,7 +51,7 @@ class chainSiphon(BlimpExperiment):
         self.goal_test = goal_test
         self.use_ultra = use_ultra
         self.set_goal_value(goal_value=goal_value, goal_field=goal_field)
-        self.swarm_data = defaultdict(lambda: np.array([0.] * 8))
+        self.swarm_data = defaultdict(lambda: np.array([0.]*8))
 
     def set_goal_value(self, goal_value, goal_field=None):
         """
@@ -62,9 +62,9 @@ class chainSiphon(BlimpExperiment):
         if goal_field == None:
             d = .01
             goal_field = lambda p: -np.array([
-                (self.goal_value(p + np.array((d, 0, 0))) - self.goal_value(p + np.array((-d, 0, 0)))) / (2 * d),
-                (self.goal_value(p + np.array((0, d, 0))) - self.goal_value(p + np.array((0, -d, 0)))) / (2 * d),
-                (self.goal_value(p + np.array((0, 0, d))) - self.goal_value(p + np.array((0, 0, -d)))) / (2 * d)
+                (self.goal_value(p + np.array((d, 0, 0))) - self.goal_value(p + np.array((-d, 0, 0))))/(2*d),
+                (self.goal_value(p + np.array((0, d, 0))) - self.goal_value(p + np.array((0, -d, 0))))/(2*d),
+                (self.goal_value(p + np.array((0, 0, d))) - self.goal_value(p + np.array((0, 0, -d))))/(2*d)
             ])
         self.goal_field = goal_field
 
@@ -72,7 +72,7 @@ class chainSiphon(BlimpExperiment):
         size = np.linalg.norm(vec)
         if size <= 0:
             size = d
-        return vec / size
+        return vec/size
 
     def point_obs_force(self, position, point_obstacles, obs_range=1.5, obs_rep=10):
         out = np.zeros(3)
@@ -85,7 +85,7 @@ class chainSiphon(BlimpExperiment):
 
             if dist < obs_range:
                 v_obs = self.safe_norm(v_obs)
-                v_obs *= (-1 * (obs_rep * 1 * 1) / (dist ** 2))
+                v_obs *= (-1*(obs_rep*1*1)/(dist**2))
             else:
                 v_obs = np.zeros(3)
 
@@ -172,8 +172,8 @@ class chainSiphon(BlimpExperiment):
 
                     dPos = self.safe_norm(dPos)
 
-                    ljp = dPos * (24 * self.etta * (
-                            -26 / ((0.6 * (dist + 0.75)) ** 14) + 7 / ((0.6 * (dist + 0.75)) ** 8)))
+                    ljp = dPos*(24*self.etta*(
+                            -26/((0.6*(dist + 0.75))**14) + 7/((0.6*(dist + 0.75))**8)))
 
                     if item[4] < queue_value:
                         queue_value = item[4] + 1
@@ -208,7 +208,7 @@ class chainSiphon(BlimpExperiment):
                             new_v_min = dPos
                             min_size = siz
             if np.linalg.norm(v_visc) > self.max_ljp:
-                v_visc = self.safe_norm(v_visc) * self.max_ljp
+                v_visc = self.safe_norm(v_visc)*self.max_ljp
             #####################################################################################################
             # Workspace
             v_bound = np.zeros(3)
@@ -224,16 +224,16 @@ class chainSiphon(BlimpExperiment):
             #####################################################################################################
             # Full
 
-            v_full = v_goal * self.weight[0] + \
-                     v_obs_tot * self.weight[1] + \
-                     v_visc * self.weight[2] + \
-                     new_v_min * self.weight[3] + \
-                     v_bound * self.weight[4]
+            v_full = v_goal*self.weight[0] + \
+                     v_obs_tot*self.weight[1] + \
+                     v_visc*self.weight[2] + \
+                     new_v_min*self.weight[3] + \
+                     v_bound*self.weight[4]
             if height:
-                v_full[2] = (height - pos[2]) * .1
+                v_full[2] = (height - pos[2])*.1
                 # USE ULTRASOUND POS HERE
             if np.linalg.norm(v_full) > self.max_speed:
-                v_full = self.safe_norm(v_full) * self.max_speed
+                v_full = self.safe_norm(v_full)*self.max_speed
 
             self.move_agent(agent_id, v_full)
             self.data_publish(agent_id,
@@ -246,7 +246,7 @@ class chainSiphon(BlimpExperiment):
                                obj_value,
                                len(neighbors)
                                ))
-        return self.sim.getSimulationTime()>self.end_time
+        return self.sim.getSimulationTime() > self.end_time
 
     def data_publish(self, agent_id, agent_data):
         self.swarm_data[agent_id] = np.array(agent_data)

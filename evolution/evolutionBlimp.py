@@ -7,8 +7,6 @@ import gzip, random, pickle
 from collections import defaultdict
 
 DIR = os.path.dirname(os.path.join(os.getcwd(), os.path.dirname(sys.argv[0])))
-CHECKPT_DIR = os.path.join(DIR, 'checkpoints')
-CONFIG_DIR = os.path.join(DIR, 'config')
 
 
 def eval_genom(exp_maker,
@@ -87,7 +85,7 @@ class GeneralEvolutionaryExperiment:
     def __init__(self,
                  checkpt_dir,
                  exp_maker,
-                 config_name=None):
+                 config_file):
         """
         experiment to use NEAT evolutionary algorithm on a Experiment class
             does not implement the evaluation of genomes, leaves that to subclasses
@@ -97,16 +95,13 @@ class GeneralEvolutionaryExperiment:
         @param exp_maker: (network arg,sim,port,wakeup) -> src.swarm_experiment.BlimpExperiment
                 creates an Experiment to run given the NEAT network generation function, simulator, port, and wakeup script
                 the network argument is different depending on subclass
-        @param config_name: file name of config file, defaults to the 'name' param
+        @param config_file: file path to config file
 
         @note: the output of an experiment must be a real number type, since it is used as fitness
         """
-        if config_name is None:
-            config_name = checkpt_dir
         self.checkpt_dir = checkpt_dir
         if not os.path.exists(self.checkpt_dir):
             raise Exception("CHECKPOINT PATH DOES NOT EXIST: " + self.checkpt_dir)
-        config_file = os.path.join(CONFIG_DIR, config_name)
         self.config = neat.Config(
             neat.DefaultGenome,
             neat.DefaultReproduction,
@@ -148,7 +143,7 @@ class GeneralEvolutionaryExperiment:
                 # if we can decrease our time, choose this instead
                 if s_temp in self.bandits:
                     yarr = self.bandits[s_temp]
-                    rude=np.mean(yarr)
+                    rude = np.mean(yarr)
                     m = len(yarr)
                     stdev2 = np.std(yarr)/np.sqrt(m - 1) if m > 1 else def_stdev(rude)
                     if yarr and np.random.normal(rude, stdev2) < sample:
@@ -512,7 +507,7 @@ class GeneralEvolutionaryExperiment:
 
 
 class EvolutionExperiment(GeneralEvolutionaryExperiment):
-    def __init__(self, checkpt_dir, exp_maker, config_name=None):
+    def __init__(self, checkpt_dir, exp_maker, config_file):
         """
 
         experiment to use NEAT evolutionary algorithm on a Experiment class (specifically a blimpNet)
@@ -520,11 +515,11 @@ class EvolutionExperiment(GeneralEvolutionaryExperiment):
         @param checkpt_dir: folder name of experiment, used for checkpoint directories and maybe for config file
         @param exp_maker: (net,sim,port,wakeup) -> src.network_blimps.blimpNet
                     creates an Experiment to run given the NEAT network, simulator, port, and wakeup script
-        @param config_name: file name of config file, defaults to the 'name' param
+        @param config_file: file path to config file
 
         @note: the output of an experiment must be a real number type, since it is used as fitness
         """
-        super().__init__(checkpt_dir=checkpt_dir, exp_maker=exp_maker, config_name=config_name)
+        super().__init__(checkpt_dir=checkpt_dir, exp_maker=exp_maker, config_file=config_file)
 
     ####################################################################################################################
     # evolutionary training functions
@@ -663,7 +658,7 @@ class EvolutionExperiment(GeneralEvolutionaryExperiment):
                 # i.e. when collect_genome_fitnesses returns True
                 time.sleep(sleeptime)
                 if debug:
-                    print('left: ',self.processes_active(),'           ',end='\r')
+                    print('left: ', self.processes_active(), '           ', end='\r')
 
             if self.failed_genomes:
                 tries += 1
@@ -709,7 +704,7 @@ class EvolutionExperiment(GeneralEvolutionaryExperiment):
 
 
 class EcosystemEvolutionExperiment(GeneralEvolutionaryExperiment):
-    def __init__(self, checkpt_dir, ecosystem_exp_maker, num_agents, config_name=None):
+    def __init__(self, checkpt_dir, ecosystem_exp_maker, num_agents, config_file):
         """
 
         experiment to use NEAT evolutionary algorithm on a Experiment class (specifically a ecosystemBlimpNet)
@@ -719,11 +714,11 @@ class EcosystemEvolutionExperiment(GeneralEvolutionaryExperiment):
             creates an Experiment to run given the NEAT network, simulator, port, and wakeup script
             nets is of type (agentid -> network function)
         @param num_agents: number of agents to use in an environment
-        @param config_name: file name of config file, defaults to the 'name' param
+        @param config_file: file path to config file
 
         @note: the output of an experiment must be a list of real numbers, in order of each agent in the environment
         """
-        super().__init__(checkpt_dir=checkpt_dir, exp_maker=ecosystem_exp_maker, config_name=config_name)
+        super().__init__(checkpt_dir=checkpt_dir, exp_maker=ecosystem_exp_maker, config_file=config_file)
         self.num_agents = num_agents
         self.failed_genomes = None
 

@@ -1,6 +1,7 @@
 from src.network_blimps import *
 from evolution.evolutionBlimp import EcosystemEvolutionExperiment
 from evolution.arg_parser import *
+from evolution.ev_utils import *
 
 PARSER.description = "for creating and running an area coverage ecosytem evolutionary experiment with height layers"
 
@@ -67,7 +68,7 @@ class ecosystem_two_layer_area_coverage(k_tant_area_coverage):
                 (each dimension could be (value) or (low, high), chosen uniformly at random)
         @param scenePath: path to coppeliasim scene
         @param blimpPath: path to blimp for spawning
-        @param networkfn: neural network function call for blimp to act
+        @param networkfns: neural network function call for blimp to act
         @param height_range: R^2, height range to keep blimps at
         @param obstacles: number of obstacles to randomly spawn in
         @param obstacle_height: height to spawn in obstacles
@@ -177,9 +178,6 @@ OBS_PATHS = [os.path.join(OBS_DIR, d) for d in os.listdir(OBS_DIR)]
 
 AGENTS = args.agents
 gens = args.generations
-if args.sims_low >= 1:
-    if not args.sims_low <= args.num_sims or not args.num_sims < args.sims_high:
-        raise Exception("bruh")
 END = 60
 h_low = args.height_lower
 h_upp = args.height_upper
@@ -213,7 +211,7 @@ def ecosytem_exp_make(nets, sim=None, port=23000, wakeup=None):
 
 save_name = 'ECOSYSTEM' + str(AGENTS) + '_blimp_' + \
             str(args.obstacles) + '_obstacle_area_coverage'
-checkpt_dir = os.path.join(DIR, 'checkpoints', save_name)
+checkpt_dir = ckpt_dir_from_name(save_name)
 print("SAVING TO:", checkpt_dir)
 
 if not os.path.exists(checkpt_dir):
@@ -224,7 +222,7 @@ if not os.path.exists(checkpt_dir):
 ee = EcosystemEvolutionExperiment(num_agents=AGENTS,
                                   checkpt_dir=checkpt_dir,
                                   ecosystem_exp_maker=ecosytem_exp_make,
-                                  config_name='blimp_2d_area')
+                                  config_file=config_path_from_name('blimp_2d_area'))
 if gens:
     port_step = args.port_step
     zmq_def_port = 23000 + port_step*args.offset

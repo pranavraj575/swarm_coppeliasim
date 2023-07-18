@@ -1,8 +1,9 @@
 from src.maze_blimps import *
 from evolution.evolutionBlimp import EvolutionExperiment
 from evolution.arg_parser import *
+from evolution.ev_utils import *
 
-PARSER.description= "for creating and running maze evolutionary experiments with distance sensing instead of number of neighbors"
+PARSER.description = "for creating and running maze evolutionary experiments with distance sensing instead of number of neighbors"
 
 PARSER.add_argument("--height", type=int, required=False, default=5,
                     help="height of maze")
@@ -71,26 +72,26 @@ def expe_make(net, sim=None, port=23000, wakeup=None):
                 }
 
     return dist_sense_max_amazing_blimp(num_agents=AGENTS,
-                           scenePath=maze_view_path,
-                           blimpPath=narrow_blimp_path,
-                           networkfn=net.activate,
-                           end_time=END,
-                           grid_size=2,
-                           maze_entry_gen=make_maze,
-                           wall_spawn_height=1.5,
-                           wall_dir=wall_path,
-                           height_range=(1, 1),
-                           height_factor=1.,
-                           use_ultra=True,
-                           sim=sim,
-                           simId=port,
-                           wakeup=wakeup,
-                           sleeptime=.01
-                           )
+                                        scenePath=maze_view_path,
+                                        blimpPath=narrow_blimp_path,
+                                        networkfn=net.activate,
+                                        end_time=END,
+                                        grid_size=2,
+                                        maze_entry_gen=make_maze,
+                                        wall_spawn_height=1.5,
+                                        wall_dir=wall_path,
+                                        height_range=(1, 1),
+                                        height_factor=1.,
+                                        use_ultra=True,
+                                        sim=sim,
+                                        simId=port,
+                                        wakeup=wakeup,
+                                        sleeptime=.01
+                                        )
 
 
 save_name = str(AGENTS) + '_blimp_' + str(H) + 'x' + str(W) + 'maze_max_goal_dist_sensing_new'
-checkpt_dir = os.path.join(DIR, 'checkpoints', save_name)
+checkpt_dir = ckpt_dir_from_name(save_name)
 
 print("SAVING TO:", checkpt_dir)
 if not os.path.exists(checkpt_dir):
@@ -100,7 +101,7 @@ if not os.path.exists(checkpt_dir):
         raise Exception("DIRECTORY DOES NOT EXIST (try running with --create): " + checkpt_dir)
 ee = EvolutionExperiment(checkpt_dir=checkpt_dir,
                          exp_maker=expe_make,
-                         config_name='blimp_maze')
+                         config_file=config_path_from_name('blimp_maze'))
 if gens:
     port_step = args.port_step
     zmq_def_port = 23000 + port_step*args.offset

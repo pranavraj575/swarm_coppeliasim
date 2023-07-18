@@ -3,7 +3,6 @@ import csv
 import time, sys
 from zmqRemoteApi import RemoteAPIClient
 
-
 client = RemoteAPIClient()
 sim = client.getObject('sim')
 startZone = {'xmin': .5, 'xmax': 6,
@@ -22,8 +21,8 @@ if len(sys.argv) > 1:
 else:
     name = 'CONTROL'
 
-save_dir = os.path.join(DIR, 'chain_siphon','output', name)
-#save_dir = None
+save_dir = os.path.join(DIR, 'chain_siphon', 'output', name)
+# save_dir = None
 
 if save_dir is None:
     print("WARNING SAVE DIR IS NOT SPECIFIED, SO THIS IS NOT BEING SAVED")
@@ -34,8 +33,8 @@ def wall_obstacle_vector(pos, obs_range=1., obs_rep=1):
     if pos[2] <= 3:
         if abs(pos[0]) < obs_range:
             dist = max(.00001, abs(pos[0]))
-            vect = np.array((pos[0] / dist, 0, 0))
-            return obs_rep * vect / (dist ** 2)
+            vect = np.array((pos[0]/dist, 0, 0))
+            return obs_rep*vect/(dist**2)
             # since force vector/displacement is just going to be in the x direction in this case
         # too far away in this case
         return np.zeros(3)
@@ -46,8 +45,8 @@ def wall_obstacle_vector(pos, obs_range=1., obs_rep=1):
     dist = np.linalg.norm(vect)
     if dist < obs_range:
         dist = max(dist, .00001)
-        vect = vect / dist  # normalized now
-        return obs_rep * vect / (dist ** 2)
+        vect = vect/dist  # normalized now
+        return obs_rep*vect/(dist**2)
 
     return np.zeros(3)
 
@@ -246,13 +245,13 @@ for param in params:
         record['succ'].append(succ)
         print('trial', trial + 1,
               ':', succ, 'succeeded;',
-              'running average of', round(sum(record['succ']) / len(record['succ']), 3), 'succeeded;',
-              'avg time per trial:', round((time.time() - start_time) / len(record['succ'])),
-              ' ' * 10,
+              'running average of', round(sum(record['succ'])/len(record['succ']), 3), 'succeeded;',
+              'avg time per trial:', round((time.time() - start_time)/len(record['succ'])),
+              ' '*10,
               end='\r')
     print()
     record['variance'] = np.var(record['succ'])
-    record['time per trial'] = round((time.time() - start_time) / param['trials'])
+    record['time per trial'] = round((time.time() - start_time)/param['trials'])
     record['succ'] = np.mean(record['succ'])
     newrow = [param[p] for p in params_to_save] + [record[r] for r in records_to_save]
     print('results:', record)

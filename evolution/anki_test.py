@@ -1,6 +1,7 @@
 from src.network_ankis import *
 from evolution.evolutionBlimp import EvolutionExperiment
 from evolution.arg_parser import *
+from evolution.ev_utils import *
 
 PARSER.description = "for creating and running anki test experiment"
 
@@ -44,8 +45,9 @@ def expe_make(net, sim=None, port=23000, wakeup=None):
 
 
 save_name = str(AGENTS) + '_anki_test'
+config_name = 'anki_test'
 
-checkpt_dir = os.path.join(DIR, 'checkpoints', save_name)
+checkpt_dir = ckpt_dir_from_name(save_name)
 print("SAVING TO:", checkpt_dir)
 
 if not os.path.exists(checkpt_dir):
@@ -55,7 +57,7 @@ if not os.path.exists(checkpt_dir):
         raise Exception("DIRECTORY DOES NOT EXIST (try running with --create): " + checkpt_dir)
 ee = EvolutionExperiment(checkpt_dir=checkpt_dir,
                          exp_maker=expe_make,
-                         config_name='anki_test')
+                         config_file=config_path_from_name(config_name))
 if gens:
     port_step = args.port_step
     zmq_def_port = 23000 + port_step*args.offset
