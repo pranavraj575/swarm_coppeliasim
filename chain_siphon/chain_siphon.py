@@ -15,17 +15,27 @@ import numpy as np
 OUT = ''
 PI = 3.14159
 SIMID = 23000
-TOPIC_PRE = '/swarm/a'
-TOPIC_CMD = '/set/cmd_vel'
-TOPIC_GLOBAL = '/state/global'
-TOPIC_DATA = '/shared/data'
-TOPIC_ULTRA = '/state/ultrasonic'
+
+
+DIR = os.path.dirname(os.path.join(os.getcwd(), os.path.dirname(sys.argv[0])))
+
+msgfile = os.path.join(DIR, 'lua', 'rosMsg.lua')
+TOPIC_NAMES = dict()
+with  open(msgfile) as f:
+    r = [t.split('=') for t in f.read().strip().split('\n') if '=' in t]
+    for key, item in r:
+        TOPIC_NAMES[key.strip()] = item.strip().replace("'", '')
+
+TOPIC_PRE = TOPIC_NAMES['TOPIC_PRE_BLIMP']
+TOPIC_CMD = TOPIC_NAMES['TOPIC_CMD']
+TOPIC_GLOBAL = TOPIC_NAMES['TOPIC_GLOBAL']
+TOPIC_ULTRA = TOPIC_NAMES['TOPIC_ULTRA']
+
 
 SWARM_DATA = defaultdict(lambda: np.array([0.] * 5))
 
 
 class Chains:
-
     def __init__(self,
                  agent_id,
                  num_agents,
@@ -412,7 +422,7 @@ if __name__ == '__main__':
                  }
 
     DIR = os.path.dirname(os.path.join(os.getcwd(), os.path.dirname(sys.argv[0])))
-    MODELDIR = DIR + '/ros_ctrl_models/blimpNarrowSensor.ttm'
+    MODELDIR = DIR + '/ros_ctrl_models/blimp_narrow.ttm'
     SCENEDIR = DIR + '/scenes/empty.ttt'
     narrowModelPath = os.path.abspath(os.path.expanduser(MODELDIR))
     modelToLoad = narrowModelPath
@@ -427,7 +437,7 @@ if __name__ == '__main__':
     agentHandles = []
     chains = []
     rclpy.init()
-    num_agents = 1
+    num_agents = 10
 
 
     def make_goal_radial(goal):
@@ -475,7 +485,7 @@ if __name__ == '__main__':
         eye += 1
         for j in range(len(chains)):
             pp = chains[j]
-            pos = pp.get_position(use_ultra=True)
+            pos = pp.get_position(use_ultra=False)
             size = .1
             vec = pp.goal_field(pos) * .1
             if np.linalg.norm(vec) > size:

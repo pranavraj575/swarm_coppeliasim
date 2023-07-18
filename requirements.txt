@@ -3,3 +3,4 @@ psutil
 neat-python==0.92
 cbor
 zmq
+matplotlib

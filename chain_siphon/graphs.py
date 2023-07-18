@@ -4,13 +4,13 @@ import numpy as np
 from scipy.stats import norm
 
 DIR = os.path.dirname(os.path.join(os.getcwd(), os.path.dirname(sys.argv[0])))
+CHAIN_DIR=os.path.join(DIR,'chain_siphon')
 ALL = []
 RT = 'test_output'
-RT = 'output'
-ROOT = os.path.join(DIR, RT)
+RT = 'output_old_blimps_frictionless'
+ROOT = os.path.join(CHAIN_DIR, RT)
 
-dump = "plots/chain_siphon"
-OUTPUT_DIR = os.path.join(DIR, dump)
+OUTPUT_DIR = os.path.join(ROOT, 'plots')
 SHOW = True
 VALUES = range(1, 25)
 ROUND = 1

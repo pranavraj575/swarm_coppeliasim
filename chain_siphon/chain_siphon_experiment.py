@@ -3,7 +3,6 @@ import csv
 import time, sys
 from zmqRemoteApi import RemoteAPIClient
 
-DIR = os.path.dirname(os.path.join(os.getcwd(), os.path.dirname(sys.argv[0])))
 
 client = RemoteAPIClient()
 sim = client.getObject('sim')
@@ -23,7 +22,7 @@ if len(sys.argv) > 1:
 else:
     name = 'CONTROL'
 
-save_dir = os.path.join(DIR, 'output', name)
+save_dir = os.path.join(DIR, 'chain_siphon','output', name)
 #save_dir = None
 
 if save_dir is None:
