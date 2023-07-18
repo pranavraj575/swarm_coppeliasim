@@ -53,7 +53,7 @@ OBS_DIR = os.path.join(DIR, 'models', 'obstacles')
 if args.cube:
     OBS_PATHS = [os.path.join(OBS_DIR, '3m_cube.ttm')]
 else:
-    OBS_PATHS = [os.path.join(OBS_DIR, '3r3_cylinder.ttm')]
+    OBS_PATHS = [os.path.join(OBS_DIR, '3d3_cylinder.ttm')]
 
 AGENTS = args.agents
 gens = args.generations
