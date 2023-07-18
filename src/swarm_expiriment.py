@@ -37,6 +37,7 @@ class Experiment:
                  simId=23000,
                  wakeup=None,
                  sleeptime=.01,
+                 random_seed=None,
                  ):
         """
         General class that intializes and runs a repeatable experiment, returning results
@@ -46,7 +47,14 @@ class Experiment:
         @param simId: simulator id, used to pass messages to correct topics
         @param wakeup: list of commands to run on initialization (i.e. start coppeliasim)
         @param sleeptime: time to wait after important commands (start/stop/pause simulation)
+        @param random_seed: seed to start np.random at
+            if None, uses simId and current time to create a hopefully unique one
         """
+        if random_seed is None:
+            t=str(time.time())
+            t=t[t.index('.')+1:]
+            np.random.seed(int(t+str(simId))%2**32)
+
         self.scenePath = scenePath
         self.sleeptime = sleeptime
         self.procs = []
