@@ -54,16 +54,59 @@ class viconBlimps(BlimpManager):
         """
         return self.force_stability_command(agent_id=agent_id, vec=vec)
 
-    def force_stability_command(self, agent_id, vec):
+    def position_command(self, agent_id, vec, update=True):
         """
-        moves an agent
+        moves an agent to an input position vector
 
         @param agent_id: agent id to publish to
-        @param vec: R^3 velocity? vector
-            OR R^4 velocity? and angular velocity? vector
+        @param vec: R^3 position vector
+            OR R^4 position and angular heading
+        @param update: whether to update the velocity of the agent before checking
 
-        @note: if given an R^3 vector, we will let make turn command be to stabilize the blimp rotation
+        @note: if given an R^3 vector, we will let the turn command be to stabilize the blimp rotation
         """
+
+        pos = self.vicon.get_object_pos(obj_id=agent_id, update=update)
+        theta = self.vicon.get_object_head(obj_id=agent_id, update=False)
+        vel = vec[:3] - pos
+        if len(vec) == 3:
+            return self.velocity_command(agent_id=agent_id, vec=vel, update=False)
+        else:
+            omega = vec[4] - theta
+            return self.velocity_command(agent_id=agent_id, vec=np.concatenate((vel, [omega])), update=False)
+
+    def velocity_command(self, agent_id, vec, update=True):
+        """
+        moves an agent to an input velocity vector
+
+        @param agent_id: agent id to publish to
+        @param vec: R^3 velocity vector
+            OR R^4 velocity and angular velocity vector
+        @param update: whether to update the velocity of the agent before checking
+
+        @note: if given an R^3 vector, we will let the turn command be to stabilize the blimp rotation
+        """
+        vel = self.vicon.get_object_vel(obj_id=agent_id, update=update)
+        omega = self.vicon.get_head_speed(obj_id=agent_id, update=False)
+        acc = vec[:3] - vel
+        if len(vec) == 3:
+            return self.force_stability_command(agent_id=agent_id, vec=acc)
+        else:
+            ang_acc = vec[4] - omega
+            return self.force_stability_command(agent_id=agent_id, vec=np.concatenate((acc, [ang_acc])))
+
+    def force_stability_command(self, agent_id, vec):
+        """
+        moves an agent with an input force vector
+
+        @param agent_id: agent id to publish to
+        @param vec: R^3 force vector
+            OR R^4 force and angular force vector
+
+        @note: if given an R^3 vector, we will let the turn command be to stabilize the blimp rotation
+        """
+        EFFECT = [1., 1., 1., 1.]  # effective force for x,y,z,rotation given a command
+        # found experimentally
         xy = vec[:2]
         theta = np.arctan2(vec[1], vec[0])%(2*np.pi)
         r = np.linalg.norm(xy)
@@ -74,23 +117,25 @@ class viconBlimps(BlimpManager):
         cmd = np.zeros(4)
 
         # 'forward' command
-        cmd[0] = r*np.cos(theta_p)
+        cmd[0] = r*np.cos(theta_p)/EFFECT[0]
         # 'left' command
-        cmd[1] = -r*np.sin(theta_p)
+        cmd[1] = -r*np.sin(theta_p)/EFFECT[1]
         # 'height' command
-        cmd[2] = -vec[2]
+        cmd[2] = -vec[2]/EFFECT[2]
         # 'rotation' command
         if len(vec) == 3:
-            cmd[3] = self.get_stability_command(agent_id=agent_id)
+            cmd[3] = self.get_stability_command(agent_id=agent_id)/EFFECT[3]
         else:
-            cmd[3] = -vec[3]
+            cmd[3] = -vec[3]/EFFECT[3]
         self.set_cmd(cmd, agent_id)
 
-    def get_stability_command(self, agent_id):
+    def get_stability_command(self, agent_id, update=True):
         """
         gets the command to stabilize the rotation of a certian blimp
 
         @param agent_id:
+        @param update: whether to update the information
         @return: R, command to put in to try to make the blimp rotate as little as possible
         """
-        return 0
+        vel = self.vicon.get_head_speed(obj_id=agent_id, update=update)
+        return -vel
