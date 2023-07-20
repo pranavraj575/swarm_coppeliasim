@@ -63,7 +63,7 @@ Used for making swarm experiments for blimps/other in Coppeliasim. experiments u
    Clone this directory, copy all the ```.lua``` files into the correct place (replace ```<path to coppelia>``` with the path to the Coppeliasim folder). This should be run from wherever you want the repo to be.
 
     ```bash
-    git clone https://github.com/pranavraj575/swarm_coppeliasim
+    git clone --recurse-submodules https://github.com/pranavraj575/swarm_coppeliasim
     cp swarm_coppeliasim/lua/* /<path to coppelia>/lua/
     cd swarm_coppeliasim
     pip3 install -e .
