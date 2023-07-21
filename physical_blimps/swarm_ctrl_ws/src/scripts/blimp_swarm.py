@@ -1,6 +1,6 @@
 from pyBlimp.blimp import BlimpManager
 from pyBlimp.utils import read_config
-from swarm_ctrl.vicon import Vicon
+from swarm_ctrl_ws.src.vicon_pkg.src.vicon import Vicon
 from CONFIG import *
 import numpy as np
 
