@@ -204,11 +204,15 @@ class Vicon:
 
 if __name__=="__main__":
     x=Vicon(['chatter'],'')
-    for i in range(10):
-        time.sleep(1)
-        #print(x.blimps[0]['info']['time_hist'])
+    while True:
+        time.sleep(.2)
         print()
-        print(x.get_object_vel(0))
+        print('pos')
+        print(x.get_object_pos(0))
+        print('vel')
+        print(x.get_object_vel(0,False))
+        print('acc')
+        print(x.get_object_acc(0,False))
         print()
     quit()
     def callback(data):
