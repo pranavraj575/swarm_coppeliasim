@@ -7,14 +7,28 @@ from geometry_msgs.msg import TransformStamped
 from scipy.spatial.transform import Rotation as R
 import os, sys
 from std_msgs.msg import String
+import argparse
+
 
 if __name__=="__main__":
+    PARSER = argparse.ArgumentParser()
+    PARSER.description = "for testing message sending/recieving with ROS"
+    PARSER.add_argument('-s','--send', action="store_true", required=False,
+                    help="whether to send messages")
+    PARSER.add_argument('-r','--receive', action="store_true", required=False,
+                    help="whether to recieve messages")
+    PARSER.add_argument('--topic', action="store", required=False, default='chatter',
+                    help="topic to recieve messages from/send messages to")
+                    
+    args = PARSER.parse_args()
     
+    if args.send and args.receive:
+        raise Exception("cannot both send and recieve, open new terminal for that")
     def callback(data):
         print(data)
 
     def talker():
-        pub = rospy.Publisher('chatter', TransformStamped, queue_size=10)
+        pub = rospy.Publisher(args.topic, TransformStamped, queue_size=10)
         rospy.init_node('talker', anonymous=True)
         rate = rospy.Rate(10) # 10hz
         while not rospy.is_shutdown():
@@ -45,17 +59,17 @@ if __name__=="__main__":
         
         rospy.init_node('listener', anonymous=True)
 
-        rospy.Subscriber("chatter", TransformStamped, callback)
+        rospy.Subscriber(args.topic, TransformStamped, callback)
 
         # spin() simply keeps python from exiting until this node is stopped
         rospy.spin()
     
-    if '--send' in sys.argv or '-s' in sys.argv:
+    if args.send:
         try:
             talker()
         except rospy.ROSInterruptException:
             pass
-    elif '--receive' in sys.argv or '-r' in sys.argv:
+    elif args.receive:
         listener()
     else:
         print("Use with --send (-s) or --receive (-r)")
