@@ -1,8 +1,0 @@
-prefix=/home/rajbhandari/projects/swarm_coppeliasim/physical_blimps/swarm_ctrl_ws/devel
-
-Name: vicon_pkg
-Description: Description of vicon_pkg
-Version: 0.0.0
-Cflags: 
-Libs: -L${prefix}/lib 
-Requires: 
