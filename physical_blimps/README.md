@@ -52,4 +52,5 @@ replace the ```/dev/ttyUSB0``` with whatever the folder from part 4 is
 sudo chmod 777 /dev/ttyUSB0
 ```
 
+### 9. Now set up the ROS stuff for [Vicon](https://github.com/pranavraj575/swarm_coppeliasim/tree/master/physical_blimps/swarm_ctrl_ws)
 
