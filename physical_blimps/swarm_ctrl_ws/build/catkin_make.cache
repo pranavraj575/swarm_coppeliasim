@@ -1,2 +1,0 @@
-vicon_pkg
--DCATKIN_DEVEL_PREFIX=/home/rajbhandari/projects/swarm_coppeliasim/physical_blimps/swarm_ctrl_ws/devel -DCMAKE_INSTALL_PREFIX=/home/rajbhandari/projects/swarm_coppeliasim/physical_blimps/swarm_ctrl_ws/install -G Unix Makefiles
