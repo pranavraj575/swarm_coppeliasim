@@ -34,7 +34,7 @@ Used for making swarm experiments for blimps/other in Coppeliasim. experiments u
 
     Tested with [ROS2 Foxy](https://docs.ros.org/en/foxy/Installation/Ubuntu-Install-Debians.html) on Ubuntu 20.04
      
-    Make sure the following line is in the .bashrc file (with `<distro>` replaced by ROS distribution, e.g. `foxy`)
+    Make sure the following line is in the .bashrc file, or is run every terminal (with `<distro>` replaced by ROS distribution, e.g. `foxy`)
     
     ```bash
     source /opt/ros/<distro>/setup.bash
