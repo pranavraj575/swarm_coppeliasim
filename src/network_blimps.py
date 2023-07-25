@@ -1239,6 +1239,148 @@ class l_k_tant_area_coverage(xyzBlimp):
         return np.random.uniform([b[0] for b in self.bounds], [b[1] for b in self.bounds], (n, len(self.bounds)))
 
 
+class l_k_tant_wall_sense_area_coverage(l_k_tant_area_coverage):
+
+    def __init__(self,
+                 num_agents,
+                 start_zone,
+                 scenePath,
+                 blimpPath,
+                 networkfn,
+                 bounds,
+                 obstacles,
+                 obstacle_paths,
+                 use_ultra,
+                 end_time,
+                 l=3,
+                 k=4,
+                 sim=None,
+                 simId=23000,
+                 msg_queue=10,
+                 wakeup=None,
+                 sleeptime=.01,
+                 spawn_tries=100):
+        """
+        each blimp senses the distance on each l-k-tant (defaults to 3,4)
+            rewarded for closeness to randomly sampled points
+
+        @param num_agents: number of blimps in this swarm expiriment
+        @param start_zone: int -> (RxR U R)^3 goes from the blimp number to the spawn area
+                (each dimension could be (value) or (low, high), chosen uniformly at random)
+        @param scenePath: path to coppeliasim scene
+        @param blimpPath: path to blimp for spawning
+        @param networkfn: neural network function call for blimp to act
+        @param bounds: (RxR)^3, x bounds and y bounds to test for the area covered
+            the goal function will uniformly choose some points in this area and rate the blimps based on closeness
+        @param obstacles: number of obstacles to randomly spawn in
+        @param obstacle_paths: paths to obstacles to spawn in, list chosen from uniformly
+        @param use_ultra: whether to use ultrasound to set height (and as network input)
+        @param end_time: time it takes for experiment to end
+        @param l: divisions of phi to consider when using spherical coordinates
+        @param k: divisions of theta to consider when using spherical coordinates
+        @param sim: simulator, if already defined
+        @param simId: simulator id, used to pass messages to correct topics
+        @param msg_queue: queue length of ROS messages
+        @param wakeup: code to run in command line before starting experiment
+        @param sleeptime: time to wait before big commands (i.e. stop simulation, start simulation, pause simulation)
+        @param spawn_tries: number of tries to spawn without collisions before giving up
+                if 1, then sets position, does not change if collision detected
+        """
+        super().__init__(num_agents=num_agents,
+                         start_zone=start_zone,
+                         scenePath=scenePath,
+                         blimpPath=blimpPath,
+                         networkfn=networkfn,
+                         bounds=bounds,
+                         obstacles=obstacles,
+                         obstacle_paths=obstacle_paths,
+                         use_ultra=use_ultra,
+                         end_time=end_time,
+                         l=l,
+                         k=k,
+                         sim=sim,
+                         simId=simId,
+                         msg_queue=msg_queue,
+                         wakeup=wakeup,
+                         sleeptime=sleeptime,
+                         spawn_tries=spawn_tries
+                         )
+
+    ####################################################################################################################
+    # network functions
+    ####################################################################################################################
+    def get_network_input(self, agent_id):
+        """
+        gets the network input for agent specified
+
+        @param agent_id: agent to get input for
+        @return: R^k np array
+        """
+
+        neighbor_l_k_tant = self.global_get_inv_dist_3d_l_k_tant(agent_id, is_neigh=lambda id0, id1: True, k=self.k,l=self.l,
+                                                             spin=True)
+        bounds_l_k_tant = self.get_bounds_l_k_tant(self.get_position(agent_id, spin=False), k=self.k,l=self.l)
+        l_k_tant = np.max((neighbor_l_k_tant, bounds_l_k_tant), axis=0)
+        return l_k_tant.reshape((-1, 1))
+
+    def get_bounds_l_k_tant(self, pos,l, k, min_dist=.01):
+        """
+        gets the inverse distance to nearest bound for each k-tant
+
+        @param pos: position to start from
+        @param l: l-tants
+        @param k: k-tants
+        @return R^k array with inverse distance to closest bound on each k-tant
+        """
+        k_tant = np.zeros(k)
+        xbound, ybound = self.bounds
+        for i in range(k):
+            rng = (i*np.pi*2/k, (i + 1)*np.pi*2/k)
+            if (any(r > np.pi/2 and r < 3*np.pi/2 for r in rng)  # one of the bounds is on this range
+                    or rng[0] <= np.pi/2 and rng[1] >= 3*np.pi/3):  # bounds encompass this range
+                # can see x0 wall
+                x = max(min_dist, pos[0] - xbound[0])
+                if rng[0] <= np.pi and np.pi <= rng[1]:
+                    ang = 0  # np.pi-np.pi
+                else:
+                    ang = min(rng, key=lambda a: abs(self.angle_diff(a, np.pi))) - np.pi
+                inv_d = np.cos(ang)/x
+                k_tant[i] = max(inv_d, k_tant[i])
+
+            if rng[0] < np.pi/2 or rng[1] > 3*np.pi/2:
+                # can see x1 wall
+                x = max(min_dist, xbound[1] - pos[0])
+                if i == 0 or i == k - 1:
+                    ang = 0
+                else:
+                    ang = min(rng, key=lambda a: abs(self.angle_diff(a, 0)))
+                # d=x/np.cos(ang)
+                inv_d = np.cos(ang)/x
+                k_tant[i] = max(inv_d, k_tant[i])
+            if rng[1] > np.pi:
+                # can see y0 wall
+                y = max(min_dist, pos[1] - ybound[0])
+                if rng[0] <= np.pi*3/2 and np.pi*3/2 <= rng[1]:
+                    ang = 0  # np.pi*3/2-np.pi*3/2
+                else:
+                    ang = min(rng, key=lambda a: abs(self.angle_diff(a, np.pi*3/2))) - np.pi*3/2
+
+                inv_d = np.cos(ang)/y
+                k_tant[i] = max(inv_d, k_tant[i])
+            if rng[0] < np.pi:
+                # can see y1 wall
+                y = max(min_dist, ybound[1] - pos[1])
+
+                if rng[0] <= np.pi/2 and np.pi/2 <= rng[1]:
+                    ang = 0  # np.pi/2-np.pi/2
+                else:
+                    ang = min(rng, key=lambda a: abs(self.angle_diff(a, np.pi/2))) - np.pi/2
+
+                inv_d = np.cos(ang)/y
+                k_tant[i] = max(inv_d, k_tant[i])
+        return k_tant
+
+
 class xyz_zero_Blimp(xyzBlimp):
     def __init__(self,
                  num_agents,
