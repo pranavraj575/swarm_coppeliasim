@@ -428,63 +428,64 @@ class GeneralEvolutionaryExperiment:
         @return: result of src.Experiment.experiments
         """
         raise NotImplementedError()
+
     def show_stats(self):
-        stats=self.get_stats()
-        gens=list(stats.keys())
+        stats = self.get_stats()
+        gens = list(stats.keys())
         gens.sort()
         for g in gens:
-            print("GEN:",g)
+            print("GEN:", g)
             for field in stats[g]:
-                if field=='species':
+                if field == 'species':
                     for specid in stats[g]['species']:
-                        print('\t species id:',specid)
-                        spec_dict=stats[g]['species'][specid]
+                        print('\t species id:', specid)
+                        spec_dict = stats[g]['species'][specid]
                         for specfield in spec_dict:
-                            print('\t\t'+specfield+':',spec_dict[specfield])
+                            print('\t\t' + specfield + ':', spec_dict[specfield])
                 else:
-                    print(field+':',stats[g][field])
-           
+                    print(field + ':', stats[g][field])
+
     def get_stats(self):
         if self.MOST_RECENT(self.checkpt_dir) is None:
             raise Exception("DIRECTORY EMPTY: " + self.checkpt_dir)
-        stats=dict()
+        stats = dict()
         for direct in self.MOST_RECENT(self.checkpt_dir):
-            stat_dict=dict()
-            gen=int(direct[direct.rindex('-')+1:])
-            #print(direct)
+            stat_dict = dict()
+            gen = int(direct[direct.rindex('-') + 1:])
+            # print(direct)
             p = self.restore_checkpoint(os.path.join(self.checkpt_dir, direct))
             fitnesses = [p.population[g].fitness for g in p.population]
-            stat_dict['best fitness']=max(fitnesses)
-            stat_dict['mean fitness']=np.mean(fitnesses)
-            stat_dict['stdev fitness']=np.std(fitnesses)
-            stat_dict['min fitness']=min(fitnesses)
+            stat_dict['best fitness'] = max(fitnesses)
+            stat_dict['mean fitness'] = np.mean(fitnesses)
+            stat_dict['stdev fitness'] = np.std(fitnesses)
+            stat_dict['min fitness'] = min(fitnesses)
 
-            #print('best fitness:', max(fitnesses))
-            #print('mean fitness:', np.mean(fitnesses))
-            #print('stdev fitness:', np.std(fitnesses))
-            #print('species:')
+            # print('best fitness:', max(fitnesses))
+            # print('mean fitness:', np.mean(fitnesses))
+            # print('stdev fitness:', np.std(fitnesses))
+            # print('species:')
             specy = p.species.species
-            stat_dict['species']=dict()
+            stat_dict['species'] = dict()
             for specid in specy:
-                specy_dict=dict()
-                specy_dict['fitness']=specy[specid].fitness
-                specy_dict['adjusted fitness']=specy[specid].adjusted_fitness
-                specy_dict['last improved']=specy[specid].last_improved
-                specy_dict['members']=len(specy[specid].members)
-                specy_dict['created']=specy[specid].created
-                #print('\tid:', specid)
-                #print('\t\tfitness:', specy[specid].fitness)
-                #print('\t\tadjusted fitness:', specy[specid].adjusted_fitness)
+                specy_dict = dict()
+                specy_dict['fitness'] = specy[specid].fitness
+                specy_dict['adjusted fitness'] = specy[specid].adjusted_fitness
+                specy_dict['last improved'] = specy[specid].last_improved
+                specy_dict['members'] = len(specy[specid].members)
+                specy_dict['created'] = specy[specid].created
+                # print('\tid:', specid)
+                # print('\t\tfitness:', specy[specid].fitness)
+                # print('\t\tadjusted fitness:', specy[specid].adjusted_fitness)
                 # print('\tfitness history:',specy[specid].fitness_history)
-                #print('\t\tlast improved:', specy[specid].last_improved)
-                #print('\t\tmembers:', len(specy[specid].members))
-                #print('\t\tcreated:', specy[specid].created)
-                stat_dict['species'][specid]=specy_dict
+                # print('\t\tlast improved:', specy[specid].last_improved)
+                # print('\t\tmembers:', len(specy[specid].members))
+                # print('\t\tcreated:', specy[specid].created)
+                stat_dict['species'][specid] = specy_dict
 
             winner = max([p.population[g] for g in p.population], key=lambda genome: genome.fitness)
             winner_net = neat.nn.FeedForwardNetwork.create(winner, self.config)
-            
-            stats[gen]=stat_dict
+
+            stats[gen] = stat_dict
         return stats
 
     ####################################################################################################################
@@ -500,7 +501,7 @@ class GeneralEvolutionaryExperiment:
         """
         out = None
         if os.path.exists(dir):
-            out = os.listdir(dir)
+            out = [f for f in os.listdir(dir) if '-' in f]
             if not out:
                 return None
             out.sort(key=lambda f: int(f[f.rindex('-') + 1:]))

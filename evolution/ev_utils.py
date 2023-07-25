@@ -70,6 +70,32 @@ def experiment_handler(args, save_name, config_name, exp_maker, Constructor):
                  )
     if args.show_stats:
         ee.show_stats()
+    if args.plot_stat:
+        generation_dict = ee.get_stats()
+        PLOT_DIR = os.path.join(checkpt_dir, 'plots')
+        if not os.path.exists(PLOT_DIR):
+            os.makedirs(PLOT_DIR)
+        stuff = []
+        std_key = None
+        if args.plot_std:
+            std_key = args.plot_std
+        if args.plot_stat == 'all':
+            if std_key is not None:
+                raise Exception("cannot graph std as well as 'all' stats")
+            sample = list(generation_dict.keys())[0]
+            for key in generation_dict[sample]:
+                if key != 'species':
+                    stuff.append(key)
+        else:
+            stuff.append(args.plot_stat)
+        for key in stuff:
+            plot_name = key.replace(' ', '_') + ('' if std_key is None else '_std') + '.png'
+            plot_key(generation_dict=generation_dict,
+                     key_list=[key],
+                     std_key_list=None if std_key is None else [std_key],
+                     show=args.show,
+                     file_path=os.path.join(PLOT_DIR, plot_name)
+                     )
     if args.show:
         print(ee.result_of_experiment(gen_indices=(args.show_gen,)))
 
@@ -94,7 +120,7 @@ def plot_key(generation_dict, key_list, std_key_list=None, show=False, file_path
         except:
             std_key_list = [std_key_list]
 
-    X = generation_dict.keys()
+    X = list(generation_dict.keys())
     X.sort()
     Y = []
     STD = []
@@ -109,5 +135,9 @@ def plot_key(generation_dict, key_list, std_key_list=None, show=False, file_path
                 std = std[key]
             STD.append(std)
     plt.plot(X, Y)
+    if file_path is not None:
+        plt.savefig(file_path)
     if show:
         plt.show()
+    else:
+        plt.close()

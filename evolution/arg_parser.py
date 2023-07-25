@@ -33,6 +33,11 @@ PARSER.add_argument("--show_gen", type=int, required=False, default=-1,
 PARSER.add_argument("--show_stats", action="store_true", required=False,
                     help="whether to show statistics at end (run with -g 0 to just show stats)")
 
+PARSER.add_argument("--plot_stat", action="store", required=False, default='',
+                    help="saves a graph of a specific stat under the associated checkpoints folder, --graph_stat all to graph all")
+PARSER.add_argument("--plot_std", action="store", required=False, default='',
+                    help="to be used with --graph stat, graphs this key as standard deviation")
+
 PARSER.add_argument("--debug", action="store_true", required=False,
                     help="whether to run in debug mode")
 
