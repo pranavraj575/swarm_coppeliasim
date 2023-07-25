@@ -470,8 +470,8 @@ class GeneralEvolutionaryExperiment:
                 specy_dict['created'] = specy[specid].created
                 stat_dict['species'][specid] = specy_dict
 
-            winner = max([p.population[g] for g in p.population], key=lambda genome: genome.fitness)
-            winner_net = neat.nn.FeedForwardNetwork.create(winner, self.config)
+            #winner = max([p.population[g] for g in p.population], key=lambda genome: genome.fitness)
+            #winner_net = neat.nn.FeedForwardNetwork.create(winner, self.config)
 
             stats[gen] = stat_dict
         return stats
