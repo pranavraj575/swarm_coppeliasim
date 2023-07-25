@@ -14,7 +14,7 @@ ALIEN_PORT="/dev/ttyUSB0"
 # port where the little frog lookin device is plugged in
 
 #should be .../physical_blimps
-BLIMP_DIR = os.path.dirname(os.path.join(os.getcwd(), os.path.dirname(sys.argv[0])))
+BLIMP_DIR = "/home/rajbhandari/projects/swarm_coppeliasim/physical_blimps"
 
 #should be .../physical_blimps/configs
 CONFIGS_DIR = os.path.join(BLIMP_DIR, 'configs')

@@ -32,7 +32,7 @@ class Vicon:
             this_blimp['topic'] = topic
             self.blimps.append(this_blimp)
             callback = self.create_subscriber_callback(dictionary=this_blimp, key='info')
-            rospy.Subscriber(local.replace('/', '_'), TransformStamped, callback)
+            rospy.Subscriber(topic, TransformStamped, callback)
         self.topics = []
         for obj_id, local in enumerate(topics):
             topic = topic_global + local
@@ -220,29 +220,29 @@ class Vicon:
     def angle_diff(a, b):
         """
         returns a-b on (-pi,pi]
+            works with np arrays too, elementwise
         @param a: angle a
         @param b: angle b
         @return: a-b
         """
         diff = (a - b)%(2*np.pi)
-        if diff > np.pi:
-            diff -= 2*np.pi
-        return diff
-
+        off= (diff > np.pi)*2*np.pi
+        return diff-off
 
 if __name__ == "__main__":
-    x = Vicon(['chatter'], '')
-    while True:
-        time.sleep(.2)
-        print()
-        print('pos')
-        print(x.get_object_pos(0))
-        print('vel')
-        print(x.get_object_vel(0, False))
-        print('acc')
-        print(x.get_object_acc(0, False))
-        print()
-    quit()
+    if True:
+        x = Vicon(['/vicon/b2/b2'], '')
+        while True:
+            time.sleep(.2)
+            print()
+            print('pos')
+            print(x.get_object_pos(0))
+            print('vel')
+            print(x.get_object_vel(0, False))
+            print('acc')
+            print(x.get_object_acc(0, False))
+            print()
+        quit()
 
 
     def callback(data):
@@ -259,7 +259,7 @@ if __name__ == "__main__":
 
         rospy.init_node('listener', anonymous=True)
 
-        rospy.Subscriber("chatter", TransformStamped, callback)
+        rospy.Subscriber("/vicon/b2/b2", TransformStamped, callback)
 
         # spin() simply keeps python from exiting until this node is stopped
         rospy.spin()

@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 from pyBlimp.blimp import BlimpManager
 from pyBlimp.utils import read_config
-from swarm_ctrl_ws.src.vicon_pkg.scripts.vicon import Vicon
-from CONFIG import *
+from physical_blimps.swarm_ctrl_ws.src.vicon_pkg.scripts.vicon import Vicon
+from physical_blimps.CONFIG import *
 import numpy as np
 import time
 
@@ -51,7 +51,7 @@ class viconBlimps(BlimpManager):
 
         @param new_type: from ['position', 'velocitiy', 'force'], determines what the move_agent function does
         """
-        if new_type not in {'position', 'velocitiy', 'force'}:
+        if new_type not in {'position', 'velocity', 'force'}:
             raise Exception("invalid command type: " + str(new_type))
         self.command_type = new_type
         self.reset_agent_goals()
@@ -66,6 +66,22 @@ class viconBlimps(BlimpManager):
         @return: R^3, position of blimp
         """
         return self.vicon.get_object_pos(agent_id)
+    def get_velocity(self, agent_id):
+
+        """
+        returns velocty of blimp
+        @param agent_id: agent id
+        @return: R^3, velocity of blimp
+        """
+        return self.vicon.get_object_vel(agent_id)
+    def get_acc(self, agent_id):
+
+        """
+        returns acceleration of blimp
+        @param agent_id: agent id
+        @return: R^3, acceleration of blimp
+        """
+        return self.vicon.get_object_acc(agent_id)
 
     def get_head(self, agent_id):
         """
@@ -175,7 +191,7 @@ class viconBlimps(BlimpManager):
         cmd[2] = -vec[2]/EFFECT[2]
         # 'rotation' command
         if len(vec) == 3:
-            cmd[3] = self.get_stability_command(agent_id=agent_id)/EFFECT[3]
+            cmd[3] = -self.get_stability_command(agent_id=agent_id)/EFFECT[3]
         else:
             cmd[3] = -vec[3]/EFFECT[3]
         self.set_cmd(cmd, agent_id)
@@ -189,7 +205,7 @@ class viconBlimps(BlimpManager):
         @return: R, command to put in to try to make the blimp rotate as little as possible
         """
         vel = self.vicon.get_head_speed(obj_id=agent_id, update=update)
-        return -vel
+        return -vel*.001
 
 
 class PhysicalExperiment(viconBlimps):
@@ -283,7 +299,7 @@ class PhysicalExperiment(viconBlimps):
         @return:
         """
         old_command_type = self.command_type
-        self.change_command_type('velocity')
+        self.change_command_type('force')
         start = time.time()
         while time.time() - start < timeout:
             done = True
@@ -294,7 +310,7 @@ class PhysicalExperiment(viconBlimps):
                     continue
                 pos = self.get_position(agent_id=agent_id)
                 vec = goal - pos
-                if vec <= tolerance:
+                if np.linalg.norm(vec) <= tolerance:
                     self.move_agent(agent_id, np.zeros(3))
                 else:
                     done = False
@@ -307,5 +323,9 @@ class PhysicalExperiment(viconBlimps):
 
 
 if __name__ == "__main__":
-    test = PhysicalExperiment(cfg_paths=[create_config_file(2)], vicon=Vicon(['b2/b2']))
+    test = PhysicalExperiment(cfg_paths=[create_config_file(2)], vicon=Vicon(['b2/b2']),command_type='force')
+    while True:
+        test.move_agent(0,np.array((0,0,-1)))
+        print(test.get_velocity(0),test.get_acc(0))
+        time.sleep(.1)
     test.set_up_agents([np.array((0., 0., 1.))])
