@@ -176,7 +176,7 @@ def auto_plotter_hardly_know_her(directory):
         try:
             print('plotting:',folder)
             gen_dict=fake.get_stats()
-            PLOT_DIR=os.path.join(DIR,folder,'plots')
+            PLOT_DIR=os.path.join(directory,folder,'plots')
             if not os.path.exists(PLOT_DIR):
                 os.makedirs(PLOT_DIR)
             sample=list(gen_dict.keys())[0]
