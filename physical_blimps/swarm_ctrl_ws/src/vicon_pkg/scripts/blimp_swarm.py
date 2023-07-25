@@ -66,6 +66,7 @@ class viconBlimps(BlimpManager):
         @return: R^3, position of blimp
         """
         return self.vicon.get_object_pos(agent_id)
+
     def get_velocity(self, agent_id):
 
         """
@@ -74,6 +75,7 @@ class viconBlimps(BlimpManager):
         @return: R^3, velocity of blimp
         """
         return self.vicon.get_object_vel(agent_id)
+
     def get_acc(self, agent_id):
 
         """
@@ -172,7 +174,8 @@ class viconBlimps(BlimpManager):
         @note: if given an R^3 vector, we will let the turn command be to stabilize the blimp rotation
         """
         self.agent_goals[agent_id] = vec  # why not
-        EFFECT = [1., 1., 1., 1.]  # effective force for x,y,z,rotation given a command
+        EFFECT_POS = [1., 1., 1., 1.]  # effective force for positive x,y,z,rotation given a command
+        EFFECT_NEG = [1., 1., 1., 1.]  # effective force for negative x,y,z,rotation given a command
         # found experimentally
         xy = vec[:2]
         theta = np.arctan2(vec[1], vec[0])%(2*np.pi)
@@ -184,16 +187,39 @@ class viconBlimps(BlimpManager):
         cmd = np.zeros(4)
 
         # 'forward' command
-        cmd[0] = r*np.cos(theta_p)/EFFECT[0]
-        # 'left' command
-        cmd[1] = -r*np.sin(theta_p)/EFFECT[1]
-        # 'height' command
-        cmd[2] = -vec[2]/EFFECT[2]
-        # 'rotation' command
-        if len(vec) == 3:
-            cmd[3] = -self.get_stability_command(agent_id=agent_id)/EFFECT[3]
+        forward = r*np.cos(theta_p)
+        if forward > 0:
+            forward /= EFFECT_POS[0]
         else:
-            cmd[3] = -vec[3]/EFFECT[3]
+            forward /= EFFECT_NEG[0]
+        cmd[0] = forward
+
+        # 'left' command
+        left = r*np.sin(theta_p)
+        if left > 0:
+            left /= EFFECT_POS[1]
+        else:
+            left /= EFFECT_NEG[1]
+        cmd[1] = -left
+
+        # 'height' command
+        up = vec[2]
+        if up > 0:
+            up /= EFFECT_POS[2]
+        else:
+            up /= EFFECT_NEG[2]
+        cmd[2] = -up
+        # 'rotation' command
+
+        if len(vec) == 3:
+            rot = -self.get_stability_command(agent_id=agent_id)
+        else:
+            rot = -vec[3]
+        if rot > 0:
+            rot /= EFFECT_POS[3]
+        else:
+            rot /= EFFECT_NEG[3]
+        cmd[3] = -rot
         self.set_cmd(cmd, agent_id)
 
     def get_stability_command(self, agent_id, update=True):
@@ -323,9 +349,9 @@ class PhysicalExperiment(viconBlimps):
 
 
 if __name__ == "__main__":
-    test = PhysicalExperiment(cfg_paths=[create_config_file(2)], vicon=Vicon(['b2/b2']),command_type='force')
+    test = PhysicalExperiment(cfg_paths=[create_config_file(2)], vicon=Vicon(['b2/b2']), command_type='force')
     while True:
-        test.move_agent(0,np.array((0,0,-1)))
-        print(test.get_velocity(0),test.get_acc(0))
+        test.move_agent(0, np.array((0, 0, -1)))
+        print(test.get_velocity(0), test.get_acc(0))
         time.sleep(.1)
     test.set_up_agents([np.array((0., 0., 1.))])
