@@ -31,7 +31,7 @@ def experiment_handler(args, save_name, config_name, exp_maker, Constructor):
     """
     config_file = config_path_from_name(config_name)
     checkpt_dir = ckpt_dir_from_name(save_name)
-    print("SAVING TO:", checkpt_dir)
+    print("CHECKPOINT DIR:", checkpt_dir)
 
     if not os.path.exists(checkpt_dir):
         if args.create:
@@ -79,14 +79,23 @@ def experiment_handler(args, save_name, config_name, exp_maker, Constructor):
         std_key = None
         if args.plot_std:
             std_key = args.plot_std
+        sample = list(generation_dict.keys())[0]
+        valid_keys = []
+        for key in generation_dict[sample]:
+            if key != 'species':
+                valid_keys.append(key)
+
         if args.plot_stat == 'all':
             if std_key is not None:
                 raise Exception("cannot graph std as well as 'all' stats")
-            sample = list(generation_dict.keys())[0]
-            for key in generation_dict[sample]:
-                if key != 'species':
-                    stuff.append(key)
+            stuff = valid_keys
+
         else:
+            if args.plot_stat not in valid_keys:
+                raise Exception("--plot_stat arg not valid, possible options are: " + str(valid_keys))
+            if std_key is not None:
+                if args.plot_std not in valid_keys:
+                    raise Exception("--plot_std arg not valid, possible options are: " + str(valid_keys))
             stuff.append(args.plot_stat)
         for key in stuff:
             plot_name = key.replace(' ', '_') + ('' if std_key is None else '_std') + '.png'
@@ -110,6 +119,7 @@ def plot_key(generation_dict, key_list, std_key_list=None, show=False, file_path
     @param file_path: path to save plot, None if no save
     @return: y values
     """
+
     try:
         key_list[0]
     except:
@@ -120,10 +130,14 @@ def plot_key(generation_dict, key_list, std_key_list=None, show=False, file_path
         except:
             std_key_list = [std_key_list]
 
+    value_name = key_list[-1].replace('_', ' ').capitalize()
     X = list(generation_dict.keys())
     X.sort()
     Y = []
     STD = []
+    legend = []
+    legend.append(value_name)
+
     for x in X:
         val = generation_dict[x]
         for key in key_list:
@@ -134,7 +148,15 @@ def plot_key(generation_dict, key_list, std_key_list=None, show=False, file_path
             for key in std_key_list:
                 std = std[key]
             STD.append(std)
+    Y = np.array(Y)
     plt.plot(X, Y)
+    if STD:
+        plt.fill_between(X, Y - STD, Y + STD, alpha=.3)
+        legend.append("$\\pm1$ stdev")
+    plt.xlabel('Generation')
+    plt.ylabel(value_name)
+    plt.title(value_name + ' vs. Generation')
+    plt.legend(legend)
     if file_path is not None:
         plt.savefig(file_path)
     if show:

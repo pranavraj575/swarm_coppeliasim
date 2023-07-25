@@ -452,18 +452,13 @@ class GeneralEvolutionaryExperiment:
         for direct in self.MOST_RECENT(self.checkpt_dir):
             stat_dict = dict()
             gen = int(direct[direct.rindex('-') + 1:])
-            # print(direct)
             p = self.restore_checkpoint(os.path.join(self.checkpt_dir, direct))
             fitnesses = [p.population[g].fitness for g in p.population]
-            stat_dict['best fitness'] = max(fitnesses)
-            stat_dict['mean fitness'] = np.mean(fitnesses)
-            stat_dict['stdev fitness'] = np.std(fitnesses)
-            stat_dict['min fitness'] = min(fitnesses)
+            stat_dict['best_fitness'] = max(fitnesses)
+            stat_dict['mean_fitness'] = np.mean(fitnesses)
+            stat_dict['stdev_fitness'] = np.std(fitnesses)
+            stat_dict['min_fitness'] = min(fitnesses)
 
-            # print('best fitness:', max(fitnesses))
-            # print('mean fitness:', np.mean(fitnesses))
-            # print('stdev fitness:', np.std(fitnesses))
-            # print('species:')
             specy = p.species.species
             stat_dict['species'] = dict()
             for specid in specy:
@@ -473,13 +468,6 @@ class GeneralEvolutionaryExperiment:
                 specy_dict['last improved'] = specy[specid].last_improved
                 specy_dict['members'] = len(specy[specid].members)
                 specy_dict['created'] = specy[specid].created
-                # print('\tid:', specid)
-                # print('\t\tfitness:', specy[specid].fitness)
-                # print('\t\tadjusted fitness:', specy[specid].adjusted_fitness)
-                # print('\tfitness history:',specy[specid].fitness_history)
-                # print('\t\tlast improved:', specy[specid].last_improved)
-                # print('\t\tmembers:', len(specy[specid].members))
-                # print('\t\tcreated:', specy[specid].created)
                 stat_dict['species'][specid] = specy_dict
 
             winner = max([p.population[g] for g in p.population], key=lambda genome: genome.fitness)
