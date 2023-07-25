@@ -174,7 +174,26 @@ def auto_plotter_hardly_know_her(directory):
     for folder in os.listdir(directory):
         fake=GeneralEvolutionaryExperiment(checkpt_dir=os.path.join(directory,folder),exp_maker=None,config_file=os.path.join(DIR,'evolution','config','test-config-feedforward'))
         try:
-            fake.get_stats()
+            print('plotting:',folder)
+            gen_dict=fake.get_stats()
+            PLOT_DIR=os.path.join(DIR,folder,'plots')
+            if not os.path.exists(PLOT_DIR):
+                os.makedirs(PLOT_DIR)
+            sample=list(gen_dict.keys())[0]
+            keys=list(gen_dict[sample].keys())
+            for key in keys:
+                if key != 'species':
+                    plot_name= key.replace(' ', '_')+'.png'
+                    plot_key(generation_dict=gen_dict,
+                                key_list=[key],
+                                std_key_list=None,
+                                show=False,
+                                file_path=os.path.join(PLOT_DIR,plot_name))
+            plot_key(generation_dict=gen_dict,
+                        key_list=['mean_fitness'],
+                        std_key_list=['stdev_fitness'],
+                        show=False,
+                        file_path=os.path.join(PLOT_DIR,'mean_fitness_std.png'))
         except:
+            print('failed:',folder)
             continue
-
