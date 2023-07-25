@@ -5,6 +5,9 @@ from evolution.ev_utils import *
 
 PARSER.description = "for creating and running maze evolutionary experiments"
 
+PARSER.add_argument("--end_time", type=float, required=False, default=60.,
+                    help="time to end the experiment")
+
 PARSER.add_argument("--height", type=int, required=False, default=5,
                     help="height of maze")
 PARSER.add_argument("--width", type=int, required=False, default=5,
@@ -15,14 +18,15 @@ PARSER.add_argument("--range", type=float, required=False, default=5.,
 args = PARSER.parse_args()
 check_basic(args=args)
 AGENTS = args.agents
-gens = args.generations
 RANGE = args.range
 
-END = 60
+END = args.end_time
 H = args.height
 W = args.width
 DIFF = True
 ALWAYS_DOWN = False
+if args.trials == 1:
+    args.trials = 2
 
 
 def expe_make(net, sim=None, port=23000, wakeup=None):
@@ -96,36 +100,10 @@ def expe_make(net, sim=None, port=23000, wakeup=None):
 
 
 save_name = str(AGENTS) + '_blimp_' + str(H) + 'x' + str(W) + 'maze_max_goal_new_range_' + str(RANGE).replace('.', '_')
-checkpt_dir = ckpt_dir_from_name(save_name)
+config_name = 'blimp_maze'
 
-print("SAVING TO:", checkpt_dir)
-if not os.path.exists(checkpt_dir):
-    if args.create:
-        os.makedirs(checkpt_dir)
-    else:
-        raise Exception("DIRECTORY DOES NOT EXIST (try running with --create): " + checkpt_dir)
-ee = EvolutionExperiment(checkpt_dir=checkpt_dir,
-                         exp_maker=expe_make,
-                         config_file=config_path_from_name('blimp_maze'))
-if gens:
-    port_step = args.port_step
-    zmq_def_port = 23000 + port_step*args.offset
-    websocket_def_port = 23050 + port_step*args.offset
-
-    ee.train(generations=gens,
-             TRIALS=2,
-             num_simulators=args.num_sims,
-             headless=not args.show,
-             restore=not args.overwrite,
-             evaluate_each_gen=True,
-             zmq_def_port=zmq_def_port,
-             websocket_def_port=websocket_def_port,
-             port_step=port_step,
-             num_sim_range=None if args.sims_low < 1 else (args.sims_low, args.sims_high),
-             debug=args.debug
-             )
-
-if args.show_stats:
-    ee.show_stats()
-if args.show:
-    print(ee.result_of_experiment(gen_indices=(args.show_gen,)))
+experiment_handler(args=args,
+                   save_name=save_name,
+                   config_name=config_name,
+                   exp_maker=expe_make,
+                   Constructor=EvolutionExperiment)

@@ -5,6 +5,9 @@ from evolution.ev_utils import *
 
 PARSER.description = "for creating and running an area coverage ecosytem evolutionary experiment with height layers"
 
+PARSER.add_argument("--end_time", type=float, required=False, default=60.,
+                    help="time to end the experiment")
+
 PARSER.add_argument("--obstacles", type=int, required=False, default=0,
                     help="number of obstacles to generate for training")
 PARSER.add_argument("--obstacle_height", type=float, required=False, default=1.5,
@@ -177,8 +180,7 @@ OBS_DIR = os.path.join(DIR, 'models', 'obstacles')
 OBS_PATHS = [os.path.join(OBS_DIR, d) for d in os.listdir(OBS_DIR)]
 
 AGENTS = args.agents
-gens = args.generations
-END = 60
+END = args.end_time
 h_low = args.height_lower
 h_upp = args.height_upper
 
@@ -211,37 +213,10 @@ def ecosytem_exp_make(nets, sim=None, port=23000, wakeup=None):
 
 save_name = 'ECOSYSTEM' + str(AGENTS) + '_blimp_' + \
             str(args.obstacles) + '_obstacle_area_coverage'
-checkpt_dir = ckpt_dir_from_name(save_name)
-print("SAVING TO:", checkpt_dir)
+config_name = 'blimp_2d_area'
 
-if not os.path.exists(checkpt_dir):
-    if args.create:
-        os.makedirs(checkpt_dir)
-    else:
-        raise Exception("DIRECTORY DOES NOT EXIST (try running with --create): " + checkpt_dir)
-ee = EcosystemEvolutionExperiment(num_agents=AGENTS,
-                                  checkpt_dir=checkpt_dir,
-                                  ecosystem_exp_maker=ecosytem_exp_make,
-                                  config_file=config_path_from_name('blimp_2d_area'))
-if gens:
-    port_step = args.port_step
-    zmq_def_port = 23000 + port_step*args.offset
-    websocket_def_port = 23050 + port_step*args.offset
-
-    ee.train(generations=gens,
-             TRIALS=1,
-             num_simulators=args.num_sims,
-             headless=not args.show,
-             restore=not args.overwrite,
-             evaluate_each_gen=True,
-             zmq_def_port=zmq_def_port,
-             websocket_def_port=websocket_def_port,
-             port_step=port_step,
-             num_sim_range=None if args.sims_low < 1 else (args.sims_low, args.sims_high),
-             debug=args.debug
-             )
-
-if args.show_stats:
-    ee.show_stats()
-if args.show:
-    print(ee.result_of_experiment(gen_indices=(args.show_gen,)))
+experiment_handler(args=args,
+                   save_name=save_name,
+                   config_name=config_name,
+                   exp_maker=expe_make,
+                   Constructor=EcosystemEvolutionExperiment)

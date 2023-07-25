@@ -6,6 +6,9 @@ PARSER.add_argument("-a", "--agents", type=int, required=False, default=20,
 PARSER.add_argument("-g", "--generations", type=int, required=False, default=0,
                     help="generations to train for")
 
+PARSER.add_argument("--trials", type=int, required=False, default=1,
+                    help="trials to evaluate each genome")
+
 PARSER.add_argument("--create", action="store_true", required=False,
                     help="whether to create new directory")
 

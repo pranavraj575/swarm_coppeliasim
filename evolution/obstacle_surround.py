@@ -5,6 +5,9 @@ from evolution.ev_utils import *
 
 PARSER.description = "for creating and running an obstacle surrounding evolutionary experiment"
 
+PARSER.add_argument("--end_time", type=float, required=False, default=60.,
+                    help="time to end the experiment")
+
 PARSER.add_argument("--obstacles", type=int, required=False, default=1,
                     help="number of obstacles to generate for training")
 PARSER.add_argument("--activation_range", type=float, required=False, default=3.,
@@ -48,18 +51,17 @@ PARSER.add_argument("--obs_height", type=float, required=False, default=1.5,
 
 args = PARSER.parse_args()
 check_basic(args=args)
+AGENTS = args.agents
+END = args.end_time
+
+h_low = args.height_lower
+h_upp = args.height_upper
 OBS_DIR = os.path.join(DIR, 'models', 'obstacles')
 # OBS_PATHS = [os.path.join(OBS_DIR, d) for d in os.listdir(OBS_DIR)]
 if args.cube:
     OBS_PATHS = [os.path.join(OBS_DIR, '3m_cube.ttm')]
 else:
     OBS_PATHS = [os.path.join(OBS_DIR, '3d3_cylinder.ttm')]
-
-AGENTS = args.agents
-gens = args.generations
-END = 60
-h_low = args.height_lower
-h_upp = args.height_upper
 
 
 def SPAWN_ZONE(i):
@@ -90,36 +92,10 @@ def expe_make(net, sim=None, port=23000, wakeup=None):
 save_name = str(AGENTS) + '_blimp_' \
             + str(args.obstacles) + ('_cube' if args.cube else '_cylinder') + '_obstacle_surround' + \
             '_range_' + str(args.activation_range).replace('.', '_')
-checkpt_dir = ckpt_dir_from_name(save_name)
-print("SAVING TO:", checkpt_dir)
+config_name = 'blimp_' + str(args.obstacles) + '_obs_surround'
 
-if not os.path.exists(checkpt_dir):
-    if args.create:
-        os.makedirs(checkpt_dir)
-    else:
-        raise Exception("DIRECTORY DOES NOT EXIST (try running with --create): " + checkpt_dir)
-ee = EvolutionExperiment(checkpt_dir=checkpt_dir,
-                         exp_maker=expe_make,
-                         config_file=config_path_from_name('blimp_' + str(args.obstacles) + '_obs_surround'))
-if gens:
-    port_step = args.port_step
-    zmq_def_port = 23000 + port_step*args.offset
-    websocket_def_port = 23050 + port_step*args.offset
-
-    ee.train(generations=gens,
-             TRIALS=1,
-             num_simulators=args.num_sims,
-             headless=not args.show,
-             restore=not args.overwrite,
-             evaluate_each_gen=True,
-             zmq_def_port=zmq_def_port,
-             websocket_def_port=websocket_def_port,
-             port_step=port_step,
-             num_sim_range=None if args.sims_low < 1 else (args.sims_low, args.sims_high),
-             debug=args.debug
-             )
-
-if args.show_stats:
-    ee.show_stats()
-if args.show:
-    print(ee.result_of_experiment(gen_indices=(args.show_gen,)))
+experiment_handler(args=args,
+                   save_name=save_name,
+                   config_name=config_name,
+                   exp_maker=expe_make,
+                   Constructor=EvolutionExperiment)

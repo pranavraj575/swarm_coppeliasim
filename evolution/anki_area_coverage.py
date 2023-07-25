@@ -5,6 +5,9 @@ from evolution.ev_utils import *
 
 PARSER.description = "for creating and running anki test experiment"
 
+PARSER.add_argument("--end_time", type=float, required=False, default=60.,
+                    help="time to end the experiment")
+
 PARSER.add_argument("--large", action="store_true", required=False,
                     help="whether to use 'largeAnkiArena'")
 
@@ -24,8 +27,7 @@ PARSER.add_argument("--zspawn", type=float, required=False, default=.035,
 args = PARSER.parse_args()
 check_basic(args=args)
 AGENTS = args.agents
-gens = args.generations
-END = 60
+END = args.end_time
 LARGE = args.large
 if LARGE:
     bounds = ((-.9, 1.2), (-1, 1))
@@ -57,34 +59,8 @@ def expe_make(net, sim=None, port=23000, wakeup=None):
 save_name = str(AGENTS) + '_anki_area_coverage' + ('_large' if LARGE else '')
 config_name = 'anki_area'
 
-checkpt_dir = ckpt_dir_from_name(save_name)
-print("SAVING TO:", checkpt_dir)
-
-if not os.path.exists(checkpt_dir):
-    if args.create:
-        os.makedirs(checkpt_dir)
-    else:
-        raise Exception("DIRECTORY DOES NOT EXIST (try running with --create): " + checkpt_dir)
-ee = EvolutionExperiment(checkpt_dir=checkpt_dir,
-                         exp_maker=expe_make,
-                         config_file=config_path_from_name(config_name))
-if gens:
-    port_step = args.port_step
-    zmq_def_port = 23000 + port_step*args.offset
-    websocket_def_port = 23050 + port_step*args.offset
-
-    ee.train(generations=gens,
-             TRIALS=1,
-             num_simulators=args.num_sims,
-             headless=not args.show,
-             restore=not args.overwrite,
-             evaluate_each_gen=True,
-             zmq_def_port=zmq_def_port,
-             websocket_def_port=websocket_def_port,
-             port_step=port_step,
-             num_sim_range=None if args.sims_low < 1 else (args.sims_low, args.sims_high)
-             )
-if args.show_stats:
-    ee.show_stats()
-if args.show:
-    print(ee.result_of_experiment(gen_indices=(args.show_gen,)))
+experiment_handler(args=args,
+                   save_name=save_name,
+                   config_name=config_name,
+                   exp_maker=expe_make,
+                   Constructor=EvolutionExperiment)
