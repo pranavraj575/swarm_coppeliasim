@@ -464,8 +464,8 @@ class GeneralEvolutionaryExperiment:
             for specid in specy:
                 specy_dict = dict()
                 specy_dict['fitness'] = specy[specid].fitness
-                specy_dict['adjusted fitness'] = specy[specid].adjusted_fitness
-                specy_dict['last improved'] = specy[specid].last_improved
+                specy_dict['adjusted_fitness'] = specy[specid].adjusted_fitness
+                specy_dict['last_improved'] = specy[specid].last_improved
                 specy_dict['members'] = len(specy[specid].members)
                 specy_dict['created'] = specy[specid].created
                 stat_dict['species'][specid] = specy_dict
