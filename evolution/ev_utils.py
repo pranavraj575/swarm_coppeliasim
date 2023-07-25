@@ -163,3 +163,18 @@ def plot_key(generation_dict, key_list, std_key_list=None, show=False, file_path
         plt.show()
     else:
         plt.close()
+
+
+def auto_plotter_hardly_know_her(directory):
+    """
+    plots graphs for every folder in the directory
+
+    @param directory: structure is [directory/<exp name>/neat-checkpoint-69] 
+    """
+    for folder in os.listdir(directory):
+        fake=GeneralEvolutionaryExperiment(checkpt_dir=os.path.join(directory,folder),exp_maker=None,config_file=os.path.join(DIR,'evolution','config','test-config-feedforward'))
+        try:
+            fake.get_stats()
+        except:
+            continue
+
