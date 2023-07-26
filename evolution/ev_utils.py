@@ -10,7 +10,7 @@ DIR = os.path.dirname(os.path.join(os.getcwd(), os.path.dirname(sys.argv[0])))
 
 PLOT_KEYS=['best_fitness','min_fitness']
 PAIR_KEYS=[('mean_fitness','stdev_fitness')]
-VALID_KEYS=PLOT_KEYS
+VALID_KEYS=list(tuple(PLOT_KEYS))
 for mean,std in PAIR_KEYS:
     VALID_KEYS.append(mean)
     VALID_KEYS.append(std)
@@ -133,7 +133,7 @@ def plot_key(generation_dict, key_list, std_key_list=None, show=False, file_path
     legend = []
     
     for i,key in enumerate(key_list):
-        value_name = key_list[-1].replace('_', ' ').capitalize()
+        value_name = key.replace('_', ' ').capitalize()
         legend.append(value_name)
         Y = []
         STD = []
@@ -191,7 +191,6 @@ def auto_plotter_hardly_know_her(directory):
                         std_key_list=['stdev_fitness'],
                         show=False,
                         file_path=os.path.join(PLOT_DIR,'mean_fitness_std.png'))
-            
             plot_key(generation_dict=gen_dict,
                         key_list=PLOT_KEYS+[mean for mean,_ in PAIR_KEYS],
                         std_key_list=[None for _ in PLOT_KEYS]+[std for _,std in PAIR_KEYS],
@@ -200,3 +199,8 @@ def auto_plotter_hardly_know_her(directory):
         except:
             print('failed:',folder)
             continue
+            
+
+
+if __name__=="__main__":
+    auto_plotter_hardly_know_her(os.path.join(DIR,'evolution','checkpoints'))
