@@ -8,6 +8,9 @@ except:
 
 DIR = os.path.dirname(os.path.join(os.getcwd(), os.path.dirname(sys.argv[0])))
 
+PLOT_KEYS=['best_fitness','min_fitness']
+PAIR_KEYS=[('mean_fitness','stdev_fitness')]
+
 
 def ckpt_dir_from_name(name):
     return os.path.join(DIR, 'evolution', 'checkpoints', name)
@@ -109,53 +112,46 @@ def experiment_handler(args, save_name, config_name, exp_maker, Constructor):
         print(ee.result_of_experiment(gen_indices=(args.show_gen,)))
 
 
-def plot_key(generation_dict, key_list, std_key_list=None, show=False, file_path=None):
+def plot_key(generation_dict, key_list, std_key_list=None, show=False, file_path=None,title=None):
     """
     plots a key from a dictionary, assuming the x values are the keys
     @param generation_dict: generation_dict[generation][key1][key2]... is the value we are plotting
-    @param key_list: [key1,key2]... to access nested dictionaries for y value
-    @param std_key_list: [key1,key2]... to access nested dictionaries for stdev value, None if ignore range
+    @param key_list: [key1,key2]... dictionary keys to plot
+    @param std_key_list: [key1,key2]... to access stdev value, None if ignore range
     @param show: whether to show plot
     @param file_path: path to save plot, None if no save
+    @param title: title of graph, None if None
     @return: y values
     """
 
-    try:
-        key_list[0]
-    except:
-        key_list = [key_list]
-    if std_key_list is not None:
-        try:
-            std_key_list[0]
-        except:
-            std_key_list = [std_key_list]
-
-    value_name = key_list[-1].replace('_', ' ').capitalize()
+    
+    if std_key_list is None:
+        std_key_list = [None for _ in range(len(key_list))]
     X = list(generation_dict.keys())
     X.sort()
-    Y = []
-    STD = []
     legend = []
-    legend.append(value_name)
-
-    for x in X:
-        val = generation_dict[x]
-        for key in key_list:
-            val = val[key]
-        Y.append(val)
-        if std_key_list is not None:
-            std = generation_dict[x]
-            for key in std_key_list:
-                std = std[key]
-            STD.append(std)
-    Y = np.array(Y)
-    plt.plot(X, Y)
-    if STD:
-        plt.fill_between(X, Y - STD, Y + STD, alpha=.3)
-        legend.append("$\\pm1$ stdev")
+    
+    for i,key in enumerate(key_list):
+        value_name = key_list[-1].replace('_', ' ').capitalize()
+        legend.append(value_name)
+        Y = []
+        STD = []
+        for x in X:
+            val = generation_dict[x][key]
+            Y.append(val)
+            std_key=std_key_list[i]
+            if std_key is not None:
+                std = generation_dict[x][std_key]
+                STD.append(std)
+        Y = np.array(Y)
+        plt.plot(X, Y)
+        if STD:
+            plt.fill_between(X, Y - STD, Y + STD, alpha=.3)
+            legend.append("$\\pm1$ stdev")
     plt.xlabel('Generation')
-    plt.ylabel(value_name)
-    plt.title(value_name + ' vs. Generation')
+    plt.ylabel('Fitness')
+    if title:
+        plt.title(title)
     plt.legend(legend)
     if file_path is not None:
         plt.savefig(file_path)
