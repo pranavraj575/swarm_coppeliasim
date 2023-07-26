@@ -10,7 +10,10 @@ DIR = os.path.dirname(os.path.join(os.getcwd(), os.path.dirname(sys.argv[0])))
 
 PLOT_KEYS=['best_fitness','min_fitness']
 PAIR_KEYS=[('mean_fitness','stdev_fitness')]
-
+VALID_KEYS=PLOT_KEYS
+for mean,std in PAIR_KEYS:
+    VALID_KEYS.append(mean)
+    VALID_KEYS.append(std)
 
 def ckpt_dir_from_name(name):
     return os.path.join(DIR, 'evolution', 'checkpoints', name)
@@ -78,36 +81,34 @@ def experiment_handler(args, save_name, config_name, exp_maker, Constructor):
         PLOT_DIR = os.path.join(checkpt_dir, 'plots')
         if not os.path.exists(PLOT_DIR):
             os.makedirs(PLOT_DIR)
-        stuff = []
-        std_key = None
-        if args.plot_std:
-            std_key = args.plot_std
-        sample = list(generation_dict.keys())[0]
-        valid_keys = []
-        for key in generation_dict[sample]:
-            if key != 'species':
-                valid_keys.append(key)
-
+        key_list=[]
+        std_key_list=[]
+        plot_name=''
         if args.plot_stat == 'all':
-            if std_key is not None:
-                raise Exception("cannot graph std as well as 'all' stats")
-            stuff = valid_keys
-
+            key_list=PLOT_KEYS+[mean for mean,_ in PAIR_KEYS],
+            std_key_list=[None for _ in PLOT_KEYS]+[std for _,std in PAIR_KEYS]
+            plot_name='all.png'
         else:
             if args.plot_stat not in valid_keys:
                 raise Exception("--plot_stat arg not valid, possible options are: " + str(valid_keys))
+            
+            if args.plot_std:
+                std_key = args.plot_std
+            else:
+                std_key=None
             if std_key is not None:
                 if args.plot_std not in valid_keys:
                     raise Exception("--plot_std arg not valid, possible options are: " + str(valid_keys))
-            stuff.append(args.plot_stat)
-        for key in stuff:
-            plot_name = key.replace(' ', '_') + ('' if std_key is None else '_std') + '.png'
-            plot_key(generation_dict=generation_dict,
-                     key_list=[key],
-                     std_key_list=None if std_key is None else [std_key],
-                     show=args.show,
-                     file_path=os.path.join(PLOT_DIR, plot_name)
-                     )
+            key_list.append(args.plot_stat)
+            std_key_list.append(std_key)
+            plot_name=args.plot_stat.replace(' ', '_') + ('' if std_key is None else '_std') + '.png'
+        
+        plot_key(generation_dict=generation_dict,
+                 key_list=key_list,
+                 std_key_list=std_key_list,
+                 show=args.show,
+                 file_path=os.path.join(PLOT_DIR, plot_name)
+                 )
     if args.show:
         print(ee.result_of_experiment(gen_indices=(args.show_gen,)))
 
@@ -190,6 +191,12 @@ def auto_plotter_hardly_know_her(directory):
                         std_key_list=['stdev_fitness'],
                         show=False,
                         file_path=os.path.join(PLOT_DIR,'mean_fitness_std.png'))
+            
+            plot_key(generation_dict=gen_dict,
+                        key_list=PLOT_KEYS+[mean for mean,_ in PAIR_KEYS],
+                        std_key_list=[None for _ in PLOT_KEYS]+[std for _,std in PAIR_KEYS],
+                        show=False,
+                        file_path=os.path.join(PLOT_DIR,'all.png'))
         except:
             print('failed:',folder)
             continue
