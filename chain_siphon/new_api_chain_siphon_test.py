@@ -1,3 +1,5 @@
+import sys, csv
+
 from src.swarm_expiriment import *
 from collections import defaultdict
 
@@ -8,7 +10,7 @@ class chainSiphon(BlimpExperiment):
                  goal_value,
                  start_zone=lambda i: ((.5, 6), (-2, 2), (1, 1.25)),
                  end_time=300,
-                 scenePath=frictionless_wall_path,
+                 scenePath=wall_climb_path,
                  blimpPath=narrow_blimp_path,
                  sim=None,
                  simId=23000,
@@ -263,5 +265,63 @@ class chainSiphon(BlimpExperiment):
         return succ
 
 
-bb = chainSiphon(6, goal_value=lambda pos: pos[0])
-print(bb.experiments(3))
+trials = 30
+for _ in range(trials):
+    agent_range = (1, 31)
+    for mode in ('control',
+                 'chain',
+                 'leader',
+                 'LJP'):
+
+        if mode == 'control':
+            # (goal, obstacle, viscosity, min, bounding)
+            weights = (.75, .0, .0, 0., .75,)
+        elif mode == 'chain':
+            weights = (.75, .0, .002, 1., .75,)
+        elif mode == 'leader':
+            weights = (.75, .0, .0, 1., .75,)
+        elif mode == 'LJP':
+            weights = (.75, .0, .002, 0., .75,)
+        else:
+            raise Exception("run with --control, --chain, --leader, or --LJP")
+
+        save_dir = os.path.join(DIR, 'chain_siphon', 'output', mode)
+        if not os.path.exists(save_dir):
+            os.makedirs(save_dir)
+        fields = ['agents', 'successful']
+        for agents in range(agent_range[0], agent_range[1]):
+            print('MODE:', mode, ';\tAGENTS:', agents)
+            passed = None
+            while passed is None:
+                bb = chainSiphon(agents, goal_value=lambda pos: pos[0], goal_field=lambda pos: np.array((-1., 0., 0.)),
+                                 wakeup=[COPPELIA_WAKEUP + ' -h'])
+                passed = bb.experiments(1)
+                if passed is None:
+                    print("FAILED, TRYING AGAIN")
+            passed = passed[0]
+
+            newrow = [agents, passed]
+            if save_dir is not None:
+                filename = os.path.join(save_dir, 'data.csv')
+                oldfields = None
+                olddata = []
+
+                if os.path.exists(filename):
+                    csvfile = open(filename)
+                    spamreader = csv.reader(csvfile)
+                    for row in spamreader:
+                        if oldfields is None:
+                            oldfields = row
+                        else:
+                            olddata.append(row)
+                    csvfile.close()
+                olddata.append(newrow)
+                # olddata.sort(key=lambda row:int(row[0]))
+                # increasing by num agents
+
+                csvfile = open(filename, 'w')
+                csvwriter = csv.writer(csvfile)
+                csvwriter.writerow(fields)
+                csvwriter.writerows(olddata)
+                csvfile.close()
+            bb.kill()
