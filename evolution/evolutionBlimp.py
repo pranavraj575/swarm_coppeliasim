@@ -470,8 +470,8 @@ class GeneralEvolutionaryExperiment:
                 specy_dict['created'] = specy[specid].created
                 stat_dict['species'][specid] = specy_dict
 
-            #winner = max([p.population[g] for g in p.population], key=lambda genome: genome.fitness)
-            #winner_net = neat.nn.FeedForwardNetwork.create(winner, self.config)
+            # winner = max([p.population[g] for g in p.population], key=lambda genome: genome.fitness)
+            # winner_net = neat.nn.FeedForwardNetwork.create(winner, self.config)
 
             stats[gen] = stat_dict
         return stats
@@ -678,9 +678,8 @@ class EvolutionExperiment(GeneralEvolutionaryExperiment):
                     print('left: ', self.processes_active(), '           ', end='\r')
 
             if self.failed_genomes:
-                tries += 1
                 print()
-                print("FAILED SOME GENOME, TRYING AGAIN, time number " + str(tries))
+                print("FAILED SOME GENOME, TRYING AGAIN, time number " + str(tries + 1))
             self.close_coppelia_sims()
             self.shutdown_rclpy(sleeptime=sleeptime)
         print()
