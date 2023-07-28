@@ -17,6 +17,7 @@ with  open(msgfile) as f:
 
 frictionless_wall_path = os.path.join(DIR, 'scenes', 'FrictionlessWallClimb.ttt')
 wall_climb_path = os.path.join(DIR, 'scenes', 'WallClimb.ttt')
+wall_climb_undetect_path=os.path.join(DIR,'scenes','WallClimbUndetectable.ttt')
 caged_wall_climb_path = os.path.join(DIR, 'scenes', 'wall_climb_caged.ttt')
 cage_arena_path = os.path.join(DIR, 'scenes', 'cage_arena_better.ttt')
 anki_arena_path = os.path.join(DIR, 'scenes', 'ankiArena.ttt')

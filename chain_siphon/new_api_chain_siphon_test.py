@@ -8,7 +8,7 @@ class chainSiphon(BlimpExperiment):
     def __init__(self,
                  num_agents,
                  goal_value,
-                 start_zone=lambda i: ((.5, 6), (-2, 2), (1, 1.25)),
+                 start_zone=lambda i: ((.5, 8), (-3, 3), (1, 1.25)),
                  end_time=300,
                  scenePath=wall_climb_path,
                  blimpPath=narrow_blimp_path,
@@ -17,7 +17,7 @@ class chainSiphon(BlimpExperiment):
                  wakeup=None,
                  sleeptime=.1,
                  goal_field=None,
-                 weight=(.5, 0, .002, 1, .5),
+                 weight=None,
                  point_obstacles=(),
                  obs_vector=lambda pos: np.array((0, 0, 0)),
                  max_speed=0.75,
@@ -266,7 +266,7 @@ class chainSiphon(BlimpExperiment):
 
 
 trials = 30
-for _ in range(trials):
+for t in range(trials):
     agent_range = (1, 31)
     for mode in ('control',
                  'chain',
@@ -290,38 +290,52 @@ for _ in range(trials):
             os.makedirs(save_dir)
         fields = ['agents', 'successful']
         for agents in range(agent_range[0], agent_range[1]):
-            print('MODE:', mode, ';\tAGENTS:', agents)
+            filename = os.path.join(save_dir, 'data.csv')
+
+            oldfields = None
+            olddata = []
+
+            reccy = defaultdict(lambda: 0)
+            # number of times weve tried each agent
+
+            if os.path.exists(filename):
+                csvfile = open(filename)
+                spamreader = csv.reader(csvfile)
+                for row in spamreader:
+                    if oldfields is None:
+                        oldfields = row
+                    else:
+                        olddata.append([float(r) for r in row])
+                        reccy[int(float(row[0]))] += 1
+                csvfile.close()
+            skipping = reccy[agents] > t
+
+            print('MODE:', mode, ';\tAGENTS:', agents, ':\t SKIPPING' if skipping else '')
+            if skipping:
+                continue
             passed = None
             while passed is None:
-                bb = chainSiphon(agents, goal_value=lambda pos: pos[0], goal_field=lambda pos: np.array((-1., 0., 0.)),
+                bb = chainSiphon(agents,
+                                 goal_value=lambda pos: pos[0],
+                                 goal_field=lambda pos: np.array((-1., 0., 0.)),
+                                 weight=weights,
                                  wakeup=[COPPELIA_WAKEUP + ' -h'])
                 passed = bb.experiments(1)
+                bb.kill()
                 if passed is None:
                     print("FAILED, TRYING AGAIN")
+                    time.sleep(1)
+
             passed = passed[0]
 
             newrow = [agents, passed]
-            if save_dir is not None:
-                filename = os.path.join(save_dir, 'data.csv')
-                oldfields = None
-                olddata = []
 
-                if os.path.exists(filename):
-                    csvfile = open(filename)
-                    spamreader = csv.reader(csvfile)
-                    for row in spamreader:
-                        if oldfields is None:
-                            oldfields = row
-                        else:
-                            olddata.append(row)
-                    csvfile.close()
-                olddata.append(newrow)
-                # olddata.sort(key=lambda row:int(row[0]))
-                # increasing by num agents
+            olddata.append(newrow)
+            # olddata.sort(key=lambda row:int(row[0]))
+            # increasing by num agents
 
-                csvfile = open(filename, 'w')
-                csvwriter = csv.writer(csvfile)
-                csvwriter.writerow(fields)
-                csvwriter.writerows(olddata)
-                csvfile.close()
-            bb.kill()
+            csvfile = open(filename, 'w')
+            csvwriter = csv.writer(csvfile)
+            csvwriter.writerow(fields)
+            csvwriter.writerows(olddata)
+            csvfile.close()
