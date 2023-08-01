@@ -19,9 +19,9 @@ VALUES = range(1, 31)
 ROUND = 1
 CARE = 1  # use numbers in linear reg if >CARE
 
-for (plotting,PROP) in (('failed',False),('failed',True),('successful',False),('successful',True)):
+for (plotting, PROP) in (('failed', False), ('failed', True), ('successful', False), ('successful', True)):
 
-    if plotting=='failed':
+    if plotting == 'failed':
         plotting = 'failed'
         y_ax = 'stuck'
     else:
@@ -36,23 +36,28 @@ for (plotting,PROP) in (('failed',False),('failed',True),('successful',False),('
     for folder in os.listdir(ROOT):
         fields = None
         data = []
-
-        fn = os.path.join(ROOT, folder, 'data.csv')
-        if not os.path.exists(fn):
+        folder_dir = os.path.join(ROOT, folder)
+        csv_files = [f for f in os.listdir(folder_dir) if f.endswith('.csv')]
+        if not csv_files:
             continue
-
-        csvfile = open(fn)
-        spamreader = csv.reader(csvfile)
-        for row in spamreader:
-            if fields is None:
-                fields = row
-            else:
-                data.append(row)
-        csvfile.close()
+        print(folder)
+        for f in csv_files:
+            print('using:', f)
+            fn = os.path.join(folder_dir, f)
+            csvfile = open(fn)
+            fields = None
+            spamreader = csv.reader(csvfile)
+            for row in spamreader:
+                if fields is None:
+                    fields = row
+                else:
+                    data.append(row)
+            csvfile.close()
 
         data_dict = defaultdict(lambda: [])
         for row in data:
             data_dict[int(float(row[0]))].append(float(row[1]))
+        print(data_dict)
         keys = list(data_dict.keys())
         keys.sort()
         for entry in keys:
@@ -63,7 +68,7 @@ for (plotting,PROP) in (('failed',False),('failed',True),('successful',False),('
                                 'number': len(arr)}
         y = np.array([data_dict[entry][plotting] for entry in keys])
         if PROP:
-            y=y/keys
+            y = y/keys
         var = np.array([data_dict[entry]['var'] for entry in keys])
         trials = np.array([data_dict[entry]['number'] for entry in keys])
         stdev = np.sqrt(var)
@@ -79,8 +84,8 @@ for (plotting,PROP) in (('failed',False),('failed',True),('successful',False),('
 
         # VALUES=DATA['num_agents']
 
-        plt.plot(keys, y, alpha=1,label=folder)
-        #leg.append(folder)
+        plt.plot(keys, y, alpha=1, label=folder)
+        # leg.append(folder)
         if True:
             low = np.max((y - conf, [0 for _ in range(len(y))]), axis=0)
             high = np.min((y + conf, [(1 if PROP else i) for i in range(1, 1 + len(y))]), axis=0)
@@ -107,18 +112,18 @@ for (plotting,PROP) in (('failed',False),('failed',True),('successful',False),('
             plt.plot(VALUES, guess.reshape(-1)/(np.array(VALUES) if PROP else 1), '--' if folder == "CHAINS" else ':',
                      alpha=.5, color='purple',
                      label=('y = {0}*x' + (' + ' if b > 0 else ' ') + '{1}').format(round(m, ROUND), round(b, ROUND)))
-            #leg.append(('y = {0}*x' + (' + ' if b > 0 else ' ') + '{1}').format(round(m, ROUND), round(b, ROUND)))
+            # leg.append(('y = {0}*x' + (' + ' if b > 0 else ' ') + '{1}').format(round(m, ROUND), round(b, ROUND)))
 
     plt.xlabel('number of agents')
 
-    plt.ylabel(('prop of ' if PROP else '') + y_ax+' blimps')
+    plt.ylabel(('prop of ' if PROP else '') + y_ax + ' blimps')
     plt.ylim((0, 1.1 if PROP else plt.ylim()[1]))
-    plt.legend( #+ leg_fill[0:1],
-               # loc=('lower right' if PROP else 'upper left')
-               # loc='center right', bbox_to_anchor=(1.2, .5),ncol=3,
-               loc='upper center', bbox_to_anchor=(0.5, 1.15), ncol=3
-               )
-    save_file = os.path.join(OUTPUT_DIR, ('prop_' if PROP else '') + y_ax+'_rate.png')
+    plt.legend(  # + leg_fill[0:1],
+        # loc=('lower right' if PROP else 'upper left')
+        # loc='center right', bbox_to_anchor=(1.2, .5),ncol=3,
+        loc='upper center', bbox_to_anchor=(0.5, 1.15), ncol=3
+    )
+    save_file = os.path.join(OUTPUT_DIR, ('prop_' if PROP else '') + y_ax + '_rate.png')
     if not os.path.exists(os.path.dirname(save_file)):
         os.makedirs(os.path.dirname(save_file))
     plt.savefig(save_file)

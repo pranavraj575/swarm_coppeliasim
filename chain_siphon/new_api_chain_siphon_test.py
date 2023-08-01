@@ -264,14 +264,19 @@ class chainSiphon(BlimpExperiment):
                 return None
         return succ
 
-specifier='1'
+
+specifier = ''
 trials = 30
 for t in range(trials):
+    print()
+    print('trial:', t)
     agent_range = (1, 31)
     for mode in ('control',
                  'chain',
                  'leader',
                  'LJP'):
+        print()
+        print('mode:', mode)
 
         if mode == 'control':
             # (goal, obstacle, viscosity, min, bounding)
@@ -288,9 +293,11 @@ for t in range(trials):
         save_dir = os.path.join(DIR, 'chain_siphon', 'output', mode)
         if not os.path.exists(save_dir):
             os.makedirs(save_dir)
+        else:
+            print("WARNING: continuing saved output                   ")
         fields = ['agents', 'successful']
         for agents in range(agent_range[0], agent_range[1]):
-            filename = os.path.join(save_dir, 'data'+specifier+'.csv')
+            filename = os.path.join(save_dir, 'data' + specifier + '.csv')
 
             oldfields = None
             olddata = []
@@ -310,7 +317,8 @@ for t in range(trials):
                 csvfile.close()
             skipping = reccy[agents] > t
 
-            print('MODE:', mode, ';\tAGENTS:', agents, ':\t SKIPPING' if skipping else '')
+            print('MODE:', mode, ';\tAGENTS:', agents, ':\t SKIPPING' if skipping else '',
+                  end='\r' if skipping else '\n')
             if skipping:
                 continue
             passed = None
