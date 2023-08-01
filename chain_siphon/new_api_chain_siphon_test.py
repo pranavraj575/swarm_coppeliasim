@@ -264,7 +264,7 @@ class chainSiphon(BlimpExperiment):
                 return None
         return succ
 
-
+specifier='1'
 trials = 30
 for t in range(trials):
     agent_range = (1, 31)
@@ -290,7 +290,7 @@ for t in range(trials):
             os.makedirs(save_dir)
         fields = ['agents', 'successful']
         for agents in range(agent_range[0], agent_range[1]):
-            filename = os.path.join(save_dir, 'data.csv')
+            filename = os.path.join(save_dir, 'data'+specifier+'.csv')
 
             oldfields = None
             olddata = []

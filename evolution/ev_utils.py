@@ -57,11 +57,11 @@ def experiment_handler(args, save_name, config_name, exp_maker, Constructor):
     else:
         raise Exception("constructor must be one of the above")
 
-    if args.generations:
-        port_step = args.port_step
-        zmq_def_port = 23000 + port_step*args.offset
-        websocket_def_port = 23050 + port_step*args.offset
+    port_step = args.port_step
+    zmq_def_port = 23000 + port_step*args.offset
+    websocket_def_port = 23050 + port_step*args.offset
 
+    if args.generations:
         ee.train(generations=args.generations,
                  TRIALS=args.trials,
                  num_simulators=args.num_sims,
@@ -89,16 +89,16 @@ def experiment_handler(args, save_name, config_name, exp_maker, Constructor):
             std_key_list=[None for _ in PLOT_KEYS]+[std for _,std in PAIR_KEYS]
             plot_name='all.png'
         else:
-            if args.plot_stat not in valid_keys:
-                raise Exception("--plot_stat arg not valid, possible options are: " + str(valid_keys))
+            if args.plot_stat not in VALID_KEYS:
+                raise Exception("--plot_stat arg not valid, possible options are: " + str(VALID_KEYS))
             
             if args.plot_std:
                 std_key = args.plot_std
             else:
                 std_key=None
             if std_key is not None:
-                if args.plot_std not in valid_keys:
-                    raise Exception("--plot_std arg not valid, possible options are: " + str(valid_keys))
+                if args.plot_std not in VALID_KEYS:
+                    raise Exception("--plot_std arg not valid, possible options are: " + str(VALID_KEYS))
             key_list.append(args.plot_stat)
             std_key_list.append(std_key)
             plot_name=args.plot_stat.replace(' ', '_') + ('' if std_key is None else '_std') + '.png'
@@ -110,7 +110,9 @@ def experiment_handler(args, save_name, config_name, exp_maker, Constructor):
                  file_path=os.path.join(PLOT_DIR, plot_name)
                  )
     if args.show:
-        print(ee.result_of_experiment(gen_indices=(args.show_gen,)))
+        print(ee.result_of_experiment(gen_indices=(args.show_gen,),
+                                      zmqport=zmq_def_port,
+                                      websocket_port=websocket_def_port))
 
 
 def plot_key(generation_dict, key_list, std_key_list=None, show=False, file_path=None,title=None):

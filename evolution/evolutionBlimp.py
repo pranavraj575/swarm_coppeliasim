@@ -417,14 +417,15 @@ class GeneralEvolutionaryExperiment:
     ####################################################################################################################
     # output functions
     ####################################################################################################################
-    def result_of_experiment(self, trials=1, gen_indices=(-1,), display=True, start_coppelia=True):
+    def result_of_experiment(self, trials=1, gen_indices=(-1,), display=True, zmqport=23000, websocket_port=23050):
         """
         runs an experiment with best genome found, returns results
 
         @param trials: number of trials to run
         @param gen_indices: which generations to show, defaults to just last one
         @param display: whether to open coppelia GUI
-        @param start_coppelia: whether to start coppelia at the beginning
+        @param zmqport: port to use for zmq
+        @param websocket_port: port to use for websocket
         @return: result of src.Experiment.experiments
         """
         raise NotImplementedError()
@@ -689,22 +690,24 @@ class EvolutionExperiment(GeneralEvolutionaryExperiment):
     ####################################################################################################################
     # output functions
     ####################################################################################################################
-    def result_of_experiment(self, trials=1, gen_indices=(-1,), display=True, start_coppelia=True):
+    def result_of_experiment(self, trials=1, gen_indices=(-1,), display=True, zmqport=23000, websocket_port=23050):
         """
         runs an experiment with best genome found, returns results
 
         @param trials: number of trials to run
         @param gen_indices: which generations to show, defaults to just last one
         @param display: whether to open coppelia GUI
-        @param start_coppelia: whether to start coppelia at the beginning
+        @param zmqport: port to use for zmq
+        @param websocket_port: port to use for websocket
         @return: result of src.Experiment.experiments
         """
         if self.MOST_RECENT(self.checkpt_dir) is None:
             raise Exception("DIRECTORY EMPTY: " + self.checkpt_dir)
-        if start_coppelia:
-            wakeup = [COPPELIA_WAKEUP + ('' if display else ' -h')]
-        else:
-            wakeup = []
+
+        cmd = COPPELIA_WAKEUP + ('' if display else ' -h') + \
+              ' -GwsRemoteApi.port=' + str(websocket_port) + \
+              ' -GzmqRemoteApi.rpcPort=' + str(zmqport)
+        wakeup = [cmd]
         all_goals = []
         for index in gen_indices:
             path = os.path.join(self.checkpt_dir, self.MOST_RECENT(self.checkpt_dir)[index])
@@ -712,7 +715,7 @@ class EvolutionExperiment(GeneralEvolutionaryExperiment):
             print("DISPLAYING:", path)
             winner = max([p.population[g] for g in p.population], key=lambda genome: genome.fitness)
             winner_net = neat.nn.FeedForwardNetwork.create(winner, self.config)
-            exp: blimpNet = self.exp_maker(net=winner_net, wakeup=wakeup)
+            exp: blimpNet = self.exp_maker(net=winner_net, wakeup=wakeup, port=zmqport)
             goals = exp.experiments(trials=trials)
             exp.kill()
             all_goals.append(goals)
@@ -890,22 +893,24 @@ class EcosystemEvolutionExperiment(GeneralEvolutionaryExperiment):
     ####################################################################################################################
     # output functions
     ####################################################################################################################
-    def result_of_experiment(self, trials=1, gen_indices=(-1,), display=True, start_coppelia=True):
+    def result_of_experiment(self, trials=1, gen_indices=(-1,), display=True, zmqport=23000, websocket_port=23050):
         """
         runs an experiment with best genome found, returns results
 
         @param trials: number of trials to run
         @param gen_indices: which generations to show, defaults to just last one
         @param display: whether to open coppelia GUI
-        @param start_coppelia: whether to start coppelia at the beginning
+        @param zmqport: port to use for zmq
+        @param websocket_port: port to use for websocket
         @return: result of src.Experiment.experiments
         """
         if self.MOST_RECENT(self.checkpt_dir) is None:
             raise Exception("DIRECTORY EMPTY: " + self.checkpt_dir)
-        if start_coppelia:
-            wakeup = [COPPELIA_WAKEUP + ('' if display else ' -h')]
-        else:
-            wakeup = []
+
+        cmd = COPPELIA_WAKEUP + ('' if display else ' -h') + \
+              ' -GwsRemoteApi.port=' + str(websocket_port) + \
+              ' -GzmqRemoteApi.rpcPort=' + str(zmqport)
+        wakeup = [cmd]
         all_goals = []
         for index in gen_indices:
             path = os.path.join(self.checkpt_dir, self.MOST_RECENT(self.checkpt_dir)[index])
@@ -919,7 +924,7 @@ class EcosystemEvolutionExperiment(GeneralEvolutionaryExperiment):
                 for i in range(self.num_agents):
                     eco.append(global_population[np.random.randint(0, len(global_population))])
                 networks = [neat.nn.FeedForwardNetwork.create(genome, self.config) for genome in eco]
-                exp: blimpNet = self.exp_maker(nets=lambda i: networks[i], wakeup=wakeup)
+                exp: blimpNet = self.exp_maker(nets=lambda i: networks[i], wakeup=wakeup, port=zmqport)
                 goals = exp.experiments(trials=1)
                 exp.kill()
                 all_goals.append(goals)
