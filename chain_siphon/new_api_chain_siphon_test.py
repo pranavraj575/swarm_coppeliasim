@@ -267,15 +267,20 @@ class chainSiphon(BlimpExperiment):
 
 specifier = ''
 trials = 30
+just_skipped = False
 for t in range(trials):
-    print()
+    if just_skipped:
+        print()
+        just_skipped = False
     print('trial:', t)
     agent_range = (1, 31)
     for mode in ('control',
                  'chain',
                  'leader',
                  'LJP'):
-        print()
+        if just_skipped:
+            print()
+            just_skipped = False
         print('mode:', mode)
 
         if mode == 'control':
@@ -294,6 +299,9 @@ for t in range(trials):
         if not os.path.exists(save_dir):
             os.makedirs(save_dir)
         else:
+            if just_skipped:
+                print()
+                just_skipped = False
             print("WARNING: continuing saved output                   ")
         fields = ['agents', 'successful']
         for agents in range(agent_range[0], agent_range[1]):
@@ -316,9 +324,11 @@ for t in range(trials):
                         reccy[int(float(row[0]))] += 1
                 csvfile.close()
             skipping = reccy[agents] > t
-
+            if not skipping and just_skipped:
+                print()
             print('MODE:', mode, ';\tAGENTS:', agents, ':\t SKIPPING' if skipping else '',
                   end='\r' if skipping else '\n')
+            just_skipped = skipping
             if skipping:
                 continue
             passed = None
@@ -327,10 +337,13 @@ for t in range(trials):
                                  goal_value=lambda pos: pos[0],
                                  goal_field=lambda pos: np.array((-1., 0., 0.)),
                                  weight=weights,
-                                 wakeup=[COPPELIA_WAKEUP + ' -h'])
+                                 wakeup=[COPPELIA_WAKEUP + ('' if '--show' in sys.argv else ' -h')])
                 passed = bb.experiments(1)
                 bb.kill()
                 if passed is None:
+                    if just_skipped:
+                        print()
+                        just_skipped = False
                     print("FAILED, TRYING AGAIN")
                     time.sleep(1)
 
