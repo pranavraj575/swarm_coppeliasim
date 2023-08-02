@@ -1,9 +1,8 @@
-import csv, os, sys
-from collections import defaultdict
-
+import os, sys
 from matplotlib import pyplot as plt
 import numpy as np
 from scipy.stats import norm
+from siphon_utils import *
 
 SHOW = False
 
@@ -29,7 +28,7 @@ ROUND = 1
 CARE = 1  # use numbers in linear reg if >CARE
 
 for (plotting, PROP) in (('failed', False), ('failed', True), ('successful', False), ('successful', True)):
-    legend_entries=0
+    legend_entries = 0
     labeled_bars = False
     if plotting == 'failed':
         plotting = 'failed'
@@ -39,52 +38,29 @@ for (plotting, PROP) in (('failed', False), ('failed', True), ('successful', Fal
         y_ax = 'successful'
     if 'max' not in EXCLUDED:
         plt.plot(VALUES, [(1 if PROP else i) for i in VALUES], '-', alpha=.5, color='green', label='y = x')
-        legend_entries+=1
+        legend_entries += 1
     for folder in os.listdir(ROOT):
         if folder in EXCLUDED:
             continue
-        fields = None
-        data = []
         folder_dir = os.path.join(ROOT, folder)
-        csv_files = [f for f in os.listdir(folder_dir) if f.endswith('.csv')]
-        if not csv_files:
-            continue
-        # print(folder)
-        for f in csv_files:
-            # print('using:', f)
-            fn = os.path.join(folder_dir, f)
-            csvfile = open(fn)
-            fields = None
-            spamreader = csv.reader(csvfile)
-            for row in spamreader:
-                if fields is None:
-                    fields = row
-                else:
-                    data.append(row)
-            csvfile.close()
 
-        data_dict = defaultdict(lambda: [])
-        for row in data:
-            data_dict[int(float(row[0]))].append(float(row[1]))
-        # print(data_dict)
+        data_dict, data = datadict_from_folder(folder_dir)
+        if data_dict is None:
+            continue
+
         keys = list(data_dict.keys())
         keys.sort()
-        for entry in keys:
-            arr = data_dict[entry]
-            data_dict[entry] = {'successful': np.mean(arr),
-                                'failed': entry - np.mean(arr),
-                                'var': np.var(arr),
-                                'number': len(arr)}
+
         y = np.array([data_dict[entry][plotting] for entry in keys])
         if PROP:
             y = y/keys
         var = np.array([data_dict[entry]['var'] for entry in keys])
-        trials = np.array([data_dict[entry]['number'] for entry in keys])
+        trials = np.array([data_dict[entry]['trials'] for entry in keys])
         stdev = np.sqrt(var)
         # VALUES=DATA['num_agents']
 
         plt.plot(keys, y, alpha=1, label=folder)
-        legend_entries+=1
+        legend_entries += 1
         # leg.append(folder)
 
         bar_label = None
@@ -105,7 +81,7 @@ for (plotting, PROP) in (('failed', False), ('failed', True), ('successful', Fal
                              label=bar_label
                              )
             if bar_label is not None:
-                legend_entries+=1
+                legend_entries += 1
             ALL.append(y)
         elif CONF_INT < 0:
             conf = stdev*np.abs(CONF_INT)
@@ -122,7 +98,7 @@ for (plotting, PROP) in (('failed', False), ('failed', True), ('successful', Fal
                              label=bar_label
                              )
             if bar_label is not None:
-                legend_entries+=1
+                legend_entries += 1
         if False:
             XY = []
             for x, s in zip(range(1, len(y) + 1), y):
@@ -142,7 +118,7 @@ for (plotting, PROP) in (('failed', False), ('failed', True), ('successful', Fal
             plt.plot(VALUES, guess.reshape(-1)/(np.array(VALUES) if PROP else 1), '--' if folder == "CHAINS" else ':',
                      alpha=.5, color='purple',
                      label=('y = {0}*x' + (' + ' if b > 0 else ' ') + '{1}').format(round(m, ROUND), round(b, ROUND)))
-            legend_entries+=1
+            legend_entries += 1
             # leg.append(('y = {0}*x' + (' + ' if b > 0 else ' ') + '{1}').format(round(m, ROUND), round(b, ROUND)))
 
     plt.xlabel('number of agents')

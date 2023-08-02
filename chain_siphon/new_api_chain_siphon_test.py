@@ -2,6 +2,7 @@ import sys, csv
 
 from src.swarm_expiriment import *
 from collections import defaultdict
+from siphon_utils import *
 
 
 class chainSiphon(BlimpExperiment):
@@ -265,7 +266,6 @@ class chainSiphon(BlimpExperiment):
         return succ
 
 
-specifier = '2'
 trials = 30
 just_skipped = False
 for t in range(trials):
@@ -276,8 +276,8 @@ for t in range(trials):
     agent_range = (1, 31)
     for mode in ('LJP',
                  'chain',
-                 'leader',
-                 'control'):
+                 'control',
+                 'leader',):
         if just_skipped:
             print()
             just_skipped = False
@@ -296,6 +296,9 @@ for t in range(trials):
             raise Exception("run with --control, --chain, --leader, or --LJP")
 
         save_dir = os.path.join(DIR, 'chain_siphon', 'output', mode)
+        specifier = str(np.random.random()).replace('.', '_')+str(time.time()).replace('.','_')
+        filename = os.path.join(save_dir, 'data' + specifier + '.csv')
+        new_data=[]
         if not os.path.exists(save_dir):
             os.makedirs(save_dir)
         else:
@@ -305,24 +308,16 @@ for t in range(trials):
             #print("WARNING: continuing saved output                   ")
         fields = ['agents', 'successful']
         for agents in range(agent_range[0], agent_range[1]):
-            filename = os.path.join(save_dir, 'data' + specifier + '.csv')
 
-            oldfields = None
-            olddata = []
-
+            data_dir,olddata=datadict_from_folder(save_dir)
+            if olddata is None:
+                olddata=[]
             reccy = defaultdict(lambda: 0)
             # number of times weve tried each agent
+            if data_dir is not None:
+                for agent_number in data_dir:
+                    reccy[agent_number]=data_dir[agent_number]['trials']
 
-            if os.path.exists(filename):
-                csvfile = open(filename)
-                spamreader = csv.reader(csvfile)
-                for row in spamreader:
-                    if oldfields is None:
-                        oldfields = row
-                    else:
-                        olddata.append([float(r) for r in row])
-                        reccy[int(float(row[0]))] += 1
-                csvfile.close()
             skipping = reccy[agents] > t
             if not skipping and just_skipped:
                 print()
@@ -351,12 +346,12 @@ for t in range(trials):
 
             newrow = [agents, passed]
 
-            olddata.append(newrow)
-            # olddata.sort(key=lambda row:int(row[0]))
+            new_data.append(newrow)
+            # new_data.sort(key=lambda row:int(row[0]))
             # increasing by num agents
 
             csvfile = open(filename, 'w')
             csvwriter = csv.writer(csvfile)
             csvwriter.writerow(fields)
-            csvwriter.writerows(olddata)
+            csvwriter.writerows(new_data)
             csvfile.close()
