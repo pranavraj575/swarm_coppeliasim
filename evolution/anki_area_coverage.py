@@ -57,7 +57,22 @@ def expe_make(net, sim=None, port=23000, wakeup=None):
 
 
 def optimal_policy(inputs):
-    return np.zeros(2)
+    k = len(inputs)-1
+    vec = np.zeros(2)
+    for i in range(k):
+        angle = 2*np.pi*i/k + (np.pi/k)
+        # angle that the neighbor is sensed at
+
+        desired_angle = angle + np.pi
+        # opposite direction
+
+        temp = np.aray(np.cos(desired_angle), np.sin(desired_angle))
+        vec += temp*inputs[i+1]/k
+    forward=vec[0]
+    left=vec[1]
+    L=forward-left
+    R=forward+left
+    return (np.array((L,R))+1)/2
 
 
 save_name = str(AGENTS) + '_anki_area_coverage' + ('_large' if LARGE else '')

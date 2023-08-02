@@ -92,7 +92,18 @@ def expe_make(net, sim=None, port=23000, wakeup=None):
 
 
 def optimal_policy2d(inputs):
-    return np.zeros(2)
+    k = len(inputs)
+    vec = np.zeros(2)
+    for i in range(k):
+        angle = 2*np.pi*i/k + (np.pi/k)
+        # angle that the neighbor is sensed at
+
+        desired_angle = angle + np.pi
+        # opposite direction
+
+        temp = np.aray(np.cos(desired_angle), np.sin(desired_angle))
+        vec += temp*inputs[i]/k
+    return (vec + 1)/2  # since we need to output on [0,1]
 
 
 def optimal_policy3d(inputs):
