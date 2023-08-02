@@ -140,11 +140,8 @@ def plot_key(generation_dict, key_list, std_key_list=None, show=False, file_path
         std_key_list = [None for _ in range(len(key_list))]
     X = list(generation_dict.keys())
     X.sort()
-    legend = []
 
     for i, key in enumerate(key_list):
-        value_name = key.replace('_', ' ').capitalize()
-        legend.append(value_name)
         Y = []
         STD = []
         for x in X:
@@ -155,15 +152,16 @@ def plot_key(generation_dict, key_list, std_key_list=None, show=False, file_path
                 std = generation_dict[x][std_key]
                 STD.append(std)
         Y = np.array(Y)
-        plt.plot(X, Y)
+
+        value_name = key.replace('_', ' ').capitalize()
+        plt.plot(X, Y, label=value_name)
         if STD:
-            plt.fill_between(X, Y - STD, Y + STD, alpha=.3)
-            legend.append("$\\pm1$ stdev")
+            plt.fill_between(X, Y - STD, Y + STD, alpha=.3, label="$\\pm1$ stdev")
     plt.xlabel('Generation')
     plt.ylabel('Fitness')
     if title:
         plt.title(title)
-    plt.legend(legend)
+    plt.legend()
     if file_path is not None:
         plt.savefig(file_path)
     if show:
