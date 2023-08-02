@@ -284,7 +284,7 @@ class PhysicalExperiment(viconBlimps):
         @return: returns result of self.goal_data
         """
         self.init_exp()
-        while self.step():
+        while not self.step():
             pass
         output = self.goal_data()
         return output
