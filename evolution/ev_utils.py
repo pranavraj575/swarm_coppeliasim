@@ -35,7 +35,8 @@ def experiment_handler(args, save_name, config_name, exp_maker, Constructor, opt
     @param exp_maker: generates experiment,
         argument to be passed to Constructor
     @param Constructor: class to use, inherits GeneralEvolutionaryExperiment
-    @param optimal_policy: takes in neural network inputs, outputs the command vector
+    @param optimal_policy: optimal_policy.activate is a function, takes in neural network inputs, outputs the command vector
+        can use PolicyWrapper(fun) for fun being the policy
         should be hard coded 'optimal policy' to use when --show is on
     """
     config_file = config_path_from_name(config_name)
@@ -210,6 +211,19 @@ def auto_plotter_hardly_know_her(directory):
         except:
             print('failed:', folder)
             continue
+
+
+class PolicyWrapper:
+    def __init__(self, fun):
+        """
+        wrapper for the function to allow fun.activate to work
+            example:
+            pw=PolicyWrapper(fun)
+            pw.activate(args)   # now works
+            fun(args)           # equivalent to this
+        @param fun: function, arbitrary
+        """
+        self.activate = fun
 
 
 if __name__ == "__main__":

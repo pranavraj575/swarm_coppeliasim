@@ -70,4 +70,4 @@ experiment_handler(args=args,
                    config_name=config_name,
                    exp_maker=expe_make,
                    Constructor=EvolutionExperiment,
-                   optimal_policy=optimal_policy)
+                   optimal_policy=PolicyWrapper(optimal_policy))
