@@ -274,10 +274,10 @@ for t in range(trials):
         just_skipped = False
     print('trial:', t)
     agent_range = (1, 31)
-    for mode in ('control',
+    for mode in ('LJP',
                  'chain',
                  'leader',
-                 'LJP'):
+                 'control'):
         if just_skipped:
             print()
             just_skipped = False
@@ -302,7 +302,7 @@ for t in range(trials):
             if just_skipped:
                 print()
                 just_skipped = False
-            print("WARNING: continuing saved output                   ")
+            #print("WARNING: continuing saved output                   ")
         fields = ['agents', 'successful']
         for agents in range(agent_range[0], agent_range[1]):
             filename = os.path.join(save_dir, 'data' + specifier + '.csv')
