@@ -91,6 +91,19 @@ def expe_make(net, sim=None, port=23000, wakeup=None):
         )
 
 
+def optimal_policy2d(inputs):
+    return np.zeros(2)
+
+
+def optimal_policy3d(inputs):
+    return np.zeros(3)
+
+
+if args.three_d:
+    optimal_policy = optimal_policy3d
+else:
+    optimal_policy = optimal_policy2d
+
 dim = ('3' if args.three_d else '2')
 
 save_name = str(AGENTS) + '_blimp_' + dim + 'D_' \
@@ -101,4 +114,5 @@ experiment_handler(args=args,
                    save_name=save_name,
                    config_name=config_name,
                    exp_maker=expe_make,
-                   Constructor=EvolutionExperiment)
+                   Constructor=EvolutionExperiment,
+                   optimal_policy=optimal_policy)

@@ -133,6 +133,10 @@ def eco_expe_make(nets, sim=None, port=23000, wakeup=None):
                                    sleeptime=.01)
 
 
+def optimal_policy(inputs):
+    return np.zeros(2)
+
+
 save_name = 'ECOSYSTEM' + str(AGENTS) + \
             '_blimp_height_' + str(h_low).replace('.', '_') + "_to_" + str(h_upp).replace('.', '_') + \
             '_wall_climb_neighbor_rng_' + str(RANGE).replace('.', '_')
@@ -142,4 +146,5 @@ experiment_handler(args=args,
                    save_name=save_name,
                    config_name=config_name,
                    exp_maker=expe_make,
-                   Constructor=EcosystemEvolutionExperiment)
+                   Constructor=EcosystemEvolutionExperiment,
+                   optimal_policy=optimal_policy)

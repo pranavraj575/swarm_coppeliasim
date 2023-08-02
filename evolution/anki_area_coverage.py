@@ -56,6 +56,10 @@ def expe_make(net, sim=None, port=23000, wakeup=None):
                                      )
 
 
+def optimal_policy(inputs):
+    return np.zeros(2)
+
+
 save_name = str(AGENTS) + '_anki_area_coverage' + ('_large' if LARGE else '')
 config_name = 'anki_area'
 
@@ -63,4 +67,5 @@ experiment_handler(args=args,
                    save_name=save_name,
                    config_name=config_name,
                    exp_maker=expe_make,
-                   Constructor=EvolutionExperiment)
+                   Constructor=EvolutionExperiment,
+                   optimal_policy=optimal_policy)

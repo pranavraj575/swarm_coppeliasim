@@ -417,12 +417,16 @@ class GeneralEvolutionaryExperiment:
     ####################################################################################################################
     # output functions
     ####################################################################################################################
-    def result_of_experiment(self, trials=1, gen_indices=(-1,), display=True, zmqport=23000, websocket_port=23050):
+    def result_of_experiment(self, trials=1, gen_indices=(-1,), network_to_use=None, display=True, zmqport=23000,
+                             websocket_port=23050):
         """
         runs an experiment with best genome found, returns results
 
         @param trials: number of trials to run
         @param gen_indices: which generations to show, defaults to just last one
+        @param network_to_use: if defined, use this network to act in environment
+            function with the same inputs and outputs of the neural network in the environment
+            leave as None if we want to use the evolved network
         @param display: whether to open coppelia GUI
         @param zmqport: port to use for zmq
         @param websocket_port: port to use for websocket
@@ -690,12 +694,16 @@ class EvolutionExperiment(GeneralEvolutionaryExperiment):
     ####################################################################################################################
     # output functions
     ####################################################################################################################
-    def result_of_experiment(self, trials=1, gen_indices=(-1,), display=True, zmqport=23000, websocket_port=23050):
+    def result_of_experiment(self, trials=1, gen_indices=(-1,), network_to_use=None, display=True, zmqport=23000,
+                             websocket_port=23050):
         """
         runs an experiment with best genome found, returns results
 
         @param trials: number of trials to run
         @param gen_indices: which generations to show, defaults to just last one
+        @param network_to_use: if defined, use this network to act in environment
+            function with the same inputs and outputs of the neural network in the environment
+            leave as None if we want to use the evolved network
         @param display: whether to open coppelia GUI
         @param zmqport: port to use for zmq
         @param websocket_port: port to use for websocket
@@ -713,9 +721,12 @@ class EvolutionExperiment(GeneralEvolutionaryExperiment):
             path = os.path.join(self.checkpt_dir, self.MOST_RECENT(self.checkpt_dir)[index])
             p = self.restore_checkpoint(path)
             print("DISPLAYING:", path)
-            winner = max([p.population[g] for g in p.population], key=lambda genome: genome.fitness)
-            winner_net = neat.nn.FeedForwardNetwork.create(winner, self.config)
-            exp: blimpNet = self.exp_maker(net=winner_net, wakeup=wakeup, port=zmqport)
+            if network_to_use is None:
+                winner = max([p.population[g] for g in p.population], key=lambda genome: genome.fitness)
+                network = neat.nn.FeedForwardNetwork.create(winner, self.config)
+            else:
+                network = network_to_use
+            exp: blimpNet = self.exp_maker(net=network, wakeup=wakeup, port=zmqport)
             goals = exp.experiments(trials=trials)
             exp.kill()
             all_goals.append(goals)
@@ -893,12 +904,16 @@ class EcosystemEvolutionExperiment(GeneralEvolutionaryExperiment):
     ####################################################################################################################
     # output functions
     ####################################################################################################################
-    def result_of_experiment(self, trials=1, gen_indices=(-1,), display=True, zmqport=23000, websocket_port=23050):
+    def result_of_experiment(self, trials=1, gen_indices=(-1,), network_to_use=None, display=True, zmqport=23000,
+                             websocket_port=23050):
         """
         runs an experiment with best genome found, returns results
 
         @param trials: number of trials to run
         @param gen_indices: which generations to show, defaults to just last one
+        @param network_to_use: if defined, use this network to act in environment
+            function with the same inputs and outputs of the neural network in the environment
+            leave as None if we want to use the evolved network
         @param display: whether to open coppelia GUI
         @param zmqport: port to use for zmq
         @param websocket_port: port to use for websocket
@@ -923,8 +938,13 @@ class EcosystemEvolutionExperiment(GeneralEvolutionaryExperiment):
                 eco = []
                 for i in range(self.num_agents):
                     eco.append(global_population[np.random.randint(0, len(global_population))])
-                networks = [neat.nn.FeedForwardNetwork.create(genome, self.config) for genome in eco]
-                exp: blimpNet = self.exp_maker(nets=lambda i: networks[i], wakeup=wakeup, port=zmqport)
+                if network_to_use is None:
+                    networks = [neat.nn.FeedForwardNetwork.create(genome, self.config) for genome in eco]
+                    net_fun = lambda i: networks[i]
+                else:
+                    net_fun = lambda i: network_to_use
+
+                exp: blimpNet = self.exp_maker(nets=net_fun, wakeup=wakeup, port=zmqport)
                 goals = exp.experiments(trials=1)
                 exp.kill()
                 all_goals.append(goals)

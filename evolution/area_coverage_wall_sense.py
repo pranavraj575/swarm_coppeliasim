@@ -70,6 +70,10 @@ def expe_make(net, sim=None, port=23000, wakeup=None):
     )
 
 
+def optimal_policy(inputs):
+    return np.zeros(2)
+
+
 save_name = str(AGENTS) + '_blimp_' \
             + str(args.obstacles) + '_obstacle_area_coverage_wall_sense'
 config_name = 'blimp_2d_area'
@@ -78,4 +82,5 @@ experiment_handler(args=args,
                    save_name=save_name,
                    config_name=config_name,
                    exp_maker=expe_make,
-                   Constructor=EvolutionExperiment)
+                   Constructor=EvolutionExperiment,
+                   optimal_policy=optimal_policy)

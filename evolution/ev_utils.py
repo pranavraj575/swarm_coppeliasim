@@ -8,12 +8,13 @@ except:
 
 DIR = os.path.dirname(os.path.join(os.getcwd(), os.path.dirname(sys.argv[0])))
 
-PLOT_KEYS=['best_fitness','min_fitness']
-PAIR_KEYS=[('mean_fitness','stdev_fitness')]
-VALID_KEYS=list(tuple(PLOT_KEYS))
-for mean,std in PAIR_KEYS:
+PLOT_KEYS = ['best_fitness', 'min_fitness']
+PAIR_KEYS = [('mean_fitness', 'stdev_fitness')]
+VALID_KEYS = list(tuple(PLOT_KEYS))
+for mean, std in PAIR_KEYS:
     VALID_KEYS.append(mean)
     VALID_KEYS.append(std)
+
 
 def ckpt_dir_from_name(name):
     return os.path.join(DIR, 'evolution', 'checkpoints', name)
@@ -23,7 +24,7 @@ def config_path_from_name(name):
     return os.path.join(DIR, 'evolution', 'config', name)
 
 
-def experiment_handler(args, save_name, config_name, exp_maker, Constructor):
+def experiment_handler(args, save_name, config_name, exp_maker, Constructor, optimal_policy):
     """
     handles running the experiment defined
         uses args to control what is done
@@ -34,6 +35,8 @@ def experiment_handler(args, save_name, config_name, exp_maker, Constructor):
     @param exp_maker: generates experiment,
         argument to be passed to Constructor
     @param Constructor: class to use, inherits GeneralEvolutionaryExperiment
+    @param optimal_policy: takes in neural network inputs, outputs the command vector
+        should be hard coded 'optimal policy' to use when --show is on
     """
     config_file = config_path_from_name(config_name)
     checkpt_dir = ckpt_dir_from_name(save_name)
@@ -81,28 +84,28 @@ def experiment_handler(args, save_name, config_name, exp_maker, Constructor):
         PLOT_DIR = os.path.join(checkpt_dir, 'plots')
         if not os.path.exists(PLOT_DIR):
             os.makedirs(PLOT_DIR)
-        key_list=[]
-        std_key_list=[]
-        plot_name=''
+        key_list = []
+        std_key_list = []
+        plot_name = ''
         if args.plot_stat == 'all':
-            key_list=PLOT_KEYS+[mean for mean,_ in PAIR_KEYS],
-            std_key_list=[None for _ in PLOT_KEYS]+[std for _,std in PAIR_KEYS]
-            plot_name='all.png'
+            key_list = PLOT_KEYS + [mean for mean, _ in PAIR_KEYS],
+            std_key_list = [None for _ in PLOT_KEYS] + [std for _, std in PAIR_KEYS]
+            plot_name = 'all.png'
         else:
             if args.plot_stat not in VALID_KEYS:
                 raise Exception("--plot_stat arg not valid, possible options are: " + str(VALID_KEYS))
-            
+
             if args.plot_std:
                 std_key = args.plot_std
             else:
-                std_key=None
+                std_key = None
             if std_key is not None:
                 if args.plot_std not in VALID_KEYS:
                     raise Exception("--plot_std arg not valid, possible options are: " + str(VALID_KEYS))
             key_list.append(args.plot_stat)
             std_key_list.append(std_key)
-            plot_name=args.plot_stat.replace(' ', '_') + ('' if std_key is None else '_std') + '.png'
-        
+            plot_name = args.plot_stat.replace(' ', '_') + ('' if std_key is None else '_std') + '.png'
+
         plot_key(generation_dict=generation_dict,
                  key_list=key_list,
                  std_key_list=std_key_list,
@@ -110,12 +113,17 @@ def experiment_handler(args, save_name, config_name, exp_maker, Constructor):
                  file_path=os.path.join(PLOT_DIR, plot_name)
                  )
     if args.show:
+        if args.show_optimal:
+            alt_network = optimal_policy
+        else:
+            alt_network = None
         print(ee.result_of_experiment(gen_indices=(args.show_gen,),
+                                      network_to_use=alt_network,
                                       zmqport=zmq_def_port,
                                       websocket_port=websocket_def_port))
 
 
-def plot_key(generation_dict, key_list, std_key_list=None, show=False, file_path=None,title=None):
+def plot_key(generation_dict, key_list, std_key_list=None, show=False, file_path=None, title=None):
     """
     plots a key from a dictionary, assuming the x values are the keys
     @param generation_dict: generation_dict[generation][key1][key2]... is the value we are plotting
@@ -127,14 +135,13 @@ def plot_key(generation_dict, key_list, std_key_list=None, show=False, file_path
     @return: y values
     """
 
-    
     if std_key_list is None:
         std_key_list = [None for _ in range(len(key_list))]
     X = list(generation_dict.keys())
     X.sort()
     legend = []
-    
-    for i,key in enumerate(key_list):
+
+    for i, key in enumerate(key_list):
         value_name = key.replace('_', ' ').capitalize()
         legend.append(value_name)
         Y = []
@@ -142,7 +149,7 @@ def plot_key(generation_dict, key_list, std_key_list=None, show=False, file_path
         for x in X:
             val = generation_dict[x][key]
             Y.append(val)
-            std_key=std_key_list[i]
+            std_key = std_key_list[i]
             if std_key is not None:
                 std = generation_dict[x][std_key]
                 STD.append(std)
@@ -171,38 +178,39 @@ def auto_plotter_hardly_know_her(directory):
     @param directory: structure is [directory/<exp name>/neat-checkpoint-69] 
     """
     for folder in os.listdir(directory):
-        fake=GeneralEvolutionaryExperiment(checkpt_dir=os.path.join(directory,folder),exp_maker=None,config_file=os.path.join(DIR,'evolution','config','test-config-feedforward'))
+        fake = GeneralEvolutionaryExperiment(checkpt_dir=os.path.join(directory, folder), exp_maker=None,
+                                             config_file=os.path.join(DIR, 'evolution', 'config',
+                                                                      'test-config-feedforward'))
         try:
-            print('plotting:',folder)
-            gen_dict=fake.get_stats()
-            PLOT_DIR=os.path.join(directory,folder,'plots')
+            print('plotting:', folder)
+            gen_dict = fake.get_stats()
+            PLOT_DIR = os.path.join(directory, folder, 'plots')
             if not os.path.exists(PLOT_DIR):
                 os.makedirs(PLOT_DIR)
-            sample=list(gen_dict.keys())[0]
-            keys=list(gen_dict[sample].keys())
+            sample = list(gen_dict.keys())[0]
+            keys = list(gen_dict[sample].keys())
             for key in keys:
                 if key != 'species':
-                    plot_name= key.replace(' ', '_')+'.png'
+                    plot_name = key.replace(' ', '_') + '.png'
                     plot_key(generation_dict=gen_dict,
-                                key_list=[key],
-                                std_key_list=None,
-                                show=False,
-                                file_path=os.path.join(PLOT_DIR,plot_name))
+                             key_list=[key],
+                             std_key_list=None,
+                             show=False,
+                             file_path=os.path.join(PLOT_DIR, plot_name))
             plot_key(generation_dict=gen_dict,
-                        key_list=['mean_fitness'],
-                        std_key_list=['stdev_fitness'],
-                        show=False,
-                        file_path=os.path.join(PLOT_DIR,'mean_fitness_std.png'))
+                     key_list=['mean_fitness'],
+                     std_key_list=['stdev_fitness'],
+                     show=False,
+                     file_path=os.path.join(PLOT_DIR, 'mean_fitness_std.png'))
             plot_key(generation_dict=gen_dict,
-                        key_list=PLOT_KEYS+[mean for mean,_ in PAIR_KEYS],
-                        std_key_list=[None for _ in PLOT_KEYS]+[std for _,std in PAIR_KEYS],
-                        show=False,
-                        file_path=os.path.join(PLOT_DIR,'all.png'))
+                     key_list=PLOT_KEYS + [mean for mean, _ in PAIR_KEYS],
+                     std_key_list=[None for _ in PLOT_KEYS] + [std for _, std in PAIR_KEYS],
+                     show=False,
+                     file_path=os.path.join(PLOT_DIR, 'all.png'))
         except:
-            print('failed:',folder)
+            print('failed:', folder)
             continue
-            
 
 
-if __name__=="__main__":
-    auto_plotter_hardly_know_her(os.path.join(DIR,'evolution','checkpoints'))
+if __name__ == "__main__":
+    auto_plotter_hardly_know_her(os.path.join(DIR, 'evolution', 'checkpoints'))
