@@ -1,281 +1,357 @@
-from chain_siphon import *
-import csv
-import time, sys
-from zmqRemoteApi import RemoteAPIClient
+import sys, csv
 
-client = RemoteAPIClient()
-sim = client.getObject('sim')
-startZone = {'xmin': .5, 'xmax': 6,
-             'ymin': -2, 'ymax': 2,
-             'zmin': 1, 'zmax': 1.25,
-             }
-SIMID = 23000
-MODELDIR = DIR + '/ros_ctrl_models/blimp_narrow.ttm'
-SCENEDIR = DIR + '/scenes/WallClimb.ttt'
-narrowModelPath = os.path.abspath(os.path.expanduser(MODELDIR))
-modelToLoad = narrowModelPath
-sceneNamePath = os.path.abspath(os.path.expanduser(SCENEDIR))
-pause_time = 1
-if len(sys.argv) > 1:
-    name = sys.argv[1]
-else:
-    name = 'CONTROL'
-
-save_dir = os.path.join(DIR, 'chain_siphon', 'output', name)
-# save_dir = None
-
-if save_dir is None:
-    print("WARNING SAVE DIR IS NOT SPECIFIED, SO THIS IS NOT BEING SAVED")
+from src.swarm_expiriment import *
+from collections import defaultdict
+from siphon_utils import *
 
 
-def wall_obstacle_vector(pos, obs_range=1., obs_rep=1):
-    # for a 3m high yz wall, assume pos has positive z
-    if pos[2] <= 3:
-        if abs(pos[0]) < obs_range:
-            dist = max(.00001, abs(pos[0]))
-            vect = np.array((pos[0]/dist, 0, 0))
-            return obs_rep*vect/(dist**2)
-            # since force vector/displacement is just going to be in the x direction in this case
-        # too far away in this case
-        return np.zeros(3)
+class chainSiphon(BlimpExperiment):
+    def __init__(self,
+                 num_agents,
+                 goal_value,
+                 start_zone=lambda i: ((.5, 8), (-3, 3), (1, 1.25)),
+                 end_time=300,
+                 scenePath=wall_climb_path,
+                 blimpPath=narrow_blimp_path,
+                 sim=None,
+                 simId=23000,
+                 wakeup=None,
+                 sleeptime=.1,
+                 goal_field=None,
+                 weight=None,
+                 point_obstacles=(),
+                 obs_vector=lambda pos: np.array((0, 0, 0)),
+                 max_speed=0.75,
+                 obs_range=1.5,
+                 obs_rep=10,
+                 etta=0.2,
+                 neighbor_range=2.25,
+                 max_ljp=500,
+                 workspace=((-5, 6), (-2, 2), (1, 1.25)),
+                 goal_test=lambda p: False,
+                 use_ultra=True,
+                 ):
+        super().__init__(num_agents,
+                         start_zone,
+                         scenePath=scenePath,
+                         blimpPath=blimpPath,
+                         sim=sim,
+                         simId=simId,
+                         wakeup=wakeup,
+                         sleeptime=sleeptime)
 
-    # now pos is higher than wall
-    pt = np.array((0, pos[1], 3.))  # point on wall closest to the thing, has same y value as pos
-    vect = pos - pt
-    dist = np.linalg.norm(vect)
-    if dist < obs_range:
-        dist = max(dist, .00001)
-        vect = vect/dist  # normalized now
-        return obs_rep*vect/(dist**2)
+        self.weight = weight
+        self.end_time = end_time
+        self.point_obstacles = point_obstacles
+        self.obs_vector = obs_vector
+        self.max_speed = max_speed
+        self.obs_range = obs_range
+        self.obs_rep = obs_rep
+        self.etta = etta
+        self.neighbor_range = neighbor_range
+        self.max_ljp = max_ljp
+        self.workspace = workspace
+        self.goal_test = goal_test
+        self.use_ultra = use_ultra
+        self.set_goal_value(goal_value=goal_value, goal_field=goal_field)
+        self.swarm_data = defaultdict(lambda: np.array([0.]*8))
 
-    return np.zeros(3)
+    def set_goal_value(self, goal_value, goal_field=None):
+        """
+        :param goal_value: R^3->R objective function to be minimized
+        :param goal_field R^3->R^3, gradient of goal_value, points towards lowest potential (e.g. use radial function if goal is to a point)
+        """
+        self.goal_value = goal_value
+        if goal_field == None:
+            d = .01
+            goal_field = lambda p: -np.array([
+                (self.goal_value(p + np.array((d, 0, 0))) - self.goal_value(p + np.array((-d, 0, 0))))/(2*d),
+                (self.goal_value(p + np.array((0, d, 0))) - self.goal_value(p + np.array((0, -d, 0))))/(2*d),
+                (self.goal_value(p + np.array((0, 0, d))) - self.goal_value(p + np.array((0, 0, -d))))/(2*d)
+            ])
+        self.goal_field = goal_field
 
+    def safe_norm(self, vec, d=.00001):
+        size = np.linalg.norm(vec)
+        if size <= 0:
+            size = d
+        return vec/size
 
-if name == "CONTROL":
-    params = [{
-        'num_agents': num_agents,
-        'trials': 30,
-        'weight0': .5,
-        'weight1': 0,
-        'weight2': 0,
-        'weight3': 0,
-        'weight4': .5,
-        'height': 1,
-        'height tol': .25,
-        'end time': 300,
-        'etta': .2,
-        'max speed': 1.,
-    } for num_agents in range(1, 25)]
-    params = [{
-        'num_agents': num_agents,
-        'trials': 30,
-        'weight0': .75,
-        'weight1': 0,
-        'weight2': 0,
-        'weight3': 0,
-        'weight4': .75,
-        'height': 1,
-        'height tol': .25,
-        'end time': 300,
-        'etta': .2,
-        'max speed': 1.,
-    } for num_agents in range(1, 25)]
-elif name == "CHAINS":
-    params = [{
-        'num_agents': num_agents,
-        'trials': 30,
-        'weight0': .5,
-        'weight1': 0,
-        'weight2': .002,
-        'weight3': 1,
-        'weight4': .5,
-        'height': 1,
-        'height tol': .25,
-        'end time': 300,
-        'etta': .2,
-        'max speed': 1.,
-    } for num_agents in range(1, 25)]
-    params = [{
-        'num_agents': num_agents,
-        'trials': 30,
-        'weight0': .75,
-        'weight1': 0,
-        'weight2': .002,
-        'weight3': 1,
-        'weight4': .75,
-        'height': 1,
-        'height tol': .25,
-        'end time': 300,
-        'etta': .2,
-        'max speed': 1.,
-    } for num_agents in range(1, 25)]
-else:
-    raise Exception("invalid name: " + name)
-if save_dir is not None and not os.path.exists(save_dir):
-    os.makedirs(save_dir)
+    def point_obs_force(self, position, point_obstacles, obs_range=1.5, obs_rep=10):
+        out = np.zeros(3)
+        for pt in point_obstacles:
+            v_obs = pt - position
 
-fake_params = [{
-    'num_agents': 15,
-    'trials': 1,
-    'weight0': .75,
-    'weight1': .0,
-    'weight2': .002,
-    'weight3': 1,
-    'weight4': .75,
-    'height': 1,
-    'height tol': .25,
-    'end time': 300,
-    'etta': .4,
-    'max speed': 1.,
-}]
-ffake_params = [{
-    'num_agents': 15,
-    'trials': 1,
-    'weight0': .75,
-    'weight1': .0,
-    'weight2': .00,
-    'weight3': 0,
-    'weight4': .75,
-    'height': 1,
-    'height tol': .25,
-    'end time': 300,
-    'etta': .4,
-    'max speed': 1.,
-}]
-params_to_save = [param for param in params[0]]
-params_to_save.sort()
-records_to_save = ['succ',
-                   'variance',
-                   'time per trial',
-                   ]
-fields = params_to_save + records_to_save
+            dist = np.linalg.norm(v_obs)
+            if dist == 0:
+                dist = 0.00001
 
-rclpy.init()
-for param in params:
-    print('starting:', param)
-    key = [param[p] for p in params_to_save]
-    if save_dir is not None:
-        filename = os.path.join(save_dir, 'data.csv')
-        oldfields = None
-        olddata = []
-
-        if os.path.exists(filename):
-            csvfile = open(filename)
-            spamreader = csv.reader(csvfile)
-            for row in spamreader:
-                if oldfields is None:
-                    oldfields = row
-                else:
-                    olddata.append(row)
-            csvfile.close()
-            if oldfields == fields:
-                skip = False
-                for row in olddata:
-                    if row[:len(key)] == [str(k) for k in key]:
-                        skip = True
-                        break
-                if skip:
-                    print('PREVIOUS EXPIRIMENT FOUND WITH RESULTS:')
-                    print({field: row[fields.index(field)] for field in records_to_save})
-                    continue
+            if dist < obs_range:
+                v_obs = self.safe_norm(v_obs)
+                v_obs *= (-1*(obs_rep*1*1)/(dist**2))
             else:
-                raise Exception("FIELDS IN SAVED FILE DO NOT MATCH, MAKE A NEW FILE")
-    start_time = time.time()
-    record = {'succ': []}
-    for trial in range(param['trials']):
-        sim.stopSimulation()
-        time.sleep(pause_time)
+                v_obs = np.zeros(3)
 
-        sim.loadScene(sceneNamePath)
-        time.sleep(pause_time)
+            out += v_obs
+        return out
 
-        agentHandles = []
-        chains = []
-        height = param['height']
-        height_tol = param['height tol']
-        height_imp = 1
+    def step(self):
+        """
+        step to take continuously during an experiment
+        (should probably include a pause, since this will be running continuously)
+        @return: boolean, whether or not experiment is done
+        """
+        # self.spin()
+        height = False
+        for agent_id in self.agentData.keys():
+            self.spin([agent_id])
+            pos = self.get_position(agent_id, use_ultra=self.use_ultra, spin=False)
 
-        for i in range(param['num_agents']):
-            agentHandle = sim.loadModel(modelToLoad)
-            agentHandles.append(agentHandle)  # Save loaded models' handles for analysis later
-            for _ in range(100):  # give up at some point
-                xPos = round(random.uniform(startZone["xmin"], startZone["xmax"]), 2)
-                yPos = round(random.uniform(startZone["ymin"], startZone["ymax"]), 2)
-                zPos = round(random.uniform(startZone["zmin"], startZone["zmax"]), 2)
-                sim.setObjectPosition(agentHandle, -1, [xPos, yPos, zPos])
-                collisionResult, collidingObjectHandles = checkForCollisionWrapper(agentHandle, sim)
-                if not collisionResult:
-                    break
-            pp = Chains(i,
-                        param['num_agents'],
-                        goal_value=lambda pos: pos[0],
-                        # + height_imp*((pos[2]-height-height_tol)**2/2 if abs(pos[2]-height)>height_tol else 0),  # potential value
-                        goal_field=lambda pos: np.array((-1, 0, 0)),
-                        # goal_field=lambda pos: np.array((-1, 0, height_imp*((height-pos[2])-height_tol*np.sign(height-pos[2])) if abs(height-pos[2])>height_tol else 0)),  # gradient to follow
-                        # debug=i==0,
-                        debug=False,
-                        )
-            chains.append(pp)
-        sim.startSimulation()
-        while rclpy.ok():
-            for i in range(len(chains)):
-                chains[i].siphon(weight=tuple(param['weight' + str(eye)] for eye in range(5)),
-                                 use_ultra=True,
-                                 point_obstacles=[],
-                                 obs_vector=wall_obstacle_vector,
-                                 workspace=((-5, startZone['xmax']),
-                                            (startZone['ymin'], startZone['ymax']),
-                                            (height, height_tol + height)),
-                                 etta=param['etta'],
-                                 max_speed=param['max speed']
-                                 )
-                for thingy in SWARM_DATA:
-                    pass
-                    # print(thingy, [round(v, 2) for v in SWARM_DATA[thingy]])
-            if sim.getSimulationTime() > param['end time']:
-                break
+            real_pos = self.get_position(agent_id, use_ultra=False, spin=False)
+            # for real x,y,z
 
-        sim.pauseSimulation()
-        time.sleep(pause_time)
+            #####################################################################################################
+            # Goal (normalized)
+
+            v_goal = self.safe_norm(self.goal_field(real_pos))
+
+            #####################################################################################################
+            # Obstacles
+            v_obs_tot = np.zeros(3)
+            v_obs_tot += self.point_obs_force(real_pos, self.point_obstacles, self.obs_range, self.obs_rep)
+            v_obs_tot += self.obs_vector(real_pos)
+
+            #####################################################################################################
+            # LJP
+
+            neigh_min_queue_pos = self.num_agents
+            min_dist = self.neighbor_range
+            min_dist_element = None
+            v_visc = np.zeros(3)
+            neighbors = []
+            for key in self.swarm_data:
+                item = self.swarm_data[key]
+                x = item[0]
+                if x != agent_id:
+                    dPos = item[1:4] - real_pos
+                    dist = np.linalg.norm(dPos)
+                    if dist <= 0:
+                        dist = .00001
+                    if dist < self.neighbor_range:
+                        neighbors.append(item)  # (x)
+                        # among neighbors, find the minimum queue position
+                        if item[4] < neigh_min_queue_pos:
+                            neigh_min_queue_pos = item[4]
+                            min_dist = dist
+                            min_dist_element = item
+                        # among elements with queue position "minimum", find minimum distance
+                        if item[4] == neigh_min_queue_pos and dist < min_dist:
+                            min_dist = dist
+                            min_dist_element = item
+
+            #####################################################################################################
+            # Siphon
+
+            queue_value = self.num_agents
+            v_min = np.zeros(3)
+
+            new_v_min = np.zeros(3)
+            best_leader = -1
+            obj_value = self.goal_value(real_pos)
+
+            best_value = None
+
+            if self.goal_test(real_pos):
+                queue_value = 1
+
+            if neighbors:
+                min_size = self.num_agents + 1
+                for item in neighbors:
+                    dPos = item[1:4] - real_pos
+
+                    dist = np.linalg.norm(dPos)
+                    if dist == 0:
+                        dist = 0.00001
+
+                    dPos = self.safe_norm(dPos)
+
+                    ljp = dPos*(24*self.etta*(
+                            -26/((0.6*(dist + 0.75))**14) + 7/((0.6*(dist + 0.75))**8)))
+
+                    if item[4] < queue_value:
+                        queue_value = item[4] + 1
+
+                    if queue_value > self.num_agents:
+                        queue_value = self.num_agents
+
+                    if item is min_dist_element and neigh_min_queue_pos < queue_value:
+                        v_min = dPos
+
+                    v_visc += ljp
+
+                    ## NEW doesnt this work?
+                    visited = {agent_id}
+                    next = item[0]
+                    mm = float('inf')
+                    siz = self.num_agents + 2
+                    while next >= 0 and next not in visited:
+                        fol = self.swarm_data[next]
+                        if fol[6] < mm:
+                            mm = fol[6]
+                            siz = len(visited)
+                        visited.add(fol[0])
+                        next = fol[5]
+
+                    if mm < obj_value:
+                        # if other agent is 'better' or following somone better than this agent
+                        if best_value is None or mm < best_value or (mm == best_value and siz < min_size):
+                            # follow the best possible agent
+                            best_value = mm
+                            best_leader = item[0]
+                            new_v_min = dPos
+                            min_size = siz
+            if np.linalg.norm(v_visc) > self.max_ljp:
+                v_visc = self.safe_norm(v_visc)*self.max_ljp
+            #####################################################################################################
+            # Workspace
+            v_bound = np.zeros(3)
+            # USE ULTRASOUND POS HERE, matches the 'climbing' behavior
+            for k in range(3):
+                temp = np.zeros(3)
+                if pos[k] < self.workspace[k][0]:
+                    temp[k] += self.workspace[k][0] - pos[k]  # 1.
+                if pos[k] > self.workspace[k][1]:
+                    temp[k] += self.workspace[k][1] - pos[k]  # -1.
+                v_bound += temp
+
+            #####################################################################################################
+            # Full
+
+            v_full = v_goal*self.weight[0] + \
+                     v_obs_tot*self.weight[1] + \
+                     v_visc*self.weight[2] + \
+                     new_v_min*self.weight[3] + \
+                     v_bound*self.weight[4]
+            if height:
+                v_full[2] = (height - pos[2])*.1
+                # USE ULTRASOUND POS HERE
+            if np.linalg.norm(v_full) > self.max_speed:
+                v_full = self.safe_norm(v_full)*self.max_speed
+
+            self.move_agent(agent_id, v_full)
+            self.data_publish(agent_id,
+                              (agent_id,
+                               real_pos[0],
+                               real_pos[1],
+                               real_pos[2],
+                               queue_value,
+                               best_leader,
+                               obj_value,
+                               len(neighbors)
+                               ))
+        return self.sim.getSimulationTime() > self.end_time
+
+    def data_publish(self, agent_id, agent_data):
+        self.swarm_data[agent_id] = np.array(agent_data)
+
+    def goal_data(self):
         succ = 0
-        for i in range(len(chains)):
-            if chains[i].state['x'] < 0:
+        for agent_id in self.agentData:
+            if self.get_state(agent_id)['x'] < 0:
                 succ += 1
-            chains[i].break_chain()
-        record['succ'].append(succ)
-        print('trial', trial + 1,
-              ':', succ, 'succeeded;',
-              'running average of', round(sum(record['succ'])/len(record['succ']), 3), 'succeeded;',
-              'avg time per trial:', round((time.time() - start_time)/len(record['succ'])),
-              ' '*10,
-              end='\r')
-    print()
-    record['variance'] = np.var(record['succ'])
-    record['time per trial'] = round((time.time() - start_time)/param['trials'])
-    record['succ'] = np.mean(record['succ'])
-    newrow = [param[p] for p in params_to_save] + [record[r] for r in records_to_save]
-    print('results:', record)
 
-    if save_dir is not None:
-        filename = os.path.join(save_dir, 'data.csv')
-        oldfields = None
-        olddata = []
+            bug = self.get_state(agent_id)["DEBUG"]
+            if bug == 0.:
+                return None
+        return succ
 
-        if os.path.exists(filename):
-            csvfile = open(filename)
-            spamreader = csv.reader(csvfile)
-            for row in spamreader:
-                if oldfields is None:
-                    oldfields = row
-                else:
-                    olddata.append(row)
+
+trials = 300
+just_skipped = False
+for t in range(trials):
+    if just_skipped:
+        print()
+        just_skipped = False
+    print('trial:', t)
+    agent_range = (1, 31)
+    for mode in ('LJP',
+                 'chain',
+                 'control',
+                 'leader',):
+        if just_skipped:
+            print()
+            just_skipped = False
+        print('mode:', mode)
+
+        if mode == 'control':
+            # (goal, obstacle, viscosity, min, bounding)
+            weights = (.75, .0, .0, 0., .75,)
+        elif mode == 'chain':
+            weights = (.75, .0, .002, 1., .75,)
+        elif mode == 'leader':
+            weights = (.75, .0, .0, 1., .75,)
+        elif mode == 'LJP':
+            weights = (.75, .0, .002, 0., .75,)
+        else:
+            raise Exception("run with --control, --chain, --leader, or --LJP")
+
+        save_dir = os.path.join(DIR, 'chain_siphon', 'output', mode)
+        specifier = str(np.random.random()).replace('.', '_')+str(time.time()).replace('.','_')
+        filename = os.path.join(save_dir, 'data' + specifier + '.csv')
+        new_data=[]
+        if not os.path.exists(save_dir):
+            os.makedirs(save_dir)
+        else:
+            if just_skipped:
+                print()
+                just_skipped = False
+            #print("WARNING: continuing saved output                   ")
+        fields = ['agents', 'successful']
+        for agents in range(agent_range[0], agent_range[1]):
+
+            data_dir,olddata=datadict_from_folder(save_dir)
+            if olddata is None:
+                olddata=[]
+            reccy = defaultdict(lambda: 0)
+            # number of times weve tried each agent
+            if data_dir is not None:
+                for agent_number in data_dir:
+                    reccy[agent_number]=data_dir[agent_number]['trials']
+
+            skipping = reccy[agents] > t
+            if not skipping and just_skipped:
+                print()
+            print('MODE:', mode, ';\tAGENTS:', agents, ':\t SKIPPING' if skipping else '',
+                  end='\r' if skipping else '\n')
+            just_skipped = skipping
+            if skipping:
+                continue
+            passed = None
+            while passed is None:
+                bb = chainSiphon(agents,
+                                 goal_value=lambda pos: pos[0],
+                                 goal_field=lambda pos: np.array((-1., 0., 0.)),
+                                 weight=weights,
+                                 wakeup=[COPPELIA_WAKEUP + ('' if '--show' in sys.argv else ' -h')])
+                passed = bb.experiments(1)
+                bb.kill()
+                if passed is None:
+                    if just_skipped:
+                        print()
+                        just_skipped = False
+                    print("FAILED, TRYING AGAIN")
+                    time.sleep(1)
+
+            passed = passed[0]
+
+            newrow = [agents, passed]
+
+            new_data.append(newrow)
+            # new_data.sort(key=lambda row:int(row[0]))
+            # increasing by num agents
+
+            csvfile = open(filename, 'w')
+            csvwriter = csv.writer(csvfile)
+            csvwriter.writerow(fields)
+            csvwriter.writerows(new_data)
             csvfile.close()
-        olddata.append(newrow)
-        # olddata.sort(key=lambda row:int(row[0]))
-        # increasing by num agents
-
-        csvfile = open(filename, 'w')
-        csvwriter = csv.writer(csvfile)
-        csvwriter.writerow(fields)
-        csvwriter.writerows(olddata)
-        csvfile.close()
