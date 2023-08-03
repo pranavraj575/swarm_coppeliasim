@@ -161,7 +161,7 @@ def plot_key(generation_dict, key_list, std_key_list=None, show=False, file_path
     plt.ylabel('Fitness')
     if title:
         plt.title(title)
-    plt.legend()
+    plt.legend(loc='upper center', bbox_to_anchor=(0.5, 1.15), ncol=4)
     if file_path is not None:
         plt.savefig(file_path)
     if show:

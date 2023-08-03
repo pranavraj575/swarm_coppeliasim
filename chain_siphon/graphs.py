@@ -21,6 +21,12 @@ EXCLUDED = [
     'leader',
 ]
 
+name_mapping = {'chain': 'Chain Siphon',
+                'control': 'Control',
+                'LJP': 'LJP',
+                'leader': 'Leader',
+                'max': 'Theoretical Max'}
+
 OUTPUT_DIR = os.path.join(ROOT, 'plots')
 
 VALUES = range(1, 31)
@@ -56,7 +62,11 @@ for (plotting, PROP) in (('failed', False), ('failed', True), ('successful', Fal
         stdev = np.sqrt(var)
         # VALUES=DATA['num_agents']
 
-        plt.plot(keys, y, alpha=1, label=folder)
+        label = folder
+        if label in name_mapping:
+            label = name_mapping[label]
+
+        plt.plot(keys, y, alpha=1, label=label)
         legend_entries += 1
         # leg.append(folder)
 
@@ -124,11 +134,12 @@ for (plotting, PROP) in (('failed', False), ('failed', True), ('successful', Fal
         plt.plot(VALUES, [(1 if PROP else i) for i in VALUES], '--',
                  alpha=.5,
                  # color='green',
-                 label='y = x')
+                 label=name_mapping['max'] if 'max' in name_mapping else 'max'
+                 )
         legend_entries += 1
-    plt.xlabel('number of agents')
+    plt.xlabel('Number of agents')
 
-    plt.ylabel(('prop of ' if PROP else '') + y_ax + ' blimps')
+    plt.ylabel(('Proportion of ' if PROP else '') + y_ax + ' blimps')
     plt.ylim((0, 1.1 if PROP else plt.ylim()[1]))
     plt.legend(  # + leg_fill[0:1],
         # loc=('lower right' if PROP else 'upper left')
