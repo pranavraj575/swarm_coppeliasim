@@ -100,9 +100,9 @@ def optimal_policy2d(inputs):
 
         desired_angle = angle + np.pi
         # opposite direction
-
-        temp = np.aray(np.cos(desired_angle), np.sin(desired_angle))
-        vec += temp*inputs[i]/k
+        temp = np.array((np.cos(desired_angle), np.sin(desired_angle)))
+        vec += temp*min(1, inputs[i])/k
+    vec = vec/np.linalg.norm(vec)
     return (vec + 1)/2  # since we need to output on [0,1]
 
 
