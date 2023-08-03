@@ -335,6 +335,7 @@ for t in range(trials):
                                  wakeup=[COPPELIA_WAKEUP + ('' if '--show' in sys.argv else ' -h')])
                 passed = bb.experiments(1)
                 bb.kill()
+                del bb
                 if passed is None:
                     if just_skipped:
                         print()

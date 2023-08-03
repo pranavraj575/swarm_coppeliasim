@@ -729,6 +729,9 @@ class EvolutionExperiment(GeneralEvolutionaryExperiment):
             exp: blimpNet = self.exp_maker(net=network, wakeup=wakeup, port=zmqport)
             goals = exp.experiments(trials=trials)
             exp.kill()
+
+            del exp
+
             all_goals.append(goals)
         return all_goals
 
