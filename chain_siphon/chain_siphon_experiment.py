@@ -278,10 +278,6 @@ for t in range(trials):
                  'chain',
                  'control',
                  'leader',):
-        if just_skipped:
-            print()
-            just_skipped = False
-        print('mode:', mode)
 
         if mode == 'control':
             # (goal, obstacle, viscosity, min, bounding)
