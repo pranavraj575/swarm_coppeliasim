@@ -14,7 +14,7 @@ ROOT = os.path.join(CHAIN_DIR, RT)
 
 CONF_INT = -1  # either the percent confidence interval, or negative number for # of stdev to show
 EXCLUDED = [
-    'max',
+    # 'max',
     # 'control',
     # 'chain',
     # 'LJP',
@@ -36,9 +36,6 @@ for (plotting, PROP) in (('failed', False), ('failed', True), ('successful', Fal
     else:
         plotting = 'successful'
         y_ax = 'successful'
-    if 'max' not in EXCLUDED:
-        plt.plot(VALUES, [(1 if PROP else i) for i in VALUES], '-', alpha=.5, color='green', label='y = x')
-        legend_entries += 1
     for folder in os.listdir(ROOT):
         if folder in EXCLUDED:
             continue
@@ -77,8 +74,9 @@ for (plotting, PROP) in (('failed', False), ('failed', True), ('successful', Fal
                 bar_label = str(CONF_INT) + '% conf. int'
             low = np.max((y - conf, [0 for _ in range(len(y))]), axis=0)
             high = np.min((y + conf, [(1 if PROP else i) for i in range(1, 1 + len(y))]), axis=0)
-            plt.fill_between(keys, low, high, alpha=.35, color='gray',
-                             label=bar_label
+            plt.fill_between(keys, low, high,
+                             alpha=.35,
+                             color='gray', label=bar_label
                              )
             if bar_label is not None:
                 legend_entries += 1
@@ -94,8 +92,9 @@ for (plotting, PROP) in (('failed', False), ('failed', True), ('successful', Fal
 
             low = np.max((y - conf, [0 for _ in range(len(y))]), axis=0)
             high = np.min((y + conf, [(1 if PROP else i) for i in range(1, 1 + len(y))]), axis=0)
-            plt.fill_between(keys, low, high, alpha=.35, color='gray',
-                             label=bar_label
+            plt.fill_between(keys, low, high,
+                             alpha=.35,
+                             color='gray', label=bar_label
                              )
             if bar_label is not None:
                 legend_entries += 1
@@ -121,6 +120,12 @@ for (plotting, PROP) in (('failed', False), ('failed', True), ('successful', Fal
             legend_entries += 1
             # leg.append(('y = {0}*x' + (' + ' if b > 0 else ' ') + '{1}').format(round(m, ROUND), round(b, ROUND)))
 
+    if 'max' not in EXCLUDED:
+        plt.plot(VALUES, [(1 if PROP else i) for i in VALUES], '--',
+                 alpha=.5,
+                 # color='green',
+                 label='y = x')
+        legend_entries += 1
     plt.xlabel('number of agents')
 
     plt.ylabel(('prop of ' if PROP else '') + y_ax + ' blimps')
@@ -128,7 +133,7 @@ for (plotting, PROP) in (('failed', False), ('failed', True), ('successful', Fal
     plt.legend(  # + leg_fill[0:1],
         # loc=('lower right' if PROP else 'upper left')
         # loc='center right', bbox_to_anchor=(1.2, .5),ncol=3,
-        loc='upper center', bbox_to_anchor=(0.5, 1.15), ncol=legend_entries//2
+        loc='upper center', bbox_to_anchor=(0.5, 1.15), ncol=int(np.ceil(legend_entries/2))
     )
     save_file = os.path.join(OUTPUT_DIR, ('prop_' if PROP else '') + y_ax + '_rate.png')
     if not os.path.exists(os.path.dirname(save_file)):
