@@ -266,7 +266,7 @@ class chainSiphon(BlimpExperiment):
         return succ
 
 
-trials = 30
+trials = 300
 just_skipped = False
 for t in range(trials):
     if just_skipped:
