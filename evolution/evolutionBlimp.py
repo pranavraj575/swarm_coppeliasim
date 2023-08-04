@@ -526,6 +526,7 @@ class GeneralEvolutionaryExperiment:
                 pass
         try:
             self.kill_individual(process.pid)
+            
         except:
             pass
 
