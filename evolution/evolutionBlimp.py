@@ -501,7 +501,18 @@ class GeneralEvolutionaryExperiment:
         return out
 
     @staticmethod
-    def kill(proc_pid):
+    def kill_individual(proc_pid, sleep=.01):
+        """
+        kills a single process, waits till it is dead
+        """
+        process = psutil.Process(proc_pid)
+        while process.status() not in (psutil.STATUS_ZOMBIE,
+                                       psutil.STATUS_DEAD,
+                                       psutil.STATUS_STOPPED):
+            process.kill()
+            time.sleep(sleep)
+
+    def kill(self, proc_pid):
         """
         kills a process and processes it spawned
 
@@ -510,10 +521,13 @@ class GeneralEvolutionaryExperiment:
         process = psutil.Process(proc_pid)
         for proc in process.children(recursive=True):
             try:
-                proc.kill()
+                self.kill_individual(proc.pid)
             except:
                 pass
-        process.kill()
+        try:
+            self.kill_individual(process.pid)
+        except:
+            pass
 
     @staticmethod
     def restore_checkpoint(filename):
