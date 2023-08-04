@@ -31,17 +31,20 @@ OUTPUT_DIR = os.path.join(ROOT, 'plots')
 
 VALUES = range(1, 31)
 ROUND = 1
-CARE = 1  # use numbers in linear reg if >CARE
+CARE = -1  # use numbers in linear reg if >CARE
 
 for (plotting, PROP) in (('failed', False), ('failed', True), ('successful', False), ('successful', True)):
+    print("plotting " + plotting + ' blimps, proportion is', PROP)
     legend_entries = 0
     labeled_bars = False
+
     if plotting == 'failed':
         plotting = 'failed'
         y_ax = 'stuck'
     else:
         plotting = 'successful'
         y_ax = 'successful'
+
     for folder in os.listdir(ROOT):
         if folder in EXCLUDED:
             continue
@@ -54,9 +57,11 @@ for (plotting, PROP) in (('failed', False), ('failed', True), ('successful', Fal
         keys = list(data_dict.keys())
         keys.sort()
 
-        y = np.array([data_dict[entry][plotting] for entry in keys])
+        values = np.array([data_dict[entry][plotting] for entry in keys])
         if PROP:
-            y = y/keys
+            y = values/keys
+        else:
+            y = values
         var = np.array([data_dict[entry]['var'] for entry in keys])
         trials = np.array([data_dict[entry]['trials'] for entry in keys])
         stdev = np.sqrt(var)
@@ -65,6 +70,7 @@ for (plotting, PROP) in (('failed', False), ('failed', True), ('successful', Fal
         label = folder
         if label in name_mapping:
             label = name_mapping[label]
+        print("\tplotting:", label)
 
         plt.plot(keys, y, alpha=1, label=label)
         legend_entries += 1
@@ -110,7 +116,7 @@ for (plotting, PROP) in (('failed', False), ('failed', True), ('successful', Fal
                 legend_entries += 1
         if False:
             XY = []
-            for x, s in zip(range(1, len(y) + 1), y):
+            for x, s in zip(keys, values):
                 if s > CARE:
                     XY.append([x, s])
                 else:
@@ -128,12 +134,9 @@ for (plotting, PROP) in (('failed', False), ('failed', True), ('successful', Fal
                      alpha=.5, color='purple',
                      label=('y = {0}*x' + (' + ' if b > 0 else ' ') + '{1}').format(round(m, ROUND), round(b, ROUND)))
             legend_entries += 1
-            # leg.append(('y = {0}*x' + (' + ' if b > 0 else ' ') + '{1}').format(round(m, ROUND), round(b, ROUND)))
-
     if 'max' not in EXCLUDED:
         plt.plot(VALUES, [(1 if PROP else i) for i in VALUES], '--',
                  alpha=.5,
-                 # color='green',
                  label=name_mapping['max'] if 'max' in name_mapping else 'max'
                  )
         legend_entries += 1
@@ -153,3 +156,33 @@ for (plotting, PROP) in (('failed', False), ('failed', True), ('successful', Fal
     if SHOW:
         plt.show()
     plt.close()
+
+for folder in os.listdir(ROOT):
+    if folder in EXCLUDED:
+        continue
+    folder_dir = os.path.join(ROOT, folder)
+
+    data_dict, data = datadict_from_folder(folder_dir)
+    if data_dict is None:
+        continue
+
+    keys = list(data_dict.keys())
+    keys.sort()
+
+    trials = np.array([data_dict[entry]['trials'] for entry in keys])
+
+    label = folder
+    if label in name_mapping:
+        label = name_mapping[label]
+
+    plt.plot(keys, trials, alpha=.5, label=label)
+    plt.xlabel('Number of agents')
+
+    plt.ylabel('Trials run')
+
+plt.legend(loc='upper center', bbox_to_anchor=(0.5, 1.15), ncol=4)
+save_file = os.path.join(OUTPUT_DIR, 'trials.png')
+if not os.path.exists(os.path.dirname(save_file)):
+    os.makedirs(os.path.dirname(save_file))
+plt.savefig(save_file)
+plt.close()

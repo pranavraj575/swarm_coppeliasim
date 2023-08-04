@@ -174,7 +174,9 @@ def auto_plotter_hardly_know_her(directory):
     """
     plots graphs for every folder in the directory
 
-    @param directory: structure is [directory/<exp name>/neat-checkpoint-69] 
+    @param directory: structure is [directory/<exp name>/neat-checkpoint-69]
+
+    puts plots in directory/<exp name/plots
     """
     for folder in os.listdir(directory):
         fake = GeneralEvolutionaryExperiment(checkpt_dir=os.path.join(directory, folder), exp_maker=None,
@@ -211,6 +213,24 @@ def auto_plotter_hardly_know_her(directory):
             continue
 
 
+def aggregate_plots(directory, target_dir, delete=False):
+    """
+    moves all plots found in directory to target_dir
+
+    @param directory: structure is [directory/<exp name>/plots/<plot name>]
+    @param target_dir: will place in target_dir/<exp name>_<plot name>
+    @param delete: whether to delete files after
+    """
+    for folder in os.listdir(directory):
+        plot_dir = os.path.join(directory, folder, 'plots')
+        if os.path.exists(plot_dir):
+            for plot in os.listdir(plot_dir):
+                plot_file = os.path.join(plot_dir, plot)
+                shutil.copyfile(plot_file, os.path.join(target_dir, folder + "_" + plot))
+                if delete:
+                    os.remove(plot_file)
+
+
 class PolicyWrapper:
     def __init__(self, fun):
         """
@@ -225,4 +245,14 @@ class PolicyWrapper:
 
 
 if __name__ == "__main__":
-    auto_plotter_hardly_know_her(os.path.join(DIR, 'evolution', 'checkpoints'))
+
+    import shutil
+
+    chkpt_dir = os.path.join(DIR, 'evolution', 'checkpoints')
+    aggregation_dir = os.path.join(DIR, 'evolution', 'plots')
+
+    if not os.path.exists(aggregation_dir):
+        os.makedirs(aggregation_dir)
+
+    auto_plotter_hardly_know_her(chkpt_dir)
+    aggregate_plots(chkpt_dir, aggregation_dir)
