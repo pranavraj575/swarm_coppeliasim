@@ -93,7 +93,7 @@ def optimal_policy2d(inputs):
     k = len(inputs) - 2*args.obstacles
     # TODO: THIS
     goal_seeking = .6
-    vec = np.zeros(2)
+    vec_neigh = np.zeros(2)
     for i in range(k):
         angle = 2*np.pi*i/k + (np.pi/k)
         # angle that the neighbor is sensed at
@@ -101,8 +101,14 @@ def optimal_policy2d(inputs):
         desired_angle = angle + np.pi
         # opposite direction
         temp = np.array((np.cos(desired_angle), np.sin(desired_angle)))
-        vec += temp*inputs[i]
-    vec = vec/np.linalg.norm(vec)
+        vec_neigh += temp*inputs[i]
+    vec_goal=np.zeros(2)
+    for i in range(args.obstacles):
+        dir=inputs[len(inputs)-2*(i+1):len(inputs)-2*i]
+        vec_goal+=dir
+    vec_goal=vec_goal/np.linalg.norm(vec_goal)
+    vec_neigh = vec_neigh/np.linalg.norm(vec_neigh)
+    vec=goal_seeking*vec_goal+(1-goal_seeking)*vec_neigh
     return (vec + 1)/2  # since we need to output on [0,1]
 
 
