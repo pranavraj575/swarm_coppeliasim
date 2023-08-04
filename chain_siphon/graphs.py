@@ -165,12 +165,12 @@ for folder in os.listdir(ROOT):
     data_dict, data = datadict_from_folder(folder_dir)
     if data_dict is None:
         continue
-
+    
     keys = list(data_dict.keys())
     keys.sort()
 
     trials = np.array([data_dict[entry]['trials'] for entry in keys])
-
+    
     label = folder
     if label in name_mapping:
         label = name_mapping[label]
