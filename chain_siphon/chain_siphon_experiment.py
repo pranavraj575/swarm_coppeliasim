@@ -273,7 +273,7 @@ for t in range(trials):
         print()
         just_skipped = False
     print('trial:', t)
-    agent_range = (1, 31)
+    agent_range = (1, 3)
     for mode in ('LJP',
                  'chain',
                  'control',
