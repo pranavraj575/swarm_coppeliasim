@@ -61,7 +61,7 @@ for (plotting, PROP) in (('failed', False), ('failed', True), ('successful', Fal
         if PROP:
             y = values/keys
         else:
-            y=values
+            y = values
         var = np.array([data_dict[entry]['var'] for entry in keys])
         trials = np.array([data_dict[entry]['trials'] for entry in keys])
         stdev = np.sqrt(var)
