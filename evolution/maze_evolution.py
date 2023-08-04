@@ -12,11 +12,26 @@ PARSER.add_argument("--height", type=int, required=False, default=5,
                     help="height of maze")
 PARSER.add_argument("--width", type=int, required=False, default=5,
                     help="width of maze")
+
 PARSER.add_argument("--range", type=float, required=False, default=5.,
                     help="range to detect neighbors")
 
+PARSER.add_argument("--trials_fun", action='store', required=False, default='min',
+                    help="take this action over the trials (from --goal_fun <min, max, mean>)")
+
 args = PARSER.parse_args()
 check_basic(args=args)
+
+trf = args.trials_fun
+if trf == 'max':
+    trials_fun = np.max
+elif trf == 'min':
+    trials_fun = np.min
+elif trf == 'mean':
+    trials_fun = np.min
+else:
+    raise Exception('--goal fun must be from ["max", "min", "mean"]')
+
 AGENTS = args.agents
 RANGE = args.range
 
@@ -84,6 +99,7 @@ def expe_make(net, sim=None, port=23000, wakeup=None):
                            blimpPath=narrow_blimp_path,
                            networkfn=net.activate,
                            end_time=END,
+                           trials_fun=trials_fun,
                            rng=RANGE,
                            grid_size=2,
                            maze_entry_gen=make_maze,
@@ -103,7 +119,8 @@ def optimal_policy(inputs):
     return np.zeros(2)
 
 
-save_name = str(AGENTS) + '_blimp_' + str(H) + 'x' + str(W) + 'maze_max_goal_new_range_' + str(RANGE).replace('.', '_')
+save_name = str(AGENTS) + '_blimp_' + str(H) + 'x' + str(W) + 'maze_' + trf + '_of_trials_range_' + str(RANGE).replace(
+    '.', '_')
 config_name = 'blimp_maze'
 
 experiment_handler(args=args,

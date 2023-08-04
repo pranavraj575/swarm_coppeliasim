@@ -263,7 +263,7 @@ class aMazeBlimp(xyBlimp):
         self.cell_handle = self.spawnModel(self.cellPath,
                                            pos_rng=lambda: cell_loc,
                                            spawn_tries=1,
-                                           orient_rng=lambda:maze_dict['entry_orientation'])
+                                           orient_rng=lambda: maze_dict['entry_orientation'])
         if 'exit_wall' in maze_dict:
             if maze_dict['exit_wall'] == 'top':
                 exit_cell_loc += v_shift
@@ -273,9 +273,9 @@ class aMazeBlimp(xyBlimp):
                 exit_cell_loc -= h_shift
             else:
                 exit_cell_loc += h_shift
-            self.exit_cell_handle = self.spawnModel(self.cellPath,pos_rng= lambda: exit_cell_loc,
+            self.exit_cell_handle = self.spawnModel(self.cellPath, pos_rng=lambda: exit_cell_loc,
                                                     spawn_tries=1,
-                                                    orient_rng=lambda:maze_dict['exit_orientation'])
+                                                    orient_rng=lambda: maze_dict['exit_orientation'])
         if self.cover_dir is not None:
             h = self.maze.num_rows*self.grid_size
             if int(h) == h:
@@ -452,6 +452,7 @@ class amazingBlimp(aMazeBlimp):
                  grid_size,
                  wall_spawn_height,
                  end_time,
+                 trials_fun,
                  cell_filename='round_cell_of_holding.ttm',
                  cell_center_offset=(0, 5),
                  cell_radius=3,
@@ -483,6 +484,8 @@ class amazingBlimp(aMazeBlimp):
         @param grid_size: size of grid in m (should also match horizontal length of wall)
         @param wall_spawn_height: height to spawn wall
         @param end_time: time to end experiment
+        @param trials_fun: function to apply to the trials to get final fitness
+            usually max, mean, or min
         @param cell_filename: filename that holding cell is saved as, will be searched for under wall_dir
         @param cell_center_offset: x,y offset of the 'center' of the starting cell from the gate
             used for spawning blimps
@@ -523,6 +526,7 @@ class amazingBlimp(aMazeBlimp):
             sleeptime=sleeptime,
             spawn_tries=spawn_tries)
         self.rng = rng
+        self.trials_fun = trials_fun
 
     ####################################################################################################################
     # agent functions
@@ -587,6 +591,20 @@ class amazingBlimp(aMazeBlimp):
                 return None
         return np.mean(s)
 
+    def experiments(self, trials):
+        """
+        runs multiple experiments, resetting scene at start of each one
+
+        @param trials: number of experiments to run
+        @return: returns list of results of self.goal_data for each trial
+
+        @note: applies self.trials_fun to the result before returning
+        """
+        trials = super().experiments(trials)
+        if trials is None:
+            return None
+        return [self.trials_fun(trials) for _ in trials]
+
 
 class maxAmazingBlimp(amazingBlimp):
     def __init__(self,
@@ -601,6 +619,7 @@ class maxAmazingBlimp(amazingBlimp):
                  grid_size,
                  wall_spawn_height,
                  end_time,
+                 trials_fun,
                  cell_filename='round_cell_of_holding.ttm',
                  cover_dir=os.path.join(DIR, 'models', 'covers'),
                  rng=2,
@@ -631,6 +650,8 @@ class maxAmazingBlimp(amazingBlimp):
         @param grid_size: size of grid in m (should also match horizontal length of wall)
         @param wall_spawn_height: height to spawn wall
         @param end_time: time to end experiment
+        @param trials_fun: function to apply to the trials to get final fitness
+            usually max, mean, or min
         @param cell_filename: filename that holding cell is saved as, will be searched for under wall_dir
         @param cover_dir: directory for lid of maze, None if no lid
             files should look like '5x5.ttm'
@@ -655,6 +676,7 @@ class maxAmazingBlimp(amazingBlimp):
                          grid_size=grid_size,
                          wall_spawn_height=wall_spawn_height,
                          end_time=end_time,
+                         trials_fun=trials_fun,
                          cell_filename=cell_filename,
                          cover_dir=cover_dir,
                          rng=rng,
@@ -697,7 +719,7 @@ class maxAmazingBlimp(amazingBlimp):
             bug = self.get_state(agent_id)["DEBUG"]
             if bug == 0.:
                 return None
-        return furthest # better to not worry about number completed
+        return furthest  # better to not worry about number completed
         return completed + furthest  # completed is positive iff furthest is 0
 
 
@@ -714,6 +736,7 @@ class ecosystemMaxAmazingBlimp(maxAmazingBlimp):
                  grid_size,
                  wall_spawn_height,
                  end_time,
+                 trials_fun,
                  cell_filename='round_cell_of_holding.ttm',
                  cover_dir=os.path.join(DIR, 'models', 'covers'),
                  rng=2,
@@ -746,6 +769,8 @@ class ecosystemMaxAmazingBlimp(maxAmazingBlimp):
         @param grid_size: size of grid in m (should also match horizontal length of wall)
         @param wall_spawn_height: height to spawn wall
         @param end_time: time to end experiment
+        @param trials_fun: function to apply to the trials to get final fitness
+            usually max, mean, or min
         @param cell_filename: filename that holding cell is saved as, will be searched for under wall_dir
         @param cover_dir: directory for lid of maze, None if no lid
             files should look like '5x5.ttm'
@@ -770,6 +795,7 @@ class ecosystemMaxAmazingBlimp(maxAmazingBlimp):
                          grid_size=grid_size,
                          wall_spawn_height=wall_spawn_height,
                          end_time=end_time,
+                         trials_fun=trials_fun,
                          cell_filename=cell_filename,
                          cover_dir=cover_dir,
                          rng=rng,
@@ -822,6 +848,7 @@ class dist_sense_max_amazing_blimp(maxAmazingBlimp):
                  grid_size,
                  wall_spawn_height,
                  end_time,
+                 trials_fun,
                  cell_filename='round_cell_of_holding.ttm',
                  cover_dir=os.path.join(DIR, 'models', 'covers'),
                  height_factor=.2,
@@ -850,6 +877,8 @@ class dist_sense_max_amazing_blimp(maxAmazingBlimp):
         @param grid_size: size of grid in m (should also match horizontal length of wall)
         @param wall_spawn_height: height to spawn wall
         @param end_time: time to end experiment
+        @param trials_fun: function to apply to the trials to get final fitness
+            usually max, mean, or min
         @param cell_filename: filename that holding cell is saved as, will be searched for under wall_dir
         @param cover_dir: directory for lid of maze, None if no lid
             files should look like '5x5.ttm'
@@ -873,6 +902,7 @@ class dist_sense_max_amazing_blimp(maxAmazingBlimp):
                          grid_size=grid_size,
                          wall_spawn_height=wall_spawn_height,
                          end_time=end_time,
+                         trials_fun=trials_fun,
                          cell_filename=cell_filename,
                          cover_dir=cover_dir,
                          rng=float('inf'),
