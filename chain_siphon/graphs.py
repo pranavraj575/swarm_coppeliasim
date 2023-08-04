@@ -178,6 +178,7 @@ for folder in os.listdir(ROOT):
     plt.plot(keys, trials, alpha=.5, label=label)
     plt.xlabel('Number of agents')
     plt.xlim(0,plt.xlim()[1])
+    plt.ylim(0,plt.ylim()[1])
     plt.ylabel('Trials run')
 
 plt.legend(loc='upper center', bbox_to_anchor=(0.5, 1.15), ncol=4)
