@@ -89,9 +89,8 @@ def expe_make(net, sim=None, port=23000, wakeup=None):
     )
 
 
-def optimal_policy2d(inputs):
+def optimal_policy(inputs):
     k = len(inputs) - 2*args.obstacles
-    # TODO: THIS
     goal_seeking = .6
     vec_neigh = np.zeros(2)
     for i in range(k):
