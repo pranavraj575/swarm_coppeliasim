@@ -225,7 +225,7 @@ def aggregate_plots(directory, target_dir, delete=False):
         plot_dir = os.path.join(directory, folder, 'plots')
         if os.path.exists(plot_dir):
             for plot in os.listdir(plot_dir):
-                if plot.endswith('.png'):
+                if plot.endswith('all.png'): # only the all plots
                     plot_file = os.path.join(plot_dir, plot)
                     shutil.copyfile(plot_file, os.path.join(target_dir, folder + "_" + plot))
                     if delete:
