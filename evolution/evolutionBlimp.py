@@ -724,7 +724,7 @@ class EvolutionExperiment(GeneralEvolutionaryExperiment):
         @param websocket_port: port to use for websocket
         @return: result of src.Experiment.experiments
         """
-        if self.MOST_RECENT(self.checkpt_dir) is None:
+        if self.MOST_RECENT(self.checkpt_dir) is None and network_to_use is None:
             raise Exception("DIRECTORY EMPTY: " + self.checkpt_dir)
 
         cmd = COPPELIA_WAKEUP + ('' if display else ' -h') + \
@@ -733,10 +733,10 @@ class EvolutionExperiment(GeneralEvolutionaryExperiment):
         wakeup = [cmd]
         all_goals = []
         for index in gen_indices:
-            path = os.path.join(self.checkpt_dir, self.MOST_RECENT(self.checkpt_dir)[index])
-            p = self.restore_checkpoint(path)
-            print("DISPLAYING:", path)
             if network_to_use is None:
+                path = os.path.join(self.checkpt_dir, self.MOST_RECENT(self.checkpt_dir)[index])
+                p = self.restore_checkpoint(path)
+                print("DISPLAYING:", path)
                 winner = max([p.population[g] for g in p.population], key=lambda genome: genome.fitness)
                 network = neat.nn.FeedForwardNetwork.create(winner, self.config)
             else:
@@ -937,7 +937,7 @@ class EcosystemEvolutionExperiment(GeneralEvolutionaryExperiment):
         @param websocket_port: port to use for websocket
         @return: result of src.Experiment.experiments
         """
-        if self.MOST_RECENT(self.checkpt_dir) is None:
+        if self.MOST_RECENT(self.checkpt_dir) is None and network_to_use is None:
             raise Exception("DIRECTORY EMPTY: " + self.checkpt_dir)
 
         cmd = COPPELIA_WAKEUP + ('' if display else ' -h') + \
@@ -946,17 +946,20 @@ class EcosystemEvolutionExperiment(GeneralEvolutionaryExperiment):
         wakeup = [cmd]
         all_goals = []
         for index in gen_indices:
-            path = os.path.join(self.checkpt_dir, self.MOST_RECENT(self.checkpt_dir)[index])
-            p = self.restore_checkpoint(path)
-            print("DISPLAYING:", path)
-            global_population = []
-            for genome_id in p.population:
-                global_population.append(p.population[genome_id])
+            if network_to_use is None:
+                path = os.path.join(self.checkpt_dir, self.MOST_RECENT(self.checkpt_dir)[index])
+                p = self.restore_checkpoint(path)
+                print("DISPLAYING:", path)
+                global_population = []
+                for genome_id in p.population:
+                    global_population.append(p.population[genome_id])
+            else:
+                global_population=[]
             for t in range(trials):
-                eco = []
-                for i in range(self.num_agents):
-                    eco.append(global_population[np.random.randint(0, len(global_population))])
                 if network_to_use is None:
+                    eco = []
+                    for i in range(self.num_agents):
+                        eco.append(global_population[np.random.randint(0, len(global_population))])
                     networks = [neat.nn.FeedForwardNetwork.create(genome, self.config) for genome in eco]
                     net_fun = lambda i: networks[i]
                 else:

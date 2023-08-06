@@ -94,6 +94,7 @@ def expe_make(net, sim=None, port=23000, wakeup=None):
                                         blimpPath=narrow_blimp_path,
                                         networkfn=net.activate,
                                         end_time=END,
+                                        start_squares=3,
                                         trials_fun=trials_fun,
                                         grid_size=2,
                                         maze_entry_gen=make_maze,

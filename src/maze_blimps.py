@@ -20,9 +20,7 @@ class aMazeBlimp(xyBlimp):
                  grid_size,
                  wall_spawn_height,
                  end_time,
-                 cell_filename='round_cell_of_holding.ttm',
-                 cell_center_offset=(0, 5),
-                 cell_radius=3,
+                 start_squares=4,
                  cover_dir=os.path.join(DIR, 'models', 'covers'),
                  height_factor=.2,
                  sim=None,
@@ -55,10 +53,7 @@ class aMazeBlimp(xyBlimp):
         @param grid_size: size of grid in m (should also match horizontal length of wall)
         @param wall_spawn_height: height to spawn wall
         @param end_time: time to end experiment
-        @param cell_filename: filename that holding cell is saved as, will be searched for under wall_dir
-        @param cell_center_offset: x,y offset of the 'center' of the starting cell from the gate
-            used for spawning blimps
-        @param cell_radius: radius to spawn blimps from cell center to still be within cell
+        @param start_squares: number of squares for the starting area
         @param cover_dir: directory for lid of maze, None if no lid
             files should look like '5x5.ttm'
         @param height_factor: factor to multiply height adjust by
@@ -91,14 +86,12 @@ class aMazeBlimp(xyBlimp):
         self.wall_handles = []
         self.wall_spawn_height = wall_spawn_height
         self.end_time = end_time
-        self.cell_handle = None
+
         self.exit_cell_handle = None
         self.walls_to_handle = None
         self.wall_dir = wall_dir
         self.cover_dir = cover_dir
-        self.cellPath = os.path.join(self.wall_dir, cell_filename)
-        self.cell_radius = cell_radius
-        self.cell_center_offset = cell_center_offset
+        self.start_squares = start_squares
         self.len_to_wall = dict()
         self.still_at_spawn = None
         for fn in os.listdir(self.wall_dir):
@@ -159,6 +152,8 @@ class aMazeBlimp(xyBlimp):
         # manager.add_existing_maze(self.maze)
         # manager.show_maze(self.maze.id)
         self.walls_to_handle = dict()
+        self.maze_exit = maze_dict['exit']
+        self.maze_entry = maze_dict['entry']
         h_shift = np.array((self.grid_size/2, 0., 0.))
         v_shift = np.array((0., self.grid_size/2, 0.))
         cell_loc = np.array((maze_dict['entry'][1]*self.grid_size + self.grid_size/2,
@@ -233,37 +228,89 @@ class aMazeBlimp(xyBlimp):
                     self.walls_to_handle[w] = hand
                     self.walls_to_handle[self.wall_pair(w)] = hand
                 walls = walls[len(used):]
-        cell_offset = self.cell_center_offset
+
+        spawn_locs1 = []
+        spawn_locs2 = []
+        top_loc = cell_loc
+        spawn_cell = cell_loc + 0.
+        temp_i, temp_j = maze_dict['entry']
+
+        xmin, xmax = cell_loc[0] - self.grid_size/2, cell_loc[0] + self.grid_size/2
+        ymin, ymax = cell_loc[1] - self.grid_size/2, cell_loc[1] + self.grid_size/2
+
+        spawn_cells = []
+
+        for k in range(self.start_squares):
+            if maze_dict['entry_wall'] == 'top':
+                spawn_cell += 2*v_shift
+                spawn_locs1.append(spawn_cell + h_shift)
+                spawn_locs2.append(spawn_cell - h_shift)
+                top_loc = spawn_cell + v_shift
+                ymax = top_loc[1]
+                temp_i -= 1
+            elif maze_dict['entry_wall'] == 'bottom':
+                spawn_cell -= 2*v_shift
+                spawn_locs1.append(spawn_cell + h_shift)
+                spawn_locs2.append(spawn_cell - h_shift)
+                top_loc = spawn_cell - v_shift
+                ymin = top_loc[1]
+                temp_i += 1
+            elif maze_dict['entry_wall'] == 'left':
+                spawn_cell -= 2*h_shift
+                spawn_locs1.append(spawn_cell + v_shift)
+                spawn_locs2.append(spawn_cell - v_shift)
+                top_loc = spawn_cell - h_shift
+                xmin = top_loc[0]
+                temp_j -= 1
+            else:
+                spawn_cell += 2*h_shift
+                spawn_locs1.append(spawn_cell + v_shift)
+                spawn_locs2.append(spawn_cell - v_shift)
+                top_loc = spawn_cell + h_shift
+                xmax = top_loc[0]
+                temp_j += 1
+            self.spawn_hat(spawn_cell)
+            spawn_cells.append((temp_i, temp_j))
+
+        if maze_dict['entry_wall'] in ('top', 'bottom'):
+            cap_orientation = (0, 0, 0)
+            hall_orient = (0, 0, np.pi/2)
+            hall_walls = ('left', 'right')
+        else:
+            cap_orientation = (0, 0, np.pi/2)
+            hall_orient = (0, 0, 0)
+            hall_walls = ('top', 'bottom')
+        one = self.spawn_best_wall(locs=spawn_locs1, orientation=hall_orient)
+        for i, j in spawn_cells:
+            self.walls_to_handle[(i, j, hall_walls[0])] = one
+            self.walls_to_handle[self.wall_pair((i, j, hall_walls[0]))] = one
+        two = self.spawn_best_wall(locs=spawn_locs2, orientation=hall_orient)
+        for i, j in spawn_cells:
+            self.walls_to_handle[(i, j, hall_walls[1])] = two
+            self.walls_to_handle[self.wall_pair((i, j, hall_walls[1]))] = two
+        three = self.spawn_best_wall(locs=[top_loc], orientation=cap_orientation)
+        self.walls_to_handle[(temp_i, temp_j, maze_dict['entry_wall'])] = three
+        self.walls_to_handle[self.wall_pair((temp_i, temp_j, maze_dict['entry_wall']))] = three
+
         if maze_dict['entry_wall'] == 'top':
             cell_loc += v_shift
-            cell_offset = np.array(cell_offset)  # offset for now
             self.still_at_spawn = lambda pos: pos[1] >= cell_loc[1]
         elif maze_dict['entry_wall'] == 'bottom':
             cell_loc -= v_shift
-            cell_offset = np.array((-cell_offset[0], -cell_offset[1]))
             self.still_at_spawn = lambda pos: pos[1] <= cell_loc[1]
         elif maze_dict['entry_wall'] == 'left':
             cell_loc -= h_shift
-            cell_offset = np.array((-cell_offset[1], cell_offset[0]))
             self.still_at_spawn = lambda pos: pos[0] <= cell_loc[0]
         else:
             cell_loc += h_shift
-            cell_offset = np.array((cell_offset[1], -cell_offset[0]))
             self.still_at_spawn = lambda pos: pos[0] >= cell_loc[0]
-        cell_center = cell_loc[:2] + cell_offset
 
         def START(i):
-            out = cell_center - 2*self.cell_radius
-            while np.linalg.norm(out - cell_center) > self.cell_radius:
-                out = cell_center + np.random.uniform(-self.cell_radius, self.cell_radius, 2)
-            return out[0], out[1], self.wall_spawn_height
+            out = np.random.uniform((xmin, ymin, self.wall_spawn_height*.5), (xmax, ymax, self.wall_spawn_height*1.5))
+            return out
 
         self.start_zone = START
 
-        self.cell_handle = self.spawnModel(self.cellPath,
-                                           pos_rng=lambda: cell_loc,
-                                           spawn_tries=1,
-                                           orient_rng=lambda: maze_dict['entry_orientation'])
         if 'exit_wall' in maze_dict:
             if maze_dict['exit_wall'] == 'top':
                 exit_cell_loc += v_shift
@@ -273,9 +320,7 @@ class aMazeBlimp(xyBlimp):
                 exit_cell_loc -= h_shift
             else:
                 exit_cell_loc += h_shift
-            self.exit_cell_handle = self.spawnModel(self.cellPath, pos_rng=lambda: exit_cell_loc,
-                                                    spawn_tries=1,
-                                                    orient_rng=lambda: maze_dict['exit_orientation'])
+
         if self.cover_dir is not None:
             h = self.maze.num_rows*self.grid_size
             if int(h) == h:
@@ -294,6 +339,30 @@ class aMazeBlimp(xyBlimp):
                                                                    ),
                                                   spawn_tries=1)
         super().spawnThings()
+
+    def spawn_hat(self, position):
+        """
+        spawns lid over a single position
+        @param position: position to spawn lid
+
+        @return: handle if lid spawned, None otherwise
+        """
+        if self.cover_dir is not None:
+            d = self.grid_size
+            if int(d) == d:
+                d = int(d)
+
+            fn = os.path.join(self.cover_dir, str(d) + 'x' + str(d) + '.ttm')
+            if not os.path.exists(fn):
+                print("ERROR: " + fn + ' does not exist, not spawning lid')
+            else:
+                return self.spawnModel(modelPath=fn,
+                                       pos_rng=lambda: (position[0],
+                                                        position[1],
+                                                        self.wall_spawn_height*2
+                                                        ),
+                                       spawn_tries=1)
+        return None
 
     ####################################################################################################################
     # Agent functions
@@ -346,6 +415,11 @@ class aMazeBlimp(xyBlimp):
 
         @return: boolean of whether the experiment is done
         """
+        for agent_id in self.agentData:
+            if self.is_connected(agent_id):
+                i, j = self.get_grid_loc(agent_id=agent_id, spin=False)
+                if (i, j) == self.maze_exit:
+                    return True
         return self.sim.getSimulationTime() > self.end_time
 
     ####################################################################################################################
@@ -452,10 +526,8 @@ class amazingBlimp(aMazeBlimp):
                  grid_size,
                  wall_spawn_height,
                  end_time,
+                 start_squares,
                  trials_fun,
-                 cell_filename='round_cell_of_holding.ttm',
-                 cell_center_offset=(0, 5),
-                 cell_radius=3,
                  cover_dir=os.path.join(DIR, 'models', 'covers'),
                  rng=2.,
                  height_factor=.2,
@@ -484,6 +556,7 @@ class amazingBlimp(aMazeBlimp):
         @param grid_size: size of grid in m (should also match horizontal length of wall)
         @param wall_spawn_height: height to spawn wall
         @param end_time: time to end experiment
+        @param start_squares: number of squares for the starting area
         @param trials_fun: function to apply to the trials to get final fitness
             usually max, mean, or min
         @param cell_filename: filename that holding cell is saved as, will be searched for under wall_dir
@@ -511,13 +584,11 @@ class amazingBlimp(aMazeBlimp):
             use_ultra=use_ultra,
             maze_entry_gen=maze_entry_gen,
             wall_dir=wall_dir,
-            cell_filename=cell_filename,
-            cell_center_offset=cell_center_offset,
-            cell_radius=cell_radius,
             cover_dir=cover_dir,
             grid_size=grid_size,
             wall_spawn_height=wall_spawn_height,
             end_time=end_time,
+            start_squares=start_squares,
             height_factor=height_factor,
             sim=sim,
             simId=simId,
@@ -619,8 +690,8 @@ class maxAmazingBlimp(amazingBlimp):
                  grid_size,
                  wall_spawn_height,
                  end_time,
+                 start_squares,
                  trials_fun,
-                 cell_filename='round_cell_of_holding.ttm',
                  cover_dir=os.path.join(DIR, 'models', 'covers'),
                  rng=2,
                  height_factor=.2,
@@ -650,9 +721,9 @@ class maxAmazingBlimp(amazingBlimp):
         @param grid_size: size of grid in m (should also match horizontal length of wall)
         @param wall_spawn_height: height to spawn wall
         @param end_time: time to end experiment
+        @param start_squares: number of squares for the starting area
         @param trials_fun: function to apply to the trials to get final fitness
             usually max, mean, or min
-        @param cell_filename: filename that holding cell is saved as, will be searched for under wall_dir
         @param cover_dir: directory for lid of maze, None if no lid
             files should look like '5x5.ttm'
         @param rng: range to sense neighbors
@@ -676,8 +747,8 @@ class maxAmazingBlimp(amazingBlimp):
                          grid_size=grid_size,
                          wall_spawn_height=wall_spawn_height,
                          end_time=end_time,
+                         start_squares=start_squares,
                          trials_fun=trials_fun,
-                         cell_filename=cell_filename,
                          cover_dir=cover_dir,
                          rng=rng,
                          height_factor=height_factor,
@@ -736,8 +807,8 @@ class ecosystemMaxAmazingBlimp(maxAmazingBlimp):
                  grid_size,
                  wall_spawn_height,
                  end_time,
+                 start_squares,
                  trials_fun,
-                 cell_filename='round_cell_of_holding.ttm',
                  cover_dir=os.path.join(DIR, 'models', 'covers'),
                  rng=2,
                  height_factor=.2,
@@ -769,9 +840,9 @@ class ecosystemMaxAmazingBlimp(maxAmazingBlimp):
         @param grid_size: size of grid in m (should also match horizontal length of wall)
         @param wall_spawn_height: height to spawn wall
         @param end_time: time to end experiment
+        @param start_squares: number of squares for the starting area
         @param trials_fun: function to apply to the trials to get final fitness
             usually max, mean, or min
-        @param cell_filename: filename that holding cell is saved as, will be searched for under wall_dir
         @param cover_dir: directory for lid of maze, None if no lid
             files should look like '5x5.ttm'
         @param rng: range to sense neighbors
@@ -795,8 +866,8 @@ class ecosystemMaxAmazingBlimp(maxAmazingBlimp):
                          grid_size=grid_size,
                          wall_spawn_height=wall_spawn_height,
                          end_time=end_time,
+                         start_squares=start_squares,
                          trials_fun=trials_fun,
-                         cell_filename=cell_filename,
                          cover_dir=cover_dir,
                          rng=rng,
                          height_factor=height_factor,
@@ -848,8 +919,8 @@ class dist_sense_max_amazing_blimp(maxAmazingBlimp):
                  grid_size,
                  wall_spawn_height,
                  end_time,
+                 start_squares,
                  trials_fun,
-                 cell_filename='round_cell_of_holding.ttm',
                  cover_dir=os.path.join(DIR, 'models', 'covers'),
                  height_factor=.2,
                  sim=None,
@@ -877,9 +948,9 @@ class dist_sense_max_amazing_blimp(maxAmazingBlimp):
         @param grid_size: size of grid in m (should also match horizontal length of wall)
         @param wall_spawn_height: height to spawn wall
         @param end_time: time to end experiment
+        @param start_squares: number of squares for the starting area
         @param trials_fun: function to apply to the trials to get final fitness
             usually max, mean, or min
-        @param cell_filename: filename that holding cell is saved as, will be searched for under wall_dir
         @param cover_dir: directory for lid of maze, None if no lid
             files should look like '5x5.ttm'
         @param height_factor: factor to multiply height adjust by
@@ -902,8 +973,8 @@ class dist_sense_max_amazing_blimp(maxAmazingBlimp):
                          grid_size=grid_size,
                          wall_spawn_height=wall_spawn_height,
                          end_time=end_time,
+                         start_squares=start_squares,
                          trials_fun=trials_fun,
-                         cell_filename=cell_filename,
                          cover_dir=cover_dir,
                          rng=float('inf'),
                          height_factor=height_factor,
@@ -938,13 +1009,6 @@ if __name__ == "__main__":
     R = 2.7
 
 
-    def START_ZONE(i):
-        out = CENTER - 2*R
-        while np.linalg.norm(out - CENTER) > R:
-            out = CENTER + np.random.uniform(-R, R, 2)
-        return (out[0], out[1], 1)
-
-
     def make_maze():
         mm = Maze(H, W, entry=ENTRY, exit=EXIT)
         entry = mm.entry_coor
@@ -977,7 +1041,7 @@ if __name__ == "__main__":
                 'exit_orientation': (0, 0, orientations[1]), }
 
 
-    bb = amazingBlimp(num_agents=5,
+    bb = amazingBlimp(num_agents=20,
                       scenePath=maze_view_path,
                       blimpPath=narrow_blimp_path,
                       networkfn=lambda x: (.5, 0),
@@ -986,8 +1050,10 @@ if __name__ == "__main__":
                       maze_entry_gen=make_maze,
                       wall_dir=wall_path,
                       end_time=100,
+                      start_squares=4,
                       grid_size=D,
                       wakeup=[COPPELIA_WAKEUP],
-                      wall_spawn_height=1.5)
+                      wall_spawn_height=1.5,
+                      trials_fun=np.min)
     print(bb.experiments(2))
     bb.kill()

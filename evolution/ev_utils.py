@@ -46,7 +46,7 @@ def experiment_handler(args, save_name, config_name, exp_maker, Constructor, opt
     if not os.path.exists(checkpt_dir):
         if args.create:
             os.makedirs(checkpt_dir)
-        else:
+        elif not (not args.generations and args.show_optimal):  # if its not the case that we are just showing optimal
             raise Exception("DIRECTORY DOES NOT EXIST (try running with --create): " + checkpt_dir)
 
     if Constructor is EvolutionExperiment:
@@ -225,7 +225,7 @@ def aggregate_plots(directory, target_dir, delete=False):
         plot_dir = os.path.join(directory, folder, 'plots')
         if os.path.exists(plot_dir):
             for plot in os.listdir(plot_dir):
-                if plot.endswith('all.png'): # only the all plots
+                if plot.endswith('all.png'):  # only the all plots
                     plot_file = os.path.join(plot_dir, plot)
                     shutil.copyfile(plot_file, os.path.join(target_dir, folder + "_" + plot))
                     if delete:

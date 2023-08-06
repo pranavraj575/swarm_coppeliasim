@@ -99,6 +99,7 @@ def expe_make(net, sim=None, port=23000, wakeup=None):
                            blimpPath=narrow_blimp_path,
                            networkfn=net.activate,
                            end_time=END,
+                           start_squares=4,
                            trials_fun=trials_fun,
                            rng=RANGE,
                            grid_size=2,

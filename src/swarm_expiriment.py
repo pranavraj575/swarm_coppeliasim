@@ -17,7 +17,7 @@ with  open(msgfile) as f:
 
 frictionless_wall_path = os.path.join(DIR, 'scenes', 'FrictionlessWallClimb.ttt')
 wall_climb_path = os.path.join(DIR, 'scenes', 'WallClimb.ttt')
-wall_climb_undetect_path=os.path.join(DIR,'scenes','WallClimbUndetectable.ttt')
+wall_climb_undetect_path = os.path.join(DIR, 'scenes', 'WallClimbUndetectable.ttt')
 caged_wall_climb_path = os.path.join(DIR, 'scenes', 'wall_climb_caged.ttt')
 cage_arena_path = os.path.join(DIR, 'scenes', 'cage_arena_better.ttt')
 anki_arena_path = os.path.join(DIR, 'scenes', 'ankiArena.ttt')
@@ -52,9 +52,9 @@ class Experiment:
             if None, uses simId and current time to create a hopefully unique one
         """
         if random_seed is None:
-            t=str(time.time())
-            t=t[t.index('.')+1:]
-            np.random.seed(int(t+str(simId))%2**32)
+            t = str(time.time())
+            t = t[t.index('.') + 1:]
+            np.random.seed(int(t + str(simId))%2**32)
 
         self.scenePath = scenePath
         self.sleeptime = sleeptime
@@ -217,8 +217,8 @@ class Experiment:
                 Pos.append(float(rng[k]))
         self.sim.setObjectPosition(handle, -1, Pos)
         if orient_rng is not None:
-            Orient=[]
-            rng=orient_rng()
+            Orient = []
+            rng = orient_rng()
             for k in range(3):
                 try:
                     Orient.append(np.random.uniform(rng[k][0], rng[k][1]))
@@ -635,6 +635,17 @@ class BlimpExperiment(Experiment):
 
         self.agentData[agent_id]['vec_publisher'].publish(msgTwist)
 
+    def is_connected(self, agent_id):
+        """
+        returns if the agent state has been read by ROS
+
+        @param agent_id: agent id
+
+        @return: boolean on if state has been seen
+        """
+        s = self.get_state(agent_id=agent_id, spin=False)
+        return bool(s["DEBUG"])
+
     def get_state(self, agent_id, spin=True):
         """
         returns state of agent
@@ -902,7 +913,7 @@ class AnkiExperiment(Experiment):
             this_agent['agentHandle'] = self.spawnModel(self.modelPath,
                                                         lambda: self.start_zone(i),
                                                         1,
-                                                        orient_rng=lambda:(0,0,(0,2*np.pi)))
+                                                        orient_rng=lambda: (0, 0, (0, 2*np.pi)))
             for _ in range(self.spawn_tries):
                 pos = np.array(self.sim.getObjectPosition(this_agent['agentHandle'], self.sim.handle_world))
                 done = True
@@ -914,7 +925,7 @@ class AnkiExperiment(Experiment):
                     positions.append(pos)
                     break
                 self.moveObject(this_agent['agentHandle'], lambda: self.start_zone(i),
-                                orient_rng=lambda:(0,0,(0,2*np.pi)))
+                                orient_rng=lambda: (0, 0, (0, 2*np.pi)))
 
             this_agent['agent_id'] = i
 
@@ -1338,7 +1349,7 @@ class CopterExperiment(Experiment):
             this_agent = dict()
             this_agent['agentHandle'] = self.spawnModel(self.modelPath,
                                                         lambda: self.start_zone(i), self.spawn_tries,
-                                                        orient_rng=lambda:(0, 0, 90))
+                                                        orient_rng=lambda: (0, 0, 90))
             this_agent['agent_id'] = i
 
             unique = str(time.time()).replace('.', '_')
