@@ -110,7 +110,7 @@ for (plotting, PROP) in (('failed', False), ('failed', True), ('successful', Fal
             high = np.min((y + conf, [(1 if PROP else i) for i in range(1, 1 + len(y))]), axis=0)
             plt.fill_between(keys, low, high,
                              alpha=.35,
-                             color='gray', label=bar_label
+                             #color='gray', label=bar_label
                              )
             if bar_label is not None:
                 legend_entries += 1
