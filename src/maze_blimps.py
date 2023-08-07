@@ -474,6 +474,15 @@ class aMazeBlimp(xyBlimp):
         """
         return any(wall in self.walls_to_handle for wall in self.all_walls_btwn(pos0, pos1))
 
+    def walls_of(self, cell):
+        """
+        returns walls in cell in order right, top, left, bottom
+        @param cell: (i,j)
+        @return [0,1]^4, 1 if wall, 0 if none
+        """
+        return np.array(
+            [int((cell[0], cell[1], direct) in self.walls_to_handle) for direct in ('right', 'top', 'left', 'bottom')])
+
     def all_walls_btwn(self, pos0, pos1):
         """
         generator, yields all possible walls between pos0 and pos1
@@ -999,6 +1008,99 @@ class dist_sense_max_amazing_blimp(maxAmazingBlimp):
         k_tant = self.global_get_inv_dist_2d_k_tant(agent_id, is_neigh=self.agent_sight, k=8, spin=True)
         return k_tant.reshape((-1, 1))
 
+class wall_dist_sense_max_amazing_blimp(dist_sense_max_amazing_blimp):
+    def __init__(self,
+                 num_agents,
+                 scenePath,
+                 blimpPath,
+                 networkfn,
+                 height_range,
+                 use_ultra,
+                 maze_entry_gen,
+                 wall_dir,
+                 grid_size,
+                 wall_spawn_height,
+                 end_time,
+                 start_squares,
+                 trials_fun,
+                 cover_dir=os.path.join(DIR, 'models', 'covers'),
+                 height_factor=.2,
+                 sim=None,
+                 simId=23000,
+                 msg_queue=10,
+                 wakeup=None,
+                 sleeptime=.01,
+                 spawn_tries=100):
+        """
+        max blimp except blimps sense distance to neighbors instead of number of blimps nearby
+
+        @param num_agents: number of blimps in this swarm expiriment
+        @param scenePath: path to coppeliasim scene
+        @param blimpPath: path to blimp for spawning
+        @param networkfn: neural network function call for blimp to act
+        @param height_range: R^2, height range to keep blimps at
+        @param use_ultra: whether to use ultrasound to set height (and as network input)
+        @param maze_entry_gen: () -> dict, generates a dictionary, required keys are
+                'maze': pymaze.src.Maze,
+                'entry': location of entry
+                'orientation': orientation of entry
+                'wall': wall to enter maze in (should be redundant)
+                'exit': location of exit
+        @param wall_dir: path to the wall directory (files should look like 2x3.ttm)
+        @param grid_size: size of grid in m (should also match horizontal length of wall)
+        @param wall_spawn_height: height to spawn wall
+        @param end_time: time to end experiment
+        @param start_squares: number of squares for the starting area
+        @param trials_fun: function to apply to the trials to get final fitness
+            usually max, mean, or min
+        @param cover_dir: directory for lid of maze, None if no lid
+            files should look like '5x5.ttm'
+        @param height_factor: factor to multiply height adjust by
+        @param sim: simulator, if already defined
+        @param simId: simulator id, used to pass messages to correct topics
+        @param msg_queue: queue length of ROS messages
+        @param wakeup: code to run in command line before starting experiment
+        @param sleeptime: time to wait before big commands (i.e. stop simulation, start simulation, pause simulation)
+        @param spawn_tries: number of tries to spawn without collisions before giving up
+                if 1, then sets position, does not change if collision detected
+        """
+        super().__init__(num_agents=num_agents,
+                         scenePath=scenePath,
+                         blimpPath=blimpPath,
+                         networkfn=networkfn,
+                         height_range=height_range,
+                         use_ultra=use_ultra,
+                         maze_entry_gen=maze_entry_gen,
+                         wall_dir=wall_dir,
+                         grid_size=grid_size,
+                         wall_spawn_height=wall_spawn_height,
+                         end_time=end_time,
+                         start_squares=start_squares,
+                         trials_fun=trials_fun,
+                         cover_dir=cover_dir,
+                         height_factor=height_factor,
+                         sim=sim,
+                         simId=simId,
+                         msg_queue=msg_queue,
+                         wakeup=wakeup,
+                         sleeptime=sleeptime,
+                         spawn_tries=spawn_tries)
+
+    ####################################################################################################################
+    # network functions
+    ####################################################################################################################
+    def get_network_input(self, agent_id):
+        """
+        gets the network input for agent specified
+
+        @param agent_id: agent to get input for
+        @return: R^(l*k) np array
+        """
+
+        k_tant = self.global_get_inv_dist_2d_k_tant(agent_id, is_neigh=self.agent_sight, k=8, spin=True)
+        cell=self.get_grid_loc(agent_id=agent_id,spin=False)
+        walls=self.walls_of(cell)
+        return np.concatenate([k_tant,walls])
 
 if __name__ == "__main__":
     H, W = (5, 5)
