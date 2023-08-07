@@ -8,7 +8,9 @@ except:
 
 DIR = os.path.dirname(os.path.join(os.getcwd(), os.path.dirname(sys.argv[0])))
 
-PLOT_KEYS = ['best_fitness', 'min_fitness']
+PLOT_KEYS = ['best_fitness',
+            #    'min_fitness'
+            ]
 PAIR_KEYS = [('mean_fitness', 'stdev_fitness')]
 VALID_KEYS = list(tuple(PLOT_KEYS))
 for mean, std in PAIR_KEYS:
