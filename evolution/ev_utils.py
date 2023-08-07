@@ -114,7 +114,7 @@ def experiment_handler(args, save_name, config_name, exp_maker, Constructor, opt
                  std_key_list=std_key_list,
                  show=args.show,
                  file_path=os.path.join(PLOT_DIR, plot_name),
-                             gen_cap=args.show_gen
+                 gen_cap=args.show_gen
                  )
 
     if args.show_optimal:
@@ -142,12 +142,13 @@ def experiment_handler(args, save_name, config_name, exp_maker, Constructor, opt
         if os.path.exists(results_file):
             temp = open(results_file)
             for line in temp.read().strip().split('\n'):
-                data.append(line)
+                line = line.strip('[').strip(']').split(',')
+                data.append([float(v.strip()) for v in line])
             temp.close()
 
         for i in range(num):
             if len(data) > i:
-                print('SKIPPING TRIAL:', i)
+                # print('SKIPPING TRIAL:', i)
                 continue
             res = None
             while res is None:
@@ -156,6 +157,8 @@ def experiment_handler(args, save_name, config_name, exp_maker, Constructor, opt
                                               display=args.show,
                                               zmqport=zmq_def_port,
                                               websocket_port=websocket_def_port)[0]
+                if res is None:
+                    print("FAILED, RETRYING")
             data.append(res)
             print("RESULT OF", i, ":", res)
             rf = open(results_file, 'w')
@@ -163,9 +166,13 @@ def experiment_handler(args, save_name, config_name, exp_maker, Constructor, opt
                 rf.write(str(line))
                 rf.write('\n')
             rf.close()
+        arr = np.array([np.mean(row) for row in data])  # some trials have copys
+        print("MEAN:", np.mean(arr))
+        print("STDEV:", np.std(arr))
+        print("SAMPLES:", len(arr))
 
 
-def plot_key(generation_dict, key_list, std_key_list=None, show=False, file_path=None, title=None,gen_cap=-1):
+def plot_key(generation_dict, key_list, std_key_list=None, show=False, file_path=None, title=None, gen_cap=-1):
     """
     plots a key from a dictionary, assuming the x values are the keys
     @param generation_dict: generation_dict[generation][key1][key2]... is the value we are plotting
@@ -183,8 +190,8 @@ def plot_key(generation_dict, key_list, std_key_list=None, show=False, file_path
         std_key_list = [None for _ in range(len(key_list))]
     X = list(generation_dict.keys())
     X.sort()
-    if gen_cap>=0:
-        X=[v for v in X if v<=gen_cap]
+    if gen_cap >= 0:
+        X = [v for v in X if v <= gen_cap]
 
     for i, key in enumerate(key_list):
         Y = []
@@ -215,7 +222,7 @@ def plot_key(generation_dict, key_list, std_key_list=None, show=False, file_path
         plt.close()
 
 
-def auto_plotter_hardly_know_her(directory,gen_cap=50):
+def auto_plotter_hardly_know_her(directory, gen_cap=50):
     """
     plots graphs for every folder in the directory
 
@@ -251,13 +258,13 @@ def auto_plotter_hardly_know_her(directory,gen_cap=50):
                      std_key_list=['stdev_fitness'],
                      show=False,
                      file_path=os.path.join(PLOT_DIR, 'mean_fitness_std.png'),
-                             gen_cap=gen_cap)
+                     gen_cap=gen_cap)
             plot_key(generation_dict=gen_dict,
                      key_list=PLOT_KEYS + [mean for mean, _ in PAIR_KEYS],
                      std_key_list=[None for _ in PLOT_KEYS] + [std for _, std in PAIR_KEYS],
                      show=False,
                      file_path=os.path.join(PLOT_DIR, 'all.png'),
-                             gen_cap=gen_cap)
+                     gen_cap=gen_cap)
         except:
             print('failed:', folder)
             continue
