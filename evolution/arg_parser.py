@@ -35,6 +35,13 @@ PARSER.add_argument("--show_optimal", action="store_true", required=False,
 PARSER.add_argument("--show_stats", action="store_true", required=False,
                     help="whether to show statistics at end (run with -g 0 to just show stats)")
 
+PARSER.add_argument("--collect_results", action="store_true", required=False,
+                    help="whether to save fitness results to a file")
+
+PARSER.add_argument("--num_to_collect", type=int, required=False, default=30,
+                    help="number of results to collect (defaults to 30)")
+
+
 PARSER.add_argument("--plot_stat", action="store", required=False, default='',
                     help="saves a graph of a specific stat under the associated checkpoints folder, --graph_stat all to graph all")
 PARSER.add_argument("--plot_std", action="store", required=False, default='',

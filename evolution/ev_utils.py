@@ -115,15 +115,53 @@ def experiment_handler(args, save_name, config_name, exp_maker, Constructor, opt
                  show=args.show,
                  file_path=os.path.join(PLOT_DIR, plot_name)
                  )
-    if args.show:
-        if args.show_optimal:
-            alt_network = optimal_policy
-        else:
-            alt_network = None
+
+    if args.show_optimal:
+        alt_network = optimal_policy
+    else:
+        alt_network = None
+    if args.show and not args.collect_results:
         print(ee.result_of_experiment(gen_indices=(args.show_gen,),
                                       network_to_use=alt_network,
                                       zmqport=zmq_def_port,
                                       websocket_port=websocket_def_port))
+    if args.collect_results:
+        num=args.num_to_collect
+        results_name='data'
+        if args.show_optimal:
+            results_name+='_optimal'
+        else:
+            results_name+='_gen_'+str(args.show_gen)
+        results_name+='.txt'
+        results_dir=os.path.join(checkpt_dir,'results')
+        if not os.path.exists(results_dir):
+            os.makedirs(results_dir)
+        results_file=os.path.join(results_dir,results_name)
+        data=[]
+        if os.path.exists(results_file):
+            temp=open(results_file)
+            for line in temp.read().strip().split('\n'):
+                data.append(line)
+            temp.close()
+
+        for i in range(num):
+            if len(data)>i:
+                print('SKIPPING TRIAL:',i)
+                continue
+            res=None
+            while res is None:
+                res=ee.result_of_experiment(gen_indices=(args.show_gen,),
+                                      network_to_use=alt_network,
+                                        display=args.show,
+                                      zmqport=zmq_def_port,
+                                      websocket_port=websocket_def_port)[0]
+            data.append(res)
+            print("RESULT OF",i,":",res)
+            rf=open(results_file,'w')
+            for line in data:
+                rf.write(str(line))
+                rf.write('\n')
+            rf.close()
 
 
 def plot_key(generation_dict, key_list, std_key_list=None, show=False, file_path=None, title=None):
