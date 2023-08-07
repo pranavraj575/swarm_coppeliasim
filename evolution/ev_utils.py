@@ -113,7 +113,8 @@ def experiment_handler(args, save_name, config_name, exp_maker, Constructor, opt
                  key_list=key_list,
                  std_key_list=std_key_list,
                  show=args.show,
-                 file_path=os.path.join(PLOT_DIR, plot_name)
+                 file_path=os.path.join(PLOT_DIR, plot_name),
+                             gen_cap=args.show_gen
                  )
 
     if args.show_optimal:
@@ -164,7 +165,7 @@ def experiment_handler(args, save_name, config_name, exp_maker, Constructor, opt
             rf.close()
 
 
-def plot_key(generation_dict, key_list, std_key_list=None, show=False, file_path=None, title=None):
+def plot_key(generation_dict, key_list, std_key_list=None, show=False, file_path=None, title=None,gen_cap=-1):
     """
     plots a key from a dictionary, assuming the x values are the keys
     @param generation_dict: generation_dict[generation][key1][key2]... is the value we are plotting
@@ -173,6 +174,8 @@ def plot_key(generation_dict, key_list, std_key_list=None, show=False, file_path
     @param show: whether to show plot
     @param file_path: path to save plot, None if no save
     @param title: title of graph, None if None
+    @param gen_cap: generation to plot until
+        -1 if all
     @return: y values
     """
 
@@ -180,6 +183,8 @@ def plot_key(generation_dict, key_list, std_key_list=None, show=False, file_path
         std_key_list = [None for _ in range(len(key_list))]
     X = list(generation_dict.keys())
     X.sort()
+    if gen_cap>=0:
+        X=[v for v in X if v<=gen_cap]
 
     for i, key in enumerate(key_list):
         Y = []
@@ -210,11 +215,13 @@ def plot_key(generation_dict, key_list, std_key_list=None, show=False, file_path
         plt.close()
 
 
-def auto_plotter_hardly_know_her(directory):
+def auto_plotter_hardly_know_her(directory,gen_cap=50):
     """
     plots graphs for every folder in the directory
 
     @param directory: structure is [directory/<exp name>/neat-checkpoint-69]
+    @param gen_cap: genertion to plot until
+        -1 if all gens
 
     puts plots in directory/<exp name/plots
     """
@@ -237,17 +244,20 @@ def auto_plotter_hardly_know_her(directory):
                              key_list=[key],
                              std_key_list=None,
                              show=False,
-                             file_path=os.path.join(PLOT_DIR, plot_name))
+                             file_path=os.path.join(PLOT_DIR, plot_name),
+                             gen_cap=gen_cap)
             plot_key(generation_dict=gen_dict,
                      key_list=['mean_fitness'],
                      std_key_list=['stdev_fitness'],
                      show=False,
-                     file_path=os.path.join(PLOT_DIR, 'mean_fitness_std.png'))
+                     file_path=os.path.join(PLOT_DIR, 'mean_fitness_std.png'),
+                             gen_cap=gen_cap)
             plot_key(generation_dict=gen_dict,
                      key_list=PLOT_KEYS + [mean for mean, _ in PAIR_KEYS],
                      std_key_list=[None for _ in PLOT_KEYS] + [std for _, std in PAIR_KEYS],
                      show=False,
-                     file_path=os.path.join(PLOT_DIR, 'all.png'))
+                     file_path=os.path.join(PLOT_DIR, 'all.png'),
+                             gen_cap=gen_cap)
         except:
             print('failed:', folder)
             continue
