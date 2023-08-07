@@ -120,6 +120,7 @@ def experiment_handler(args, save_name, config_name, exp_maker, Constructor, opt
         alt_network = optimal_policy
     else:
         alt_network = None
+
     if args.show and not args.collect_results:
         print(ee.result_of_experiment(gen_indices=(args.show_gen,),
                                       network_to_use=alt_network,
