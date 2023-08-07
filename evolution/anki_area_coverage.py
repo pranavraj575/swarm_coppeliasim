@@ -68,7 +68,7 @@ def optimal_policy(inputs):
 
         temp = np.array((np.cos(desired_angle), np.sin(desired_angle)))
         vec += temp*inputs[i + 1]
-    vec = vec/np.linalg.norm(vec)
+    vec = safe_linalg_normalize(vec)
     forward = vec[0]
     left = vec[1]
     L = forward - left

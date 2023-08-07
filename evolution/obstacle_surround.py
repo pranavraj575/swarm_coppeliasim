@@ -101,13 +101,13 @@ def optimal_policy(inputs):
         # opposite direction
         temp = np.array((np.cos(desired_angle), np.sin(desired_angle)))
         vec_neigh += temp*inputs[i]
-    vec_goal=np.zeros(2)
+    vec_goal = np.zeros(2)
     for i in range(args.obstacles):
-        dir=inputs[len(inputs)-2*(i+1):len(inputs)-2*i]
-        vec_goal+=dir
-    vec_goal=vec_goal/np.linalg.norm(vec_goal)
-    vec_neigh = vec_neigh/np.linalg.norm(vec_neigh)
-    vec=goal_seeking*vec_goal+(1-goal_seeking)*vec_neigh
+        dir = inputs[len(inputs) - 2*(i + 1):len(inputs) - 2*i]
+        vec_goal += dir
+    vec_goal = safe_linalg_normalize(vec_goal)
+    vec_neigh = safe_linalg_normalize(vec_neigh)
+    vec = goal_seeking*vec_goal + (1 - goal_seeking)*vec_neigh
     return (vec + 1)/2  # since we need to output on [0,1]
 
 

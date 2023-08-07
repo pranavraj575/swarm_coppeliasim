@@ -9,8 +9,8 @@ except:
 DIR = os.path.dirname(os.path.join(os.getcwd(), os.path.dirname(sys.argv[0])))
 
 PLOT_KEYS = ['best_fitness',
-            #    'min_fitness'
-            ]
+             #    'min_fitness'
+             ]
 PAIR_KEYS = [('mean_fitness', 'stdev_fitness')]
 VALID_KEYS = list(tuple(PLOT_KEYS))
 for mean, std in PAIR_KEYS:
@@ -126,38 +126,38 @@ def experiment_handler(args, save_name, config_name, exp_maker, Constructor, opt
                                       zmqport=zmq_def_port,
                                       websocket_port=websocket_def_port))
     if args.collect_results:
-        num=args.num_to_collect
-        results_name='data'
+        num = args.num_to_collect
+        results_name = 'data'
         if args.show_optimal:
-            results_name+='_optimal'
+            results_name += '_optimal'
         else:
-            results_name+='_gen_'+str(args.show_gen)
-        results_name+='.txt'
-        results_dir=os.path.join(checkpt_dir,'results')
+            results_name += '_gen_' + str(args.show_gen)
+        results_name += '.txt'
+        results_dir = os.path.join(checkpt_dir, 'results')
         if not os.path.exists(results_dir):
             os.makedirs(results_dir)
-        results_file=os.path.join(results_dir,results_name)
-        data=[]
+        results_file = os.path.join(results_dir, results_name)
+        data = []
         if os.path.exists(results_file):
-            temp=open(results_file)
+            temp = open(results_file)
             for line in temp.read().strip().split('\n'):
                 data.append(line)
             temp.close()
 
         for i in range(num):
-            if len(data)>i:
-                print('SKIPPING TRIAL:',i)
+            if len(data) > i:
+                print('SKIPPING TRIAL:', i)
                 continue
-            res=None
+            res = None
             while res is None:
-                res=ee.result_of_experiment(gen_indices=(args.show_gen,),
-                                      network_to_use=alt_network,
-                                        display=args.show,
-                                      zmqport=zmq_def_port,
-                                      websocket_port=websocket_def_port)[0]
+                res = ee.result_of_experiment(gen_indices=(args.show_gen,),
+                                              network_to_use=alt_network,
+                                              display=args.show,
+                                              zmqport=zmq_def_port,
+                                              websocket_port=websocket_def_port)[0]
             data.append(res)
-            print("RESULT OF",i,":",res)
-            rf=open(results_file,'w')
+            print("RESULT OF", i, ":", res)
+            rf = open(results_file, 'w')
             for line in data:
                 rf.write(str(line))
                 rf.write('\n')
@@ -283,6 +283,20 @@ class PolicyWrapper:
         @param fun: function, arbitrary
         """
         self.activate = fun
+
+
+def safe_linalg_normalize(vec):
+    """
+    normalizes vector, returns vec if magnitude 0
+    @param vec: vector
+
+    @return: vec/|vec|  or np.zeros(len(vec))
+    """
+    r = np.linalg.norm(vec)
+    if r > 0:
+        return vec/r
+    else:
+        return vec
 
 
 if __name__ == "__main__":
