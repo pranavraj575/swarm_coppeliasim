@@ -38,7 +38,7 @@ PARSER.add_argument("--show_stats", action="store_true", required=False,
 PARSER.add_argument("--collect_results", action="store_true", required=False,
                     help="whether to save fitness results to a file")
 
-PARSER.add_argument("--num_to_collect", type=int, required=False, default=30,
+PARSER.add_argument("--num_to_collect", type=int, required=False, default=60,
                     help="number of results to collect (defaults to 30)")
 
 
