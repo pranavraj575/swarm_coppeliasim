@@ -601,7 +601,7 @@ class EvolutionExperiment(GeneralEvolutionaryExperiment):
                    headless,
                    debug):
         """
-        looops through genomes, creates an experiment with that network, and sets the genome fitness
+        loops through genomes, creates an experiment with that network, and sets the genome fitness
 
         @param genomes: genomes to evaluate
         @param config: config to use
@@ -620,13 +620,14 @@ class EvolutionExperiment(GeneralEvolutionaryExperiment):
         @return: number of tries it took to finish all genomes
             if more than 1, some error probably happened
         """
-        pool = Pool(processes=self.current_num_sims)
+
         self.failed_genomes = []
         tries = 0
         global_polulation = []
         for genome_id, genome in genomes:
             global_polulation.append(genome)
         while tries == 0 or self.failed_genomes:
+            self.pool = Pool(processes=self.current_num_sims)
             self.activate_rclpy(sleeptime=sleeptime)
             self.make_coppelia_sims(zmq_def_port=zmq_def_port,
                                     websocket_def_port=websocket_def_port,
@@ -676,7 +677,7 @@ class EvolutionExperiment(GeneralEvolutionaryExperiment):
                         if self.processes[zmqport]['genome'] is None:
                             self.processes[zmqport]['genome'] = genome
                             self.processes[zmqport]['genome order'] = j
-                            self.processes[zmqport]['pool_worker'] = pool.apply_async(eval_genom,
+                            self.processes[zmqport]['pool_worker'] = self.pool.apply_async(eval_genom,
                                                                                       args=
                                                                                       [
                                                                                           self.exp_maker,
@@ -702,8 +703,9 @@ class EvolutionExperiment(GeneralEvolutionaryExperiment):
                 print("FAILED SOME GENOME, TRYING AGAIN, time number " + str(tries + 1))
             self.close_coppelia_sims()
             self.shutdown_rclpy(sleeptime=sleeptime)
+            self.pool.close()
         print()
-        pool.close()
+
         return tries
 
     ####################################################################################################################
@@ -834,7 +836,6 @@ class EcosystemEvolutionExperiment(GeneralEvolutionaryExperiment):
             if more than 1, some error probably happened
         """
 
-        pool = Pool(processes=self.current_num_sims)
         self.failed_genomes = []
         tries = 0
         global_polulation = []
@@ -844,6 +845,7 @@ class EcosystemEvolutionExperiment(GeneralEvolutionaryExperiment):
                 genome.fitness = None
                 # needs to be set manually because sometimes it carries over
         while tries == 0 or self.failed_genomes:
+            self.pool = Pool(processes=self.current_num_sims)
             self.activate_rclpy(sleeptime=sleeptime)
             self.make_coppelia_sims(zmq_def_port=zmq_def_port,
                                     websocket_def_port=websocket_def_port,
@@ -888,7 +890,7 @@ class EcosystemEvolutionExperiment(GeneralEvolutionaryExperiment):
                         if self.processes[zmqport]['genomes'] is None:
                             self.processes[zmqport]['genomes'] = eco
                             self.processes[zmqport]['genome order'] = j
-                            self.processes[zmqport]['pool_worker'] = pool.apply_async(ecosystem_eval_genoms,
+                            self.processes[zmqport]['pool_worker'] = self.pool.apply_async(ecosystem_eval_genoms,
                                                                                       args=
                                                                                       [
                                                                                           self.exp_maker,
@@ -913,10 +915,10 @@ class EcosystemEvolutionExperiment(GeneralEvolutionaryExperiment):
                 print("FAILED SOME GENOME, TRYING AGAIN, time number " + str(tries))
             self.close_coppelia_sims()
             self.shutdown_rclpy(sleeptime=sleeptime)
+            self.pool.close()
         for genome_id, genome in genomes:
             genome.fitness = np.mean(genome.fitness)
         print()
-        pool.close()
         return tries
 
     ####################################################################################################################
