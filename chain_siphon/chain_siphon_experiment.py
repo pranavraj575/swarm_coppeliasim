@@ -266,7 +266,7 @@ class chainSiphon(BlimpExperiment):
         return succ
 
 
-trials = 300
+trials = 30
 just_skipped = False
 for t in range(trials):
     if just_skipped:
@@ -277,7 +277,8 @@ for t in range(trials):
     for mode in ('LJP',
                  'chain',
                  'control',
-                 'leader',):
+            # 'leader',
+                 ):
 
         if mode == 'control':
             # (goal, obstacle, viscosity, min, bounding)
