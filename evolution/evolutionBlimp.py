@@ -215,10 +215,10 @@ class GeneralEvolutionaryExperiment:
         """
         if num_sim_range:
             self.bandits = {k: [] for k in range(num_sim_range[0], num_sim_range[1])}
-            self.failure = {k: False for k in self.bandits}
+            self.failure = {k: True for k in self.bandits}
         else:
             self.bandits = {num_simulators: []}
-            self.failure = {num_simulators: False}
+            self.failure = {num_simulators: True}
         self.current_num_sims = num_simulators
         if restore and self.MOST_RECENT(self.checkpt_dir) is not None:
             print('RESTORING')
