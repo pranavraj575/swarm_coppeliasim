@@ -111,7 +111,7 @@ def expe_make(net, sim=None, port=23000, wakeup=None):
 
 
 def optimal_policy(inputs):
-    neighbor_behavior = .6
+    #neighbor_behavior = .6
     k = len(inputs) - 4
     vec_neigh = np.zeros(2)
     for i in range(k):
@@ -123,15 +123,24 @@ def optimal_policy(inputs):
 
         temp = np.array((np.cos(desired_angle), np.sin(desired_angle)))
         vec_neigh += temp*inputs[i]
+    wall_enc=inputs[-4:]
+    if wall_enc[0] and vec_neigh[0]>0:
+        vec_neigh[0]=0.
+    if wall_enc[1] and vec_neigh[1]>0:
+        vec_neigh[1]=0.
+    if wall_enc[2] and vec_neigh[0]<0:
+        vec_neigh[0]=0.
+    if wall_enc[3] and vec_neigh[1]<0:
+        vec_neigh[1]=0.
     vec_neigh = safe_linalg_normalize(vec_neigh)
-    vec_walls = np.zeros(2)
-    for i in range(4):
-        wall = inputs[len(inputs) - 4 + i]
-        dir = np.array((np.cos(i*np.pi/2), np.sin(i*np.pi/2)))
-        if wall > 0:
-            vec_walls += dir
-    vec_walls = safe_linalg_normalize(vec_walls)
-    vec = vec_walls(1 - neighbor_behavior) + vec_neigh*neighbor_behavior
+    #vec_walls = np.zeros(2)
+    #for i in range(4):
+    #    wall = inputs[len(inputs) - 4 + i]
+    #    dir = np.array((np.cos(i*np.pi/2), np.sin(i*np.pi/2)))
+    #    if wall > 0:
+    #        vec_walls += dir
+    #vec_walls = safe_linalg_normalize(vec_walls)
+    #vec = vec_walls(1 - neighbor_behavior) + vec_neigh*neighbor_behavior
     return (vec + 1)/2  # since we need to output on [0,1]
 
 
