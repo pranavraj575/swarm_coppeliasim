@@ -91,8 +91,8 @@ def experiment_handler(args, save_name, config_name, exp_maker, Constructor, opt
         std_key_list = []
         plot_name = ''
         if args.plot_stat == 'all':
-            key_list = PLOT_KEYS + [mean for mean, _ in PAIR_KEYS],
-            std_key_list = [None for _ in PLOT_KEYS] + [std for _, std in PAIR_KEYS]
+            key_list = [mean for mean, _ in PAIR_KEYS] + PLOT_KEYS
+            std_key_list = [std for _, std in PAIR_KEYS] + [None for _ in PLOT_KEYS]
             plot_name = 'all.png'
         else:
             if args.plot_stat not in VALID_KEYS:
@@ -260,8 +260,8 @@ def auto_plotter_hardly_know_her(directory, gen_cap=50):
                      file_path=os.path.join(PLOT_DIR, 'mean_fitness_std.png'),
                      gen_cap=gen_cap)
             plot_key(generation_dict=gen_dict,
-                     key_list=PLOT_KEYS + [mean for mean, _ in PAIR_KEYS],
-                     std_key_list=[None for _ in PLOT_KEYS] + [std for _, std in PAIR_KEYS],
+                     key_list=[mean for mean, _ in PAIR_KEYS] + PLOT_KEYS,
+                     std_key_list=[std for _, std in PAIR_KEYS] + [None for _ in PLOT_KEYS],
                      show=False,
                      file_path=os.path.join(PLOT_DIR, 'all.png'),
                      gen_cap=gen_cap)

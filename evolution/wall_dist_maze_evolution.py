@@ -123,6 +123,9 @@ def optimal_policy(inputs):
 
         temp = np.array((np.cos(desired_angle), np.sin(desired_angle)))
         vec_neigh += temp*inputs[i]
+        if inputs[i] == 0.:
+            vec_neigh += np.array((np.cos(angle), np.sin(angle)))
+            # go in direction of no neighbors
     wall_enc = inputs[-4:]
     if wall_enc[0] and vec_neigh[0] > 0:
         vec_neigh[0] = 0.
