@@ -1,6 +1,7 @@
 from src.network_blimps import *
 from pymaze.src.maze import Maze
 from collections import defaultdict
+import ast
 
 maze_view_path = os.path.join(DIR, 'scenes', 'maze_view.ttt')
 wall_path = os.path.join(DIR, 'models', 'walls', '3m')
@@ -186,7 +187,49 @@ class aMazeBlimp(xyBlimp):
             hand, used, locs = self.spawn_largest_wall(locs, orientation=orientation)
             hands.append((hand, used))
         return hands
-
+    def save_maze(self,filee):
+        """
+        saves self.maze to file (will save as a format readable by ast)
+        @param filee: file to save as
+        """
+        if self.maze is None:
+            raise Exception("this method should be called after making a maze")
+        dic=dict()
+        dic['num_rows']=self.maze.num_rows
+        dic['num_cols']=self.maze.num_cols
+        dic['entry_coor']=self.maze.entry_coor
+        dic['exit_coor']=self.maze.exit_coor
+        dic['initial_grid']=dict()
+        for i in range(dic['num_rows']):
+            for j in range(dic['num_cols']):
+                walls=dict()
+                for wall_name in ('top','bottom','left','right'):
+                    walls[wall_name]=self.maze.initial_grid[i][j].walls[wall_name]
+                dic['initial_grid'][(i,j)]=walls
+        f=open(filee,'w')
+        f.write(str(dic))
+        f.close()
+    def load_maze(self,filee):
+        """
+        loads self.maze from file (will save as a format readable by ast)
+            assumes self.maze is already created, and initialized to correct size
+        
+        @param filee: file to read from
+        """
+        if self.maze is None:
+            raise Exception("this method should be called after making a maze")
+        f=open(filee)
+        dic=ast.literal_eval(filee.read())
+        f.close()
+        assert self.maze.num_rows==dic['num_rows']
+        assert self.maze.num_cols==dic['num_cols']
+        self.maze.entry_coor=dic['entry_coor']
+        self.maze.exit_coor=dic['exit_coor']
+        for i in range(dic['num_rows']):
+            for j in range(dic['num_cols']):
+                for wall_name in ('top','bottom','left','right'):
+                    self.maze.initial_grid[i][j].walls[wall_name]=dic['initial_grid'][(i,j)][wall_name]
+        
     def spawnThings(self):
         """
         to be run at start of each expiriment
