@@ -293,7 +293,7 @@ for t in range(trials):
             raise Exception("run with --control, --chain, --leader, or --LJP")
 
         save_dir = os.path.join(DIR, 'chain_siphon', 'output', mode)
-        specifier = str(np.random.random()).replace('.', '_') + str(time.time()).replace('.', '_')
+        specifier = str(time.time()).replace('.', '_') + str(np.random.random()).replace('.', '_')
         filename = os.path.join(save_dir, 'data' + specifier + '.csv')
         new_data = []
         if not os.path.exists(save_dir):
