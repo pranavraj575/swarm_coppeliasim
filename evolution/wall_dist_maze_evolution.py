@@ -13,28 +13,13 @@ PARSER.add_argument("--height", type=int, required=False, default=5,
 PARSER.add_argument("--width", type=int, required=False, default=5,
                     help="width of maze")
 
-PARSER.add_argument("--trials_fun", action='store', required=False, default='min',
-                    help="take this action over the trials (from --goal_fun <min, max, mean>)")
-
 args = PARSER.parse_args()
 check_basic(args=args)
-
-trf = args.trials_fun
-if trf == 'max':
-    trials_fun = np.max
-elif trf == 'min':
-    trials_fun = np.min
-elif trf == 'mean':
-    trials_fun = np.min
-else:
-    raise Exception('--trials_fun must be from ["max", "min", "mean"]')
 
 AGENTS = args.agents
 END = args.end_time
 H = args.height
 W = args.width
-if args.trials == 1:
-    args.trials = 2
 DIFF = True
 ALWAYS_DOWN = False
 
@@ -95,7 +80,6 @@ def expe_make(net, sim=None, port=23000, wakeup=None):
                                              networkfn=net.activate,
                                              end_time=END,
                                              start_squares=3,
-                                             trials_fun=trials_fun,
                                              grid_size=2,
                                              maze_entry_gen=make_maze,
                                              wall_spawn_height=1.5,
@@ -114,6 +98,7 @@ def optimal_policy(inputs):
     # neighbor_behavior = .6
     k = len(inputs) - 4
     vec_neigh = np.zeros(2)
+    wall_enc = inputs[-4:]
     for i in range(k):
         angle = 2*np.pi*i/k + (np.pi/k)
         # angle that the neighbor is sensed at
@@ -121,20 +106,21 @@ def optimal_policy(inputs):
         desired_angle = angle + np.pi
         # opposite direction
 
-        temp = np.array((np.cos(desired_angle), np.sin(desired_angle)))
-        vec_neigh += temp*inputs[i]
+        opposite = np.array((np.cos(desired_angle), np.sin(desired_angle)))
+        towards = np.array((np.cos(angle), np.sin(angle)))
+        for v in (opposite, towards):
+            if wall_enc[0] and v[0] > 0:
+                v[0] = 0.
+            if wall_enc[1] and v[1] > 0:
+                v[1] = 0.
+            if wall_enc[2] and v[0] < 0:
+                v[0] = 0.
+            if wall_enc[3] and v[1] < 0:
+                v[1] = 0.
+        vec_neigh += opposite*inputs[i]
         if inputs[i] == 0.:
-            vec_neigh += np.array((np.cos(angle), np.sin(angle)))
+            vec_neigh += towards
             # go in direction of no neighbors
-    wall_enc = inputs[-4:]
-    if wall_enc[0] and vec_neigh[0] > 0:
-        vec_neigh[0] = 0.
-    if wall_enc[1] and vec_neigh[1] > 0:
-        vec_neigh[1] = 0.
-    if wall_enc[2] and vec_neigh[0] < 0:
-        vec_neigh[0] = 0.
-    if wall_enc[3] and vec_neigh[1] < 0:
-        vec_neigh[1] = 0.
     vec_neigh = safe_linalg_normalize(vec_neigh)
     vec = vec_neigh
     # vec_walls = np.zeros(2)
@@ -148,7 +134,7 @@ def optimal_policy(inputs):
     return (vec + 1)/2  # since we need to output on [0,1]
 
 
-save_name = str(AGENTS) + '_blimp_' + str(H) + 'x' + str(W) + 'maze_' + trf + '_of_trials_dist_wall_sensing'
+save_name = str(AGENTS) + '_blimp_' + str(H) + 'x' + str(W) + 'maze_dist_wall_sensing'
 config_name = 'blimp_maze_wall_sense'
 
 experiment_handler(args=args,

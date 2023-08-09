@@ -1,5 +1,6 @@
 from src.network_blimps import *
 from pymaze.src.maze import Maze
+from collections import defaultdict
 
 maze_view_path = os.path.join(DIR, 'scenes', 'maze_view.ttt')
 wall_path = os.path.join(DIR, 'models', 'walls', '3m')
@@ -94,6 +95,8 @@ class aMazeBlimp(xyBlimp):
         self.start_squares = start_squares
         self.len_to_wall = dict()
         self.still_at_spawn = None
+        self.distance_dict = defaultdict(lambda: None)
+        self.largest_possible = None
         for fn in os.listdir(self.wall_dir):
             if 'x' in fn:
                 self.len_to_wall[float(fn[:fn.index('x')])] = os.path.join(self.wall_dir, fn)
@@ -127,6 +130,48 @@ class aMazeBlimp(xyBlimp):
         handle, used, unused = self.spawn_largest_wall(locs[:-1], orientation)
         unused.append(locs[-1])
         return handle, used, unused
+
+    def populate_distance_dict(self):
+        """
+        populates distance dict with values
+        self.distance_dict[(i,j)] will return maze distance to exist square
+        """
+        if self.maze is None:
+            raise Exception("this method should be called after making a maze")
+        self.distance_dict[self.maze.exit_coor] = 0
+        while not self.distance_dict_populated():
+            to_add = defaultdict(lambda: float('inf'))
+            for i in range(self.maze.num_rows):
+                for j in range(self.maze.num_cols):
+                    if (i, j) not in self.distance_dict:
+                        for (wall_name, neighbor_cell) in (
+                                ("top", (i - 1, j)),
+                                ("bottom", (i + 1, j)),
+                                ("left", (i, j - 1)),
+                                ("right", (i, j + 1))):
+                            if (not self.maze.initial_grid[i][j].walls[wall_name] and
+                                    neighbor_cell in self.distance_dict):
+                                to_add[(i, j)] = min(to_add[(i, j)], self.distance_dict[neighbor_cell] + 1)
+
+            for cell in to_add:
+                self.distance_dict[cell] = to_add[cell]
+        self.largest_possible = 0
+        for cell in self.distance_dict:
+            self.largest_possible = max(self.largest_possible, self.distance_dict[cell])
+
+    def distance_dict_populated(self):
+        """
+        boolean for if the distance dict is populated
+
+        @return: True if all squares on maze have distance values
+        """
+        if self.maze is None:
+            raise Exception("this method should be called after making a maze")
+        for i in range(self.maze.num_rows):
+            for j in range(self.maze.num_cols):
+                if (i, j) not in self.distance_dict:
+                    return False
+        return True
 
     def spawn_best_wall(self, locs, orientation):
         """
@@ -418,8 +463,14 @@ class aMazeBlimp(xyBlimp):
         for agent_id in self.agentData:
             if self.is_connected(agent_id):
                 i, j = self.get_grid_loc(agent_id=agent_id, spin=False)
+                pos = self.get_xy_pos(agent_id=agent_id, spin=False)
                 if (i, j) == self.maze_exit:
                     return True
+
+                if ((i >= self.maze.num_rows or i < 0) or
+                        (j >= self.maze.num_cols or j < 0)):
+                    if not self.still_at_spawn(pos):
+                        return True
         return self.sim.getSimulationTime() > self.end_time
 
     ####################################################################################################################
@@ -536,7 +587,6 @@ class amazingBlimp(aMazeBlimp):
                  wall_spawn_height,
                  end_time,
                  start_squares,
-                 trials_fun,
                  cover_dir=os.path.join(DIR, 'models', 'covers'),
                  rng=2.,
                  height_factor=.2,
@@ -566,12 +616,6 @@ class amazingBlimp(aMazeBlimp):
         @param wall_spawn_height: height to spawn wall
         @param end_time: time to end experiment
         @param start_squares: number of squares for the starting area
-        @param trials_fun: function to apply to the trials to get final fitness
-            usually max, mean, or min
-        @param cell_filename: filename that holding cell is saved as, will be searched for under wall_dir
-        @param cell_center_offset: x,y offset of the 'center' of the starting cell from the gate
-            used for spawning blimps
-        @param cell_radius: radius to spawn blimps from cell center to still be within cell
         @param cover_dir: directory for lid of maze, None if no lid
             files should look like '5x5.ttm'
         @param rng: range to sense neighbors
@@ -606,7 +650,6 @@ class amazingBlimp(aMazeBlimp):
             sleeptime=sleeptime,
             spawn_tries=spawn_tries)
         self.rng = rng
-        self.trials_fun = trials_fun
 
     ####################################################################################################################
     # agent functions
@@ -654,36 +697,17 @@ class amazingBlimp(aMazeBlimp):
                 agent counts as 0 if completed (in exit cell)
         """
         s = []
-        ex_1, ex_2 = self.maze.exit_coor
+        self.populate_distance_dict()
         for agent_id in self.agentData:
             i, j = self.get_grid_loc(agent_id)
-            pos = self.get_xy_pos(agent_id)
-            manhattan = abs(i - ex_1) + abs(j - ex_2)
-
-            # if out of bounds and out of spawn area
-            if ((i >= self.maze.num_rows or i < 0) or
-                    (j >= self.maze.num_cols or j < 0)):
-                if not self.still_at_spawn(pos):
-                    manhattan = 0
-            s.append(-manhattan)
+            if (i, j) in self.distance_dict:
+                s.append(-self.distance_dict[(i, j)])
+            else:
+                s.append(-self.largest_possible)
             bug = self.get_state(agent_id)["DEBUG"]
             if bug == 0.:
                 return None
         return np.mean(s)
-
-    def experiments(self, trials):
-        """
-        runs multiple experiments, resetting scene at start of each one
-
-        @param trials: number of experiments to run
-        @return: returns list of results of self.goal_data for each trial
-
-        @note: applies self.trials_fun to the result before returning
-        """
-        trials = super().experiments(trials)
-        if trials is None:
-            return None
-        return [self.trials_fun(trials) for _ in trials]
 
 
 class maxAmazingBlimp(amazingBlimp):
@@ -700,7 +724,6 @@ class maxAmazingBlimp(amazingBlimp):
                  wall_spawn_height,
                  end_time,
                  start_squares,
-                 trials_fun,
                  cover_dir=os.path.join(DIR, 'models', 'covers'),
                  rng=2,
                  height_factor=.2,
@@ -731,8 +754,6 @@ class maxAmazingBlimp(amazingBlimp):
         @param wall_spawn_height: height to spawn wall
         @param end_time: time to end experiment
         @param start_squares: number of squares for the starting area
-        @param trials_fun: function to apply to the trials to get final fitness
-            usually max, mean, or min
         @param cover_dir: directory for lid of maze, None if no lid
             files should look like '5x5.ttm'
         @param rng: range to sense neighbors
@@ -757,7 +778,6 @@ class maxAmazingBlimp(amazingBlimp):
                          wall_spawn_height=wall_spawn_height,
                          end_time=end_time,
                          start_squares=start_squares,
-                         trials_fun=trials_fun,
                          cover_dir=cover_dir,
                          rng=rng,
                          height_factor=height_factor,
@@ -778,24 +798,25 @@ class maxAmazingBlimp(amazingBlimp):
         @return: negative averate manhattan distance from end tile,
                 agent counts as 0 if completed (in exit cell)
         """
+        self.populate_distance_dict()
         completed = 0
         furthest = -float('inf')
-        ex_1, ex_2 = self.maze.exit_coor
         for agent_id in self.agentData:
             i, j = self.get_grid_loc(agent_id)
+            if (i, j) in self.distance_dict:
+                dist = self.distance_dict[(i, j)]
+            else:
+                dist = self.largest_possible
             pos = self.get_xy_pos(agent_id)
-            manhattan = abs(i - ex_1) + abs(j - ex_2)
-
             # if out of bounds and out of spawn area
             if ((i >= self.maze.num_rows or i < 0) or
                     (j >= self.maze.num_cols or j < 0)):
                 if not self.still_at_spawn(pos):
-                    manhattan = 0
-
-            if manhattan == 0:
+                    dist = 0
+            if dist <= 0:
                 # finished the maze
                 completed += 1
-            furthest = max(furthest, -manhattan)
+            furthest = max(furthest, -dist)
             bug = self.get_state(agent_id)["DEBUG"]
             if bug == 0.:
                 return None
@@ -817,7 +838,6 @@ class ecosystemMaxAmazingBlimp(maxAmazingBlimp):
                  wall_spawn_height,
                  end_time,
                  start_squares,
-                 trials_fun,
                  cover_dir=os.path.join(DIR, 'models', 'covers'),
                  rng=2,
                  height_factor=.2,
@@ -850,8 +870,6 @@ class ecosystemMaxAmazingBlimp(maxAmazingBlimp):
         @param wall_spawn_height: height to spawn wall
         @param end_time: time to end experiment
         @param start_squares: number of squares for the starting area
-        @param trials_fun: function to apply to the trials to get final fitness
-            usually max, mean, or min
         @param cover_dir: directory for lid of maze, None if no lid
             files should look like '5x5.ttm'
         @param rng: range to sense neighbors
@@ -876,7 +894,6 @@ class ecosystemMaxAmazingBlimp(maxAmazingBlimp):
                          wall_spawn_height=wall_spawn_height,
                          end_time=end_time,
                          start_squares=start_squares,
-                         trials_fun=trials_fun,
                          cover_dir=cover_dir,
                          rng=rng,
                          height_factor=height_factor,
@@ -929,7 +946,6 @@ class dist_sense_max_amazing_blimp(maxAmazingBlimp):
                  wall_spawn_height,
                  end_time,
                  start_squares,
-                 trials_fun,
                  cover_dir=os.path.join(DIR, 'models', 'covers'),
                  height_factor=.2,
                  sim=None,
@@ -958,8 +974,6 @@ class dist_sense_max_amazing_blimp(maxAmazingBlimp):
         @param wall_spawn_height: height to spawn wall
         @param end_time: time to end experiment
         @param start_squares: number of squares for the starting area
-        @param trials_fun: function to apply to the trials to get final fitness
-            usually max, mean, or min
         @param cover_dir: directory for lid of maze, None if no lid
             files should look like '5x5.ttm'
         @param height_factor: factor to multiply height adjust by
@@ -983,7 +997,6 @@ class dist_sense_max_amazing_blimp(maxAmazingBlimp):
                          wall_spawn_height=wall_spawn_height,
                          end_time=end_time,
                          start_squares=start_squares,
-                         trials_fun=trials_fun,
                          cover_dir=cover_dir,
                          rng=float('inf'),
                          height_factor=height_factor,
@@ -1008,7 +1021,8 @@ class dist_sense_max_amazing_blimp(maxAmazingBlimp):
         k_tant = self.global_get_inv_dist_2d_k_tant(agent_id, is_neigh=self.agent_sight, k=8, spin=True)
         return k_tant.reshape((-1, 1))
 
-class wall_dist_sense_max_amazing_blimp(dist_sense_max_amazing_blimp):
+
+class wall_dist_sense_max_amazing_blimp(maxAmazingBlimp):
     def __init__(self,
                  num_agents,
                  scenePath,
@@ -1022,7 +1036,6 @@ class wall_dist_sense_max_amazing_blimp(dist_sense_max_amazing_blimp):
                  wall_spawn_height,
                  end_time,
                  start_squares,
-                 trials_fun,
                  cover_dir=os.path.join(DIR, 'models', 'covers'),
                  height_factor=.2,
                  sim=None,
@@ -1051,8 +1064,6 @@ class wall_dist_sense_max_amazing_blimp(dist_sense_max_amazing_blimp):
         @param wall_spawn_height: height to spawn wall
         @param end_time: time to end experiment
         @param start_squares: number of squares for the starting area
-        @param trials_fun: function to apply to the trials to get final fitness
-            usually max, mean, or min
         @param cover_dir: directory for lid of maze, None if no lid
             files should look like '5x5.ttm'
         @param height_factor: factor to multiply height adjust by
@@ -1076,7 +1087,6 @@ class wall_dist_sense_max_amazing_blimp(dist_sense_max_amazing_blimp):
                          wall_spawn_height=wall_spawn_height,
                          end_time=end_time,
                          start_squares=start_squares,
-                         trials_fun=trials_fun,
                          cover_dir=cover_dir,
                          height_factor=height_factor,
                          sim=sim,
@@ -1098,14 +1108,15 @@ class wall_dist_sense_max_amazing_blimp(dist_sense_max_amazing_blimp):
         """
 
         k_tant = self.global_get_inv_dist_2d_k_tant(agent_id, is_neigh=self.agent_sight, k=8, spin=True)
-        cell=self.get_grid_loc(agent_id=agent_id,spin=False)
-        walls=self.walls_of(cell)
-        return np.concatenate([k_tant,walls])
+        cell = self.get_grid_loc(agent_id=agent_id, spin=False)
+        walls = self.walls_of(cell)
+        return np.concatenate([k_tant, walls])
+
 
 if __name__ == "__main__":
     H, W = (5, 5)
-    ENTRY = (0, np.random.randint(0, W))
-    EXIT = (H - 1, np.random.randint(0, W))
+    EXIT = (0, np.random.randint(0, W))
+    ENTRY = (H - 1, np.random.randint(0, W))
     D = 2
     CENTER = np.array((D/2 + D*ENTRY[1], 5))
     R = 2.7
@@ -1143,19 +1154,19 @@ if __name__ == "__main__":
                 'exit_orientation': (0, 0, orientations[1]), }
 
 
-    bb = amazingBlimp(num_agents=20,
-                      scenePath=maze_view_path,
-                      blimpPath=narrow_blimp_path,
-                      networkfn=lambda x: (.5, 0),
-                      height_range=(1, 1),
-                      use_ultra=False,
-                      maze_entry_gen=make_maze,
-                      wall_dir=wall_path,
-                      end_time=100,
-                      start_squares=4,
-                      grid_size=D,
-                      wakeup=[COPPELIA_WAKEUP],
-                      wall_spawn_height=1.5,
-                      trials_fun=np.min)
+    bb = wall_dist_sense_max_amazing_blimp(num_agents=20,
+                                           scenePath=maze_view_path,
+                                           blimpPath=narrow_blimp_path,
+                                           networkfn=lambda x: (.5, 0),
+                                           height_range=(1, 1),
+                                           use_ultra=False,
+                                           maze_entry_gen=make_maze,
+                                           wall_dir=wall_path,
+                                           end_time=20,
+                                           start_squares=4,
+                                           grid_size=D,
+                                           wakeup=[COPPELIA_WAKEUP],
+                                           wall_spawn_height=1.5,
+                                           )
     print(bb.experiments(2))
     bb.kill()
