@@ -9,6 +9,28 @@ cell_path = os.path.join(DIR, 'models', 'cell_of_holding.ttm')
 round_cell_path = os.path.join(DIR, 'models', 'round_cell_of_holding.ttm')
 
 
+def load_maze_to(maze, filee):
+    """
+    changes maze to match loaded file
+
+    @param maze: pymaze Maze object to load maze into
+    @param filee: file to read from
+    """
+    if maze is None:
+        raise Exception("this method should be called after making a maze")
+    f = open(filee)
+    dic = ast.literal_eval(f.read())
+    f.close()
+    assert maze.num_rows == dic['num_rows']
+    assert maze.num_cols == dic['num_cols']
+    maze.entry_coor = dic['entry_coor']
+    maze.exit_coor = dic['exit_coor']
+    for i in range(dic['num_rows']):
+        for j in range(dic['num_cols']):
+            for wall_name in ('top', 'bottom', 'left', 'right'):
+                maze.initial_grid[i][j].walls[wall_name] = dic['initial_grid'][(i, j)][wall_name]
+
+
 class aMazeBlimp(xyBlimp):
     def __init__(self,
                  num_agents,
@@ -43,7 +65,7 @@ class aMazeBlimp(xyBlimp):
         @param height_range: R^2, height range to keep blimps at
         @param use_ultra: whether to use ultrasound to set height (and as network input)
         @param maze_entry_gen: () -> dict, generates a dictionary, required keys are
-                    'maze': pymaze.src.Maze,
+                    'maze': pymaze Maze,
                     'entry': location of entry
                     'entry_orientation': orientation of entry
                     'entry_wall': wall to enter maze in (should be redundant)
@@ -187,49 +209,30 @@ class aMazeBlimp(xyBlimp):
             hand, used, locs = self.spawn_largest_wall(locs, orientation=orientation)
             hands.append((hand, used))
         return hands
-    def save_maze(self,filee):
+
+    def save_maze(self, filee):
         """
         saves self.maze to file (will save as a format readable by ast)
         @param filee: file to save as
         """
         if self.maze is None:
             raise Exception("this method should be called after making a maze")
-        dic=dict()
-        dic['num_rows']=self.maze.num_rows
-        dic['num_cols']=self.maze.num_cols
-        dic['entry_coor']=self.maze.entry_coor
-        dic['exit_coor']=self.maze.exit_coor
-        dic['initial_grid']=dict()
+        dic = dict()
+        dic['num_rows'] = self.maze.num_rows
+        dic['num_cols'] = self.maze.num_cols
+        dic['entry_coor'] = self.maze.entry_coor
+        dic['exit_coor'] = self.maze.exit_coor
+        dic['initial_grid'] = dict()
         for i in range(dic['num_rows']):
             for j in range(dic['num_cols']):
-                walls=dict()
-                for wall_name in ('top','bottom','left','right'):
-                    walls[wall_name]=self.maze.initial_grid[i][j].walls[wall_name]
-                dic['initial_grid'][(i,j)]=walls
-        f=open(filee,'w')
+                walls = dict()
+                for wall_name in ('top', 'bottom', 'left', 'right'):
+                    walls[wall_name] = self.maze.initial_grid[i][j].walls[wall_name]
+                dic['initial_grid'][(i, j)] = walls
+        f = open(filee, 'w')
         f.write(str(dic))
         f.close()
-    def load_maze(self,filee):
-        """
-        loads self.maze from file (will save as a format readable by ast)
-            assumes self.maze is already created, and initialized to correct size
-        
-        @param filee: file to read from
-        """
-        if self.maze is None:
-            raise Exception("this method should be called after making a maze")
-        f=open(filee)
-        dic=ast.literal_eval(filee.read())
-        f.close()
-        assert self.maze.num_rows==dic['num_rows']
-        assert self.maze.num_cols==dic['num_cols']
-        self.maze.entry_coor=dic['entry_coor']
-        self.maze.exit_coor=dic['exit_coor']
-        for i in range(dic['num_rows']):
-            for j in range(dic['num_cols']):
-                for wall_name in ('top','bottom','left','right'):
-                    self.maze.initial_grid[i][j].walls[wall_name]=dic['initial_grid'][(i,j)][wall_name]
-        
+
     def spawnThings(self):
         """
         to be run at start of each expiriment
@@ -1167,6 +1170,8 @@ if __name__ == "__main__":
 
     def make_maze():
         mm = Maze(H, W, entry=ENTRY, exit=EXIT)
+        if os.path.exists('test_maze.txt'):
+            load_maze_to(mm, 'test_maze.txt')
         entry = mm.entry_coor
         ext = mm.exit_coor
         orientations = []
