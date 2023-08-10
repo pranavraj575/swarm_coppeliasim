@@ -66,7 +66,6 @@ def expe_make(net, sim=None, port=23000, wakeup=None):
             find_maze_name_and_save(maze=mm)
 
         if not loaded and mm.initial_grid[ENTRY[0]][ENTRY[1]].walls[entry_wall]:
-            print("EDITING THE INITIAL GRID")
             mm.initial_grid[ENTRY[0]][ENTRY[1]].walls[entry_wall] = False
             if entry_wall in ('top', 'bottom'):
                 if ENTRY[1] == 0:
