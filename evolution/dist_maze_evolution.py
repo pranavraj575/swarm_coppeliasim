@@ -1,16 +1,19 @@
-from src.maze_blimps import *
-from evolution.evolutionBlimp import EvolutionExperiment
+#import os.path
+
+#from src.maze_blimps import *
+#from evolution.evolutionBlimp import EvolutionExperiment
 from evolution.arg_parser import *
 from evolution.ev_utils import *
+from evolution.maze_utils import *
 
 PARSER.description = "for creating and running maze evolutionary experiments with distance sensing instead of number of neighbors"
 
 PARSER.add_argument("--end_time", type=float, required=False, default=60.,
                     help="time to end the experiment")
 
-PARSER.add_argument("--height", type=int, required=False, default=5,
+PARSER.add_argument("--height", type=int, required=False, default=6,
                     help="height of maze")
-PARSER.add_argument("--width", type=int, required=False, default=5,
+PARSER.add_argument("--width", type=int, required=False, default=6,
                     help="width of maze")
 
 args = PARSER.parse_args()
@@ -22,31 +25,30 @@ H = args.height
 W = args.width
 DIFF = True
 ALWAYS_DOWN = False
-maze_files_dir=os.path.join(DIR,'evolution','maze_files')
 
-LOADING_MAZE=args.collect_results and not args.show_optimal
-SAVING_MAZE=args.collect_results and args.show_optimal
-def load_and_use_maze(maze,file_dir=maze_files_dir):
-    pass
-def find_save_name(maze,file_dir=maze_files_dir):
-    pass
+
+LOADING_MAZE = args.collect_results and not args.show_optimal
+SAVING_MAZE = args.collect_results and args.show_optimal
+
+
+
 def expe_make(net, sim=None, port=23000, wakeup=None):
     def make_maze():
         ENTRY = (0, np.random.random())
         EXIT = (1, np.random.random())
-        entry_wall='top'
+        entry_wall = 'top'
         if not ALWAYS_DOWN:
             if np.random.random() < .5:  # opposite direction
                 ENTRY = 1, ENTRY[1]
                 EXIT = 0, EXIT[1]
-                entry_wall='bottom'
+                entry_wall = 'bottom'
             if np.random.random() < .5:  # swap xy
                 ENTRY = ENTRY[1], ENTRY[0]
                 EXIT = EXIT[1], EXIT[0]
-                if entry_wall=='top':
-                    entry_wall='left'
+                if entry_wall == 'top':
+                    entry_wall = 'left'
                 else:
-                    entry_wall='right'
+                    entry_wall = 'right'
         ENTRY = min(int(ENTRY[0]*H), H - 1), min(int(ENTRY[1]*W), W - 1)
         EXIT = min(int(EXIT[0]*H), H - 1), min(int(EXIT[1]*W), W - 1)
 
@@ -57,23 +59,25 @@ def expe_make(net, sim=None, port=23000, wakeup=None):
                 EXIT = (EXIT[0], np.random.randint(0, W))
         mm = Maze(H, W, entry=ENTRY, exit=EXIT)
         # load here
-        loaded=False
+        loaded = False
         if LOADING_MAZE:
-            loaded=load_and_use_maze(mm,maze_files_dir)
-        
+            loaded = load_and_use_maze(maze=mm)
+        if SAVING_MAZE:
+            find_maze_name_and_save(maze=mm)
+
         if not loaded and mm.initial_grid[ENTRY[0]][ENTRY[1]].walls[entry_wall]:
             print("EDITING THE INITIAL GRID")
-            mm.initial_grid[ENTRY[0]][ENTRY[1]].walls[entry_wall]=False
-            if entry_wall in ('top','bottom'):
-                if ENTRY[1]==0:
-                    mm.initial_grid[ENTRY[0]][ENTRY[1]].walls['left']=True
-                if ENTRY[1]==W-1:
-                    mm.initial_grid[ENTRY[0]][ENTRY[1]].walls['right']=True
+            mm.initial_grid[ENTRY[0]][ENTRY[1]].walls[entry_wall] = False
+            if entry_wall in ('top', 'bottom'):
+                if ENTRY[1] == 0:
+                    mm.initial_grid[ENTRY[0]][ENTRY[1]].walls['left'] = True
+                if ENTRY[1] == W - 1:
+                    mm.initial_grid[ENTRY[0]][ENTRY[1]].walls['right'] = True
             else:
-                if ENTRY[0]==0:
-                    mm.initial_grid[ENTRY[0]][ENTRY[1]].walls['top']=True
-                if ENTRY[0]==H-1:
-                    mm.initial_grid[ENTRY[0]][ENTRY[1]].walls['bottom']=True
+                if ENTRY[0] == 0:
+                    mm.initial_grid[ENTRY[0]][ENTRY[1]].walls['top'] = True
+                if ENTRY[0] == H - 1:
+                    mm.initial_grid[ENTRY[0]][ENTRY[1]].walls['bottom'] = True
         entry = mm.entry_coor
         ext = mm.exit_coor
         orientations = []

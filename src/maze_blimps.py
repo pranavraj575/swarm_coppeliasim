@@ -9,7 +9,7 @@ cell_path = os.path.join(DIR, 'models', 'cell_of_holding.ttm')
 round_cell_path = os.path.join(DIR, 'models', 'round_cell_of_holding.ttm')
 
 
-def load_maze_to(maze, filee):
+def load_maze_with(maze, filee):
     """
     changes maze to match loaded file
 
@@ -29,6 +29,30 @@ def load_maze_to(maze, filee):
         for j in range(dic['num_cols']):
             for wall_name in ('top', 'bottom', 'left', 'right'):
                 maze.initial_grid[i][j].walls[wall_name] = dic['initial_grid'][(i, j)][wall_name]
+
+
+def save_maze_to(maze, filee):
+    """
+    saves maze to file (will save as a format readable by ast)
+
+    @param maze: Maze object to save
+    @param filee: file to save as
+    """
+    dic = dict()
+    dic['num_rows'] = maze.num_rows
+    dic['num_cols'] = maze.num_cols
+    dic['entry_coor'] = maze.entry_coor
+    dic['exit_coor'] = maze.exit_coor
+    dic['initial_grid'] = dict()
+    for i in range(dic['num_rows']):
+        for j in range(dic['num_cols']):
+            walls = dict()
+            for wall_name in ('top', 'bottom', 'left', 'right'):
+                walls[wall_name] = maze.initial_grid[i][j].walls[wall_name]
+            dic['initial_grid'][(i, j)] = walls
+    f = open(filee, 'w')
+    f.write(str(dic))
+    f.close()
 
 
 class aMazeBlimp(xyBlimp):
@@ -217,21 +241,7 @@ class aMazeBlimp(xyBlimp):
         """
         if self.maze is None:
             raise Exception("this method should be called after making a maze")
-        dic = dict()
-        dic['num_rows'] = self.maze.num_rows
-        dic['num_cols'] = self.maze.num_cols
-        dic['entry_coor'] = self.maze.entry_coor
-        dic['exit_coor'] = self.maze.exit_coor
-        dic['initial_grid'] = dict()
-        for i in range(dic['num_rows']):
-            for j in range(dic['num_cols']):
-                walls = dict()
-                for wall_name in ('top', 'bottom', 'left', 'right'):
-                    walls[wall_name] = self.maze.initial_grid[i][j].walls[wall_name]
-                dic['initial_grid'][(i, j)] = walls
-        f = open(filee, 'w')
-        f.write(str(dic))
-        f.close()
+        save_maze_to(self.maze, filee)
 
     def spawnThings(self):
         """
@@ -511,7 +521,7 @@ class aMazeBlimp(xyBlimp):
                 i, j = self.get_grid_loc(agent_id=agent_id, spin=False)
                 if (i, j) == self.maze_exit:
                     return True
-                
+
                 # pos = self.get_xy_pos(agent_id=agent_id, spin=False)
                 # if ((i >= self.maze.num_rows or i < 0) or
                 #         (j >= self.maze.num_cols or j < 0)):
@@ -1171,7 +1181,7 @@ if __name__ == "__main__":
     def make_maze():
         mm = Maze(H, W, entry=ENTRY, exit=EXIT)
         if os.path.exists('test_maze.txt'):
-            load_maze_to(mm, 'test_maze.txt')
+            load_maze_with(mm, 'test_maze.txt')
         entry = mm.entry_coor
         ext = mm.exit_coor
         orientations = []
