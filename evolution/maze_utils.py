@@ -23,9 +23,11 @@ def load_and_use_maze(maze, file_dir=maze_files_dir):
         new_name='used_'+name
         load_maze_with(maze, filee=old_path)
         os.rename(old_path,os.path.join(file_dir,new_name))
+        print("USING MAZE:",name)
         return True
 
 
 def find_maze_name_and_save(maze, file_dir=maze_files_dir):
     _, name = find_n_and_next_maze_file_name(file_dir=file_dir)
     save_maze_to(maze, os.path.join(file_dir, name))
+    print("SAVING MAZE:",name)
