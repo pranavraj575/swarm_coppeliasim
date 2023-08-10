@@ -509,14 +509,14 @@ class aMazeBlimp(xyBlimp):
         for agent_id in self.agentData:
             if self.is_connected(agent_id):
                 i, j = self.get_grid_loc(agent_id=agent_id, spin=False)
-                pos = self.get_xy_pos(agent_id=agent_id, spin=False)
                 if (i, j) == self.maze_exit:
                     return True
-
-                if ((i >= self.maze.num_rows or i < 0) or
-                        (j >= self.maze.num_cols or j < 0)):
-                    if not self.still_at_spawn(pos):
-                        return True
+                
+                # pos = self.get_xy_pos(agent_id=agent_id, spin=False)
+                # if ((i >= self.maze.num_rows or i < 0) or
+                #         (j >= self.maze.num_cols or j < 0)):
+                #     if not self.still_at_spawn(pos):
+                #         return True
         return self.sim.getSimulationTime() > self.end_time
 
     ####################################################################################################################
