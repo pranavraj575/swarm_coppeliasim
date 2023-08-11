@@ -744,7 +744,7 @@ class EvolutionExperiment(GeneralEvolutionaryExperiment):
                 p = self.restore_checkpoint(path)
                 print("DISPLAYING:", path)
                 if show_random:
-                    genome=p.population[np.random.randint(0,length(p.population))]
+                    genome=p.population[np.random.randint(0,len(p.population))]
                 else:
                     genome = max([p.population[g] for g in p.population], key=lambda genome: genome.fitness)
                 network = neat.nn.FeedForwardNetwork.create(genome, self.config)
