@@ -34,10 +34,11 @@ PARSER.add_argument("--show_optimal", action="store_true", required=False,
                     help="whether to display hard coded optimal policy")
 PARSER.add_argument("--show_stats", action="store_true", required=False,
                     help="whether to show statistics at end (run with -g 0 to just show stats)")
+PARSER.add_argument("--show_random", action="store_true", required=False,
+                    help="whether to show a random genome for --show and --collect_results")
 
 PARSER.add_argument("--collect_results", action="store_true", required=False,
                     help="whether to save fitness results to a file")
-
 PARSER.add_argument("--num_to_collect", type=int, required=False, default=60,
                     help="number of results to collect (defaults to 30)")
 
