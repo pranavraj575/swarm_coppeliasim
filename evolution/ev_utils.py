@@ -124,6 +124,7 @@ def experiment_handler(args, save_name, config_name, exp_maker, Constructor, opt
     if args.show and not args.collect_results:
         print(ee.result_of_experiment(gen_indices=(args.show_gen,),
                                       network_to_use=alt_network,
+                                      show_random=args.show_random,
                                       zmqport=zmq_def_port,
                                       websocket_port=websocket_def_port))
     if args.collect_results:
@@ -154,6 +155,7 @@ def experiment_handler(args, save_name, config_name, exp_maker, Constructor, opt
             while res is None:
                 res = ee.result_of_experiment(gen_indices=(args.show_gen,),
                                               network_to_use=alt_network,
+                                              show_random=args.show_random,
                                               display=args.show,
                                               zmqport=zmq_def_port,
                                               websocket_port=websocket_def_port)[0]
