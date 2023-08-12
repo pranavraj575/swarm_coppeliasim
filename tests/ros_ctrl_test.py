@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 import rclpy
-import sys
+import os, sys
 from geometry_msgs.msg import Twist
 from geometry_msgs.msg import TwistStamped
 import time
@@ -8,10 +8,18 @@ import numpy as np
 
 PI = 3.14159
 SIMID = 23000
+DIR = os.path.dirname(os.path.join(os.getcwd(), os.path.dirname(sys.argv[0])))
 
-TOPIC_PRE = '/swarm/b'
-TOPIC_CMD = '/set/cmd_vel'
-TOPIC_GLOBAL = '/state/global'
+msgfile = os.path.join(DIR, 'lua', 'rosMsg.lua')
+TOPIC_NAMES = dict()
+with  open(msgfile) as f:
+    r = [t.split('=') for t in f.read().strip().split('\n') if '=' in t]
+    for key, item in r:
+        TOPIC_NAMES[key.strip()] = item.strip().strip("'")
+
+TOPIC_PRE = TOPIC_NAMES['TOPIC_PRE_BLIMP']
+TOPIC_CMD = TOPIC_NAMES['TOPIC_CMD']
+TOPIC_GLOBAL = TOPIC_NAMES['TOPIC_GLOBAL']
 
 state = {
     'x': 0,
@@ -49,7 +57,6 @@ def main(args=None):
 
     RESET = True
 
-    DIR = os.path.dirname(os.path.join(os.getcwd(), os.path.dirname(sys.argv[0])))
     MODELDIR = os.path.join(DIR, 'ros_ctrl_models', 'blimp_narrow.ttm')
     SCENEDIR = os.path.join(DIR, 'scenes', 'empty.ttt')
 
@@ -79,9 +86,9 @@ def main(args=None):
     sim.startSimulation()
     test = np.array([.0, .0, .05, np.pi])
     f = 1.
-    i=0
-    while (not RECCY) or (i<500): # either permanently run, or record a few positions
-        i+=1
+    i = 0
+    while (not RECCY) or (i < 500):  # either permanently run, or record a few positions
+        i += 1
         rclpy.spin_once(NODE, timeout_sec=0.01)
 
         msgTwist = Twist()
@@ -109,8 +116,8 @@ def main(args=None):
     for i in range(len(VEL) - 1):
         ACC.append((VEL[i + 1] - VEL[i])/DT)
     # ACC=ACC[-50:]
-    CONTROL = VEL # we are looking at velocity controls
-    fun = lambda v: v[2] # we are looking at the z direction
+    CONTROL = VEL  # we are looking at velocity controls
+    fun = lambda v: v[2]  # we are looking at the z direction
     fun = None
 
     if fun is None:

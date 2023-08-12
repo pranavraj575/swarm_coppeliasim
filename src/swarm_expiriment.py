@@ -15,7 +15,7 @@ TOPIC_NAMES = dict()
 with  open(msgfile) as f:
     r = [t.split('=') for t in f.read().strip().split('\n') if '=' in t]
     for key, item in r:
-        TOPIC_NAMES[key.strip()] = item.strip().replace("'", '')
+        TOPIC_NAMES[key.strip()] = item.strip().strip("'")
 
 frictionless_wall_path = os.path.join(DIR, 'scenes', 'FrictionlessWallClimb.ttt')
 wall_climb_path = os.path.join(DIR, 'scenes', 'WallClimb.ttt')
