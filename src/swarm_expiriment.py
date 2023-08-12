@@ -6,6 +6,8 @@ import numpy as np
 from geometry_msgs.msg import Twist, TwistStamped
 from std_msgs.msg import Float64
 
+from CONFIG import *
+
 DIR = os.path.dirname(os.path.join(os.getcwd(), os.path.dirname(sys.argv[0])))
 
 msgfile = os.path.join(DIR, 'lua', 'rosMsg.lua')
@@ -27,8 +29,6 @@ empty_path = os.path.join(DIR, 'scenes', 'empty.ttt')
 narrow_blimp_path = os.path.join(DIR, 'ros_ctrl_models', 'blimp_narrow.ttm')
 anki_path = os.path.join(DIR, 'ros_ctrl_models', 'anki_visionless.ttm')
 quad_path = os.path.join(DIR, 'ros_ctrl_models', 'quad_copter.ttm')
-
-COPPELIA_WAKEUP = '~/Downloads/CoppeliaSim_Edu_V4_3_0_rev12_Ubuntu20_04/coppeliaSim.sh'
 
 
 class Experiment:
