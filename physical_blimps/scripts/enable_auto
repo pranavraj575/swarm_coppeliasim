@@ -1,3 +1,0 @@
-sudo cp stream /etc/init.d/stream
-sudo chmod +x /etc/init.d/stream
-sudo update-rc.d stream defaults
