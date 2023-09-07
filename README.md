@@ -9,7 +9,7 @@ Used for making swarm experiments for blimps/other in Coppeliasim. experiments u
     Tested with [version 4.3.0 rev 12](https://www.coppeliarobotics.com/files/CoppeliaSim_Edu_V4_3_0_rev12_Ubuntu20_04.tar.xz) on Ubuntu 20.04
     
     We left the extracted folder in the ```~/Downloads``` folder.
-    If you need to change this, you should update line 16 in ```/src/swarm_experiments.py```
+    If you need to change this, you should update line 16 in ```/src/swarm_expiriments.py```
 
     Example setup:
     ```bash
@@ -158,7 +158,7 @@ Used for making swarm experiments for blimps/other in Coppeliasim. experiments u
 
   Run the following file from the ```swarm_coppeliasim``` directory
   ```bash
-  python3 src/swarm_experiment.py
+  python3 src/swarm_expiriment.py
   ```
   This test will load a scene, load a swarm of agents in different positions, and begin the simulation, giving each agent a basic command
 
