@@ -187,3 +187,9 @@ Used for making swarm experiments for blimps/other in Coppeliasim. experiments u
   This should open an instance of coppeliasim. A maze will be generated using pymaze, and the walls will be spawned into the simulation. 5 blimps will be spawned into the environment "start cell", and the simulation will start. Each blimp will start heading down towards the exit cell, probably not making it since the command is just 'go south'
 
   This experiment will be run twice, and the 'goal data' will be printed for each experiment at the end of the script. The output is defined in ```src/maze_blimps``` under ```AmazingBlimp.goal_data```
+
+## Results
+* ### Anki Area Coverage Evolutionary Training
+  ![](https://github.com/pranavraj575/swarm_coppeliasim/blob/master/evolution/checkpoints/10_anki_area_coverage/plots/anki_area.gif)
+* ### GT-MAB Area Coverage Evolutionary Training
+  ![](https://github.com/pranavraj575/swarm_coppeliasim/blob/master/evolution/checkpoints/20_blimp_0_obstacle_area_coverage_wall_sense/plots/area_coverage_gen30.gif)
