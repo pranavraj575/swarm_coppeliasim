@@ -189,11 +189,11 @@ Used for making swarm experiments for blimps/other in Coppeliasim. experiments u
   This experiment will be run twice, and the 'goal data' will be printed for each experiment at the end of the script. The output is defined in ```src/maze_blimps``` under ```AmazingBlimp.goal_data```
 
 ## Results
-* ### Anki Area Coverage Evolutionary Training
+* ### Anki Area Coverage Evolved Policy
   ![](https://github.com/pranavraj575/swarm_coppeliasim/blob/master/evolution/checkpoints/10_anki_area_coverage/plots/anki_area.gif)
-* ### GT-MAB Area Coverage Evolutionary Training
+* ### GT-MAB Area Coverage Evolved Policy
   ![](https://github.com/pranavraj575/swarm_coppeliasim/blob/master/evolution/checkpoints/20_blimp_0_obstacle_area_coverage_wall_sense/plots/area_coverage_gen30.gif)
-* ### GT-MAB Wall Climb Evolutionary Training
+* ### GT-MAB Wall Climb Evolved Policy
   ![](https://github.com/pranavraj575/swarm_coppeliasim/blob/master/evolution/checkpoints/20_blimp_height_0_8_to_1_2_wall_climb_neighbor_rng_5_0/plots/wall_climb.gif)
-* ### GT-MAB Obstacle Surround Evolutionary Training
+* ### GT-MAB Obstacle Surround Evolved Policy
   ![](https://github.com/pranavraj575/swarm_coppeliasim/blob/master/evolution/checkpoints/6_blimp_1_cylinder_obstacle_surround_range_4_0/plots/spinny_cylinder.gif)
