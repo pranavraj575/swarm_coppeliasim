@@ -1,6 +1,9 @@
 # Swarm Coppeliasim
-Used for making swarm experiments for blimps/other in Coppeliasim. experiments using the NEAT evolutionary algorithm are under ```\evolution```. 
-```\pymaze``` contains a modified version of the [pymaze](https://github.com/jostbr/pymaze) github. Tested on Ubuntu 20.04 with Python 3.8
+Used for making swarm experiments for blimps/other swarms in Coppeliasim. Experiments using the NEAT evolutionary algorithm are under ```\evolution```. 
+
+Tested on Ubuntu 20.04 with Python 3.8.
+
+```\pymaze``` contains a modified version of the [pymaze](https://github.com/jostbr/pymaze) github. 
 
 ## Installation
 
