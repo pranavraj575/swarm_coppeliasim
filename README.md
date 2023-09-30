@@ -1,5 +1,5 @@
 # Swarm Coppeliasim
-Used for making swarm experiments for blimps/other swarms in Coppeliasim. Experiments using the NEAT evolutionary algorithm are under ```\evolution```. 
+Used for making swarm experiments for blimps/other swarms in Coppeliasim. Experiments using the NEAT evolutionary algorithm (this [project](https://arxiv.org/abs/2309.14663)) are under ```\evolution```. 
 
 Tested on Ubuntu 20.04 with Python 3.8.
 
