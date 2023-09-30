@@ -328,5 +328,5 @@ if __name__ == "__main__":
     if not os.path.exists(aggregation_dir):
         os.makedirs(aggregation_dir)
 
-    auto_plotter_hardly_know_her(chkpt_dir)
+    auto_plotter_hardly_know_her(chkpt_dir,gen_cap=-1)
     aggregate_plots(chkpt_dir, aggregation_dir)
