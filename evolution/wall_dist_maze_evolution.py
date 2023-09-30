@@ -8,6 +8,8 @@ PARSER.description = "for creating and running maze evolutionary experiments wit
 
 PARSER.add_argument("--end_time", type=float, required=False, default=60.,
                     help="time to end the experiment")
+PARSER.add_argument("--aggregation", action='store', required=False, default='min',
+                    help="aggregation function to use on the trials")
 
 PARSER.add_argument("--height", type=int, required=False, default=6,
                     help="height of maze")
@@ -17,6 +19,11 @@ PARSER.add_argument("--width", type=int, required=False, default=6,
 args = PARSER.parse_args()
 check_basic(args=args)
 
+agg=args.aggregation
+if agg=='min':
+  aggy=min
+else:
+  raise Exception(agg+" not valid aggregation fn")
 AGENTS = args.agents
 END = args.end_time
 H = args.height
@@ -109,6 +116,7 @@ def expe_make(net, sim=None, port=23000, wakeup=None):
                                              blimpPath=narrow_blimp_path,
                                              networkfn=net.activate,
                                              end_time=END,
+                                             aggregation=aggy,
                                              start_squares=3,
                                              grid_size=2,
                                              maze_entry_gen=make_maze,
@@ -164,7 +172,7 @@ def optimal_policy(inputs):
     return (vec + 1)/2  # since we need to output on [0,1]
 
 
-save_name = str(AGENTS) + '_blimp_' + str(H) + 'x' + str(W) + 'maze_dist_wall_sensing'
+save_name = str(AGENTS) + '_blimp_' + str(H) + 'x' + str(W) + 'maze_dist_wall_sensing_'+"trials_"+str(args.trials)+"_aggregation_"+agg
 config_name = 'blimp_maze_wall_sense'
 
 experiment_handler(args=args,
