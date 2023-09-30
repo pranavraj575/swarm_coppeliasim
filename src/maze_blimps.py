@@ -1092,6 +1092,7 @@ class wall_dist_sense_max_amazing_blimp(maxAmazingBlimp):
                  wall_spawn_height,
                  end_time,
                  start_squares,
+                 aggregation=min,
                  cover_dir=os.path.join(DIR, 'models', 'covers'),
                  height_factor=.2,
                  sim=None,
@@ -1120,6 +1121,7 @@ class wall_dist_sense_max_amazing_blimp(maxAmazingBlimp):
         @param wall_spawn_height: height to spawn wall
         @param end_time: time to end experiment
         @param start_squares: number of squares for the starting area
+        @param aggregation: aggregation function for the case of multiple trials
         @param cover_dir: directory for lid of maze, None if no lid
             files should look like '5x5.ttm'
         @param height_factor: factor to multiply height adjust by
@@ -1151,7 +1153,21 @@ class wall_dist_sense_max_amazing_blimp(maxAmazingBlimp):
                          wakeup=wakeup,
                          sleeptime=sleeptime,
                          spawn_tries=spawn_tries)
+        self.aggregation=aggregation
 
+    ####################################################################################################################
+    # experiment functions
+    ####################################################################################################################
+    def experiments(self, trials):
+        """
+        runs multiple experiments, resetting scene at start of each one
+
+        @param trials: number of experiments to run
+        @return: returns list of results of self.goal_data for each trial
+        """
+        original=super().experiments(trials)
+        if original==None: return original
+        return [self.aggregation(original) for _ in range(trials)]
     ####################################################################################################################
     # network functions
     ####################################################################################################################
